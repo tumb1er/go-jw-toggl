@@ -1,0 +1,5 @@
+github.com/dawidd6/go-appindicator v0.0.0-20190913173241-21b44adc5189 h1:zsNsbxNNU3sxXZAkrTxgEi7zrvYkp2fn6+n/5eD6nio=
+github.com/dawidd6/go-appindicator v0.0.0-20190913173241-21b44adc5189/go.mod h1:DEv1UOvkvgLxH8qFpNoDBBXwJ2XkJSOOii9XUEsAVLo=
+github.com/gotk3/gotk3 v0.0.0-20190504080859-ff571eb317ac/go.mod h1:Eew3QBwAOBTrfFFDmsDE5wZWbcagBL1NUslj1GhRveo=
+github.com/gotk3/gotk3 v0.0.0-20200103101635-d3629b451bb5 h1:FEketUKKSYVEM7KBQmhXmZCRu2udwsRuiy8uoyN9gUE=
+github.com/gotk3/gotk3 v0.0.0-20200103101635-d3629b451bb5/go.mod h1:Eew3QBwAOBTrfFFDmsDE5wZWbcagBL1NUslj1GhRveo=
