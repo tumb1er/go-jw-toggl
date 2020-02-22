@@ -26,3 +26,7 @@ func (db *DB) SyncCurrentEntry() error {
 	db.Entry = entry
 	return nil
 }
+
+func (db DB) GetCurrentEntry() *gttimeentry.TimeEntry {
+	return db.Entry
+}
