@@ -3,6 +3,7 @@ package jwtoggl
 import (
 	"context"
 	"github.com/dawidd6/go-appindicator"
+	gttimeentry "github.com/tumb1er/gtoggl-api/gttimentry"
 	"log"
 	"time"
 )
@@ -10,6 +11,8 @@ import (
 func (j *jApp) periodicSync(ctx context.Context) {
 	log.Println("Start periodic sync")
 	t := time.NewTicker(time.Second * 10)
+	j.db.Subscribe(ctx)
+	j.db.OnCurrentEntry(j.onCurrentEntryChanged)
 	j.syncCurrentEntry()
 	for {
 		select {
@@ -25,28 +28,22 @@ func (j *jApp) periodicSync(ctx context.Context) {
 func (j *jApp) syncCurrentEntry() {
 	log.Println("start sync")
 	defer log.Println("sync done")
-	prev := j.db.GetCurrentEntry()
 	if err := j.db.SyncCurrentEntry(); err != nil {
 		log.Println("Sync current entry error:", err)
-	} else {
-		e := j.db.GetCurrentEntry()
-		if e == nil {
-			if prev != nil {
-				j.showNotification("JW Toggl", "Timer stopped")
-				j.indicator.SetLabel("", "")
-				j.indicator.SetStatus(appindicator.StatusActive)
-				j.indicator.SetIcon("/home/tumbler/GolandProjects/go-jw-toggl/toggl_bw.png")
-			}
-			return
-		} else {
-			if prev == nil || prev.Description != e.Description {
-				j.indicator.SetStatus(appindicator.StatusAttention)
-				j.indicator.SetLabel(shorten(e.Description), "Guid")
-				j.indicator.SetIconFull("/home/tumbler/GolandProjects/go-jw-toggl/toggl.png", "Descr")
-				j.showNotification("JW Toggl", e.Description)
-			}
-		}
+	}
+}
 
+func (j *jApp) onCurrentEntryChanged(entry *gttimeentry.TimeEntry) {
+	if entry == nil {
+		j.showNotification("JW Toggl", "Timer stopped")
+		j.indicator.SetLabel("", "")
+		j.indicator.SetStatus(appindicator.StatusActive)
+		j.indicator.SetIcon("/home/tumbler/GolandProjects/go-jw-toggl/toggl_bw.png")
+	} else {
+		j.indicator.SetStatus(appindicator.StatusAttention)
+		j.indicator.SetLabel(shorten(entry.Description), "Guid")
+		j.indicator.SetIconFull("/home/tumbler/GolandProjects/go-jw-toggl/toggl.png", "Descr")
+		j.showNotification("JW Toggl", entry.Description)
 	}
 }
 

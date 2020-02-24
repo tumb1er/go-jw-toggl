@@ -1,8 +1,12 @@
 package jwtoggl
 
-import gttimeentry "github.com/tumb1er/gtoggl-api/gttimentry"
+import (
+	"context"
+	"go-jw-toggl/jwtoggl/db"
+)
 
 type DB interface {
 	SyncCurrentEntry() error
-	GetCurrentEntry() *gttimeentry.TimeEntry
+	OnCurrentEntry(callback db.OnCurrentEntryCallback)
+	Subscribe(ctx context.Context)
 }
