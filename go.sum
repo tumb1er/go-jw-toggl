@@ -46,6 +46,8 @@ github.com/google/go-cmp v0.2.0/go.mod h1:oXzfMopK8JAjlY9xF4vHSVASa0yLyX7SntLO5a
 github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=
 github.com/gorilla/websocket v1.4.0 h1:WDFjx/TMzVgy9VdMMQi2K2Emtwi2QcUQsztZ/zLaH/Q=
 github.com/gorilla/websocket v1.4.0/go.mod h1:E7qHFY5m1UJ88s3WnNqhKjPHQ0heANvMoAMk2YaljkQ=
+github.com/gorilla/websocket v1.4.1 h1:q7AeDBpnBk8AogcD4DSag/Ukw/KV+YhzLj2bP5HvKCM=
+github.com/gorilla/websocket v1.4.1/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/gotk3/gotk3 v0.0.0-20190504080859-ff571eb317ac/go.mod h1:Eew3QBwAOBTrfFFDmsDE5wZWbcagBL1NUslj1GhRveo=
 github.com/gotk3/gotk3 v0.0.0-20200103101635-d3629b451bb5 h1:FEketUKKSYVEM7KBQmhXmZCRu2udwsRuiy8uoyN9gUE=
 github.com/gotk3/gotk3 v0.0.0-20200103101635-d3629b451bb5/go.mod h1:Eew3QBwAOBTrfFFDmsDE5wZWbcagBL1NUslj1GhRveo=
@@ -112,8 +114,8 @@ github.com/tumb1er/gtoggl v0.0.0-20200222085913-860819b273be h1:Md+SRm+zhtUb3XZw
 github.com/tumb1er/gtoggl v0.0.0-20200222085913-860819b273be/go.mod h1:1RdhJzjStsG7NKKsduypTPEvN3dJT+evE0QB66bjIf4=
 github.com/tumb1er/gtoggl-api v0.0.0-20200222085406-a10574c32b4b h1:BBezmrfjWmr7dgrNibWUkaN5JDbCg7dddvznVxlkYcU=
 github.com/tumb1er/gtoggl-api v0.0.0-20200222085406-a10574c32b4b/go.mod h1:kiDyYJZWqgf9+kax6czRIKriCa2L0hbWIxI2rzy3Gog=
-github.com/tumb1er/gtoggl-api v0.0.0-20200222090043-b830bde02f23 h1:PagjWRa2MFMUzPNwzXVMw81GFz71GLVu52rtC3HjDto=
-github.com/tumb1er/gtoggl-api v0.0.0-20200222090043-b830bde02f23/go.mod h1:kiDyYJZWqgf9+kax6czRIKriCa2L0hbWIxI2rzy3Gog=
+github.com/tumb1er/gtoggl-api v0.0.0-20200224085226-e7debd640665 h1:Nzcbd188FkKmr5QzdHSsaHwn3buaW5UrlQuhzxN0/P0=
+github.com/tumb1er/gtoggl-api v0.0.0-20200224085226-e7debd640665/go.mod h1:XZ6Ep6sfH4o/rgDHqNwIJcjdGzbOC26OGXV7P6UxbXI=
 github.com/ugorji/go v1.1.4/go.mod h1:uQMGLiO92mf5W77hV/PUCpI3pbzQx3CRekS0kk+RGrc=
 github.com/urfave/cli v1.22.2/go.mod h1:Gos4lmkARVdJ6EkW0WaNv/tZAAMe9V7XWyB60NtXRu0=
 github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q53MR2AWcXfiuqkDkRtnGDLqkBTpCHuJHxtU=

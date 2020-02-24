@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/tumb1er/gtoggl"
 	"github.com/tumb1er/gtoggl-api/gttimentry"
-	"go-jw-toggl/jwtoggl/gtws"
+	"github.com/tumb1er/gtoggl-api/gtwebsocket"
 	"log"
 )
 
@@ -13,7 +13,7 @@ type OnCurrentEntryCallback func(entry *gttimeentry.TimeEntry)
 
 type DB struct {
 	client *gtoggl.TogglClient
-	sub    *gtws.TogglWebsocketClient
+	sub    *gtwebsocket.TogglWebsocketClient
 	Entry  *gttimeentry.TimeEntry
 
 	onCurrentEntry OnCurrentEntryCallback
@@ -24,7 +24,7 @@ func NewDB(token string) (*DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	sub, err := gtws.NewClient(token)
+	sub, err := gtwebsocket.NewClient(token)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +53,7 @@ func (db *DB) Subscribe(ctx context.Context) {
 }
 
 func (db *DB) onTimeEntryAction(action string, entry gttimeentry.TimeEntry) error {
-	if action == gtws.ActionInsert {
+	if action == gtwebsocket.ActionInsert {
 
 		if entry.Stop.IsZero() {
 			log.Println("INSERT new running entry")
@@ -67,7 +67,7 @@ func (db *DB) onTimeEntryAction(action string, entry gttimeentry.TimeEntry) erro
 		}
 	}
 
-	if action == gtws.ActionDelete {
+	if action == gtwebsocket.ActionDelete {
 		if entry.Stop.IsZero() {
 			log.Println("DELETE running entry")
 			// Currently running entry is completely deleted.
@@ -81,7 +81,7 @@ func (db *DB) onTimeEntryAction(action string, entry gttimeentry.TimeEntry) erro
 		}
 	}
 
-	if action == gtws.ActionUpdate {
+	if action == gtwebsocket.ActionUpdate {
 		if db.Entry == nil {
 			// No current entry, but updated one may be current
 			if entry.Stop.IsZero() {
