@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"fmt"
 	"github.com/tumb1er/gtoggl"
 	"github.com/tumb1er/gtoggl-api/gttimentry"
 	"go-jw-toggl/jwtoggl/gtws"
@@ -53,12 +54,70 @@ func (db *DB) Subscribe(ctx context.Context) {
 
 func (db *DB) onTimeEntryAction(action string, entry gttimeentry.TimeEntry) error {
 	if action == gtws.ActionInsert {
-		log.Println("INSERT")
+
 		if entry.Stop.IsZero() {
+			log.Println("INSERT new running entry")
 			// New time entry started, replacing current.
 			db.Entry = &entry
 			db.onCurrentEntry(db.Entry)
+			return nil
+		} else {
+			// Inserted entry directly to history - is it possible?
+			return fmt.Errorf("can't handle insert to history: %+v", entry)
 		}
 	}
-	return nil
+
+	if action == gtws.ActionDelete {
+		if entry.Stop.IsZero() {
+			log.Println("DELETE running entry")
+			// Currently running entry is completely deleted.
+			db.Entry = nil
+			db.onCurrentEntry(nil)
+			return nil
+		} else {
+			// Deleted historical entry
+			// TODO: delete entry from local history
+			return nil
+		}
+	}
+
+	if action == gtws.ActionUpdate {
+		if db.Entry == nil {
+			// No current entry, but updated one may be current
+			if entry.Stop.IsZero() {
+				db.Entry = &entry
+				db.onCurrentEntry(db.Entry)
+				return nil
+			} else {
+				// Entry is stopped, it is history update
+				// TODO: update entry in local history
+				return nil
+			}
+		}
+		if db.Entry.Id == entry.Id {
+			// Updating current entry
+			if !entry.Stop.IsZero() {
+				// Entry is stopped, cleaning current entry
+				db.Entry = nil
+				db.onCurrentEntry(nil)
+			} else {
+				// Current entry is updated
+				db.Entry = &entry
+				db.onCurrentEntry(db.Entry)
+			}
+		} else {
+			// Updated entry is different from current one. Checking if it is current
+			if entry.Stop.IsZero() {
+				// Current entry is updated
+				db.Entry = &entry
+				db.onCurrentEntry(db.Entry)
+				return nil
+			} else {
+				// Updated entry in history
+				// TODO: update entry in history
+				return nil
+			}
+		}
+	}
+	return fmt.Errorf("unhandled action: %s", action)
 }
