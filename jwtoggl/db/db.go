@@ -82,41 +82,20 @@ func (db *DB) onTimeEntryAction(action string, entry gttimeentry.TimeEntry) erro
 	}
 
 	if action == gtwebsocket.ActionUpdate {
-		if db.Entry == nil {
-			// No current entry, but updated one may be current
-			if entry.Stop.IsZero() {
-				db.Entry = &entry
-				db.onCurrentEntry(db.Entry)
-				return nil
-			} else {
-				// Entry is stopped, it is history update
-				// TODO: update entry in local history
-				return nil
-			}
+		if entry.Stop.IsZero() {
+			// Current entry is updated
+			db.Entry = &entry
+			db.onCurrentEntry(db.Entry)
+			return nil
 		}
-		if db.Entry.Id == entry.Id {
-			// Updating current entry
-			if !entry.Stop.IsZero() {
-				// Entry is stopped, cleaning current entry
-				db.Entry = nil
-				db.onCurrentEntry(nil)
-			} else {
-				// Current entry is updated
-				db.Entry = &entry
-				db.onCurrentEntry(db.Entry)
-			}
+		if db.Entry != nil && db.Entry.Id == entry.Id {
+			// Updating current entry, and it's stopped
+			db.Entry = nil
+			db.onCurrentEntry(nil)
+			return nil
 		} else {
-			// Updated entry is different from current one. Checking if it is current
-			if entry.Stop.IsZero() {
-				// Current entry is updated
-				db.Entry = &entry
-				db.onCurrentEntry(db.Entry)
-				return nil
-			} else {
-				// Updated entry in history
-				// TODO: update entry in history
-				return nil
-			}
+			// TODO: Update entry in local history
+			return nil
 		}
 	}
 	return fmt.Errorf("unhandled action: %s", action)
