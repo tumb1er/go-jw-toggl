@@ -42,11 +42,6 @@ func (j *jApp) onToggle() {
 	log.Println("onToggle")
 	visible := j.window.GetVisible()
 	j.window.SetVisible(!visible)
-	if visible {
-		j.showHide.SetLabel("Show")
-	} else {
-		j.showHide.SetLabel("Hide")
-	}
 }
 
 func (j *jApp) onExit() {
