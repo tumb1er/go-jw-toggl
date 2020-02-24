@@ -3,7 +3,7 @@ package jwtoggl
 import (
 	"context"
 	"github.com/dawidd6/go-appindicator"
-	gttimeentry "github.com/tumb1er/gtoggl-api/gttimentry"
+	"github.com/tumb1er/gtoggl-api/gttimentry"
 	"log"
 	"time"
 )
@@ -11,8 +11,8 @@ import (
 func (j *jApp) periodicSync(ctx context.Context) {
 	log.Println("Start periodic sync")
 	t := time.NewTicker(time.Second * 10)
-	j.db.Subscribe(ctx)
 	j.db.OnCurrentEntry(j.onCurrentEntryChanged)
+	j.db.StartListen(ctx)
 	j.syncCurrentEntry()
 	for {
 		select {

@@ -8,5 +8,5 @@ import (
 type DB interface {
 	SyncCurrentEntry() error
 	OnCurrentEntry(callback db.OnCurrentEntryCallback)
-	Subscribe(ctx context.Context)
+	StartListen(ctx context.Context)
 }

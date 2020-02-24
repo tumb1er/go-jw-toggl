@@ -47,7 +47,7 @@ func (db *DB) SyncCurrentEntry() error {
 	return nil
 }
 
-func (db *DB) Subscribe(ctx context.Context) {
+func (db *DB) StartListen(ctx context.Context) {
 	db.sub.OnTimeEntryAction(db.onTimeEntryAction)
 	go db.sub.Listen(ctx)
 }
