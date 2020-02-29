@@ -110,6 +110,10 @@ github.com/throttled/throttled v2.2.4+incompatible/go.mod h1:0BjlrEGQmvxps+HuXLs
 github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5/go.mod h1:ncp9v5uamzpCO7NfCPTXjqaC+bZgJeR0sMTm6dMHP7U=
 github.com/tumb1er/go-notifier v0.0.0-20191121093828-08edf67bb083 h1:lcYEt872LcZ9ap6vadzgZ/TKw9UVPmwc772zRKMVTMA=
 github.com/tumb1er/go-notifier v0.0.0-20191121093828-08edf67bb083/go.mod h1:H0Pr3+m6PetfimU5n4r8ycCPlLLa/YuLfGHa/WyzjV8=
+github.com/tumb1er/go-notifier v0.0.0-20200229082936-e65e881b6a59 h1:YcYoXYgYTglIVTh53iHTGVhToyyN+u5BVr3eedTbtxU=
+github.com/tumb1er/go-notifier v0.0.0-20200229082936-e65e881b6a59/go.mod h1:H0Pr3+m6PetfimU5n4r8ycCPlLLa/YuLfGHa/WyzjV8=
+github.com/tumb1er/go-notifier v0.0.0-20200229083107-bd67cb282113 h1:+msupM7GqxjQH3VJkyDv0EOhvSL6ipRYP98rA2J9EgE=
+github.com/tumb1er/go-notifier v0.0.0-20200229083107-bd67cb282113/go.mod h1:H0Pr3+m6PetfimU5n4r8ycCPlLLa/YuLfGHa/WyzjV8=
 github.com/tumb1er/gtoggl v0.0.0-20200222085913-860819b273be h1:Md+SRm+zhtUb3XZwagbtp57COhDHqZJEd+AfUOYPbUc=
 github.com/tumb1er/gtoggl v0.0.0-20200222085913-860819b273be/go.mod h1:1RdhJzjStsG7NKKsduypTPEvN3dJT+evE0QB66bjIf4=
 github.com/tumb1er/gtoggl v0.0.0-20200229073508-12c2b279d471 h1:/74nhM4o5CE3/9DEesjDB7IRFZtUoFyWjAJLmJTth+k=

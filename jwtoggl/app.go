@@ -21,7 +21,7 @@ type jApp struct {
 	indicator *appindicator.Indicator
 	window    *gtk.ApplicationWindow
 	menu      *gtk.Menu
-	showHide  *gtk.MenuItem
+	menuNew   *gtk.MenuItem
 	db        DB
 	ctx       context.Context
 	cancel    context.CancelFunc
@@ -30,12 +30,6 @@ type jApp struct {
 
 func (j *jApp) Run(args []string) int {
 	return j.app.Run(args)
-}
-
-func (j *jApp) showNotification(title, body string) {
-	if err := j.popup.Update("", title, body); err != nil {
-		log.Println("Can't show popup:", err)
-	}
 }
 
 func (j *jApp) onToggle() {
@@ -53,9 +47,9 @@ func (j *jApp) onExit() {
 func (j *jApp) onActivate() {
 	builder := NewBuilder()
 	j.menu = builder.GetMenu()
-	j.showHide = builder.GetShowMenuItem()
+	j.menuNew = builder.GetMenuItemNew()
 	j.window = builder.GetMainWindow()
-	j.indicator = NewIndicator(j.menu, j.showHide)
+	j.indicator = NewIndicator(j.menu, j.menuNew)
 	j.initMenu(builder)
 	j.app.AddWindow(j.window)
 	j.showNotification("Hello", "JW Toggl started")
@@ -73,7 +67,7 @@ func NewApp() *jApp {
 		log.Fatal("Could not create DB:", err)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	popup, err := notifier.NewNotifier("/home/tumbler/GolandProjects/go-jw-toggl/toggl.png")
+	popup, err := notifier.NewNotifier(getIconPath(TogglIcon))
 	if err != nil {
 		log.Fatal("Could not create popup:", err)
 	}

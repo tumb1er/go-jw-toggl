@@ -35,17 +35,23 @@ func (j *jApp) syncCurrentEntry() {
 
 func (j *jApp) onCurrentEntryChanged(entry *gttimeentry.TimeEntry) {
 	if entry == nil {
-		j.showNotification("JW Toggl", "Timer stopped")
-		j.indicator.SetLabel("", "")
-		j.indicator.SetStatus(appindicator.StatusActive)
-		j.indicator.SetIcon("/home/tumbler/GolandProjects/go-jw-toggl/toggl_bw.png")
-		j.showHide.SetLabel("New...")
+		j.UpdateCurrentEntry(CurrentEntryInfo{
+			Title:  "JW Toggl",
+			Body:   "Timer stopped",
+			Label:  " Work!",
+			Status: appindicator.StatusActive,
+			Icon:   TogglIconBW,
+			Menu:   "New...",
+		})
 	} else {
-		j.indicator.SetStatus(appindicator.StatusAttention)
-		j.indicator.SetLabel(shorten(entry.Description), "Guid")
-		j.indicator.SetIcon("/home/tumbler/GolandProjects/go-jw-toggl/toggl.png")
-		j.showHide.SetLabel(entry.Description)
-		j.showNotification("JW Toggl", entry.Description)
+		j.UpdateCurrentEntry(CurrentEntryInfo{
+			Title:  "JW Toggl",
+			Body:   entry.Description,
+			Label:  shorten(entry.Description),
+			Status: appindicator.StatusAttention,
+			Icon:   TogglIcon,
+			Menu:   entry.Description,
+		})
 	}
 }
 

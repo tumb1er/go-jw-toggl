@@ -8,9 +8,9 @@ import (
 )
 
 const (
-	trayMenuId   = "tray_menu"
-	menuShowHide = "menu_show_hide"
-	mainWindow   = "main_window"
+	trayMenuId = "tray_menu"
+	menuNew    = "menu_new"
+	mainWindow = "main_window"
 )
 
 type builder struct {
@@ -43,10 +43,10 @@ func (b *builder) GetMainWindow() *gtk.ApplicationWindow {
 	}
 }
 
-func (b *builder) GetShowMenuItem() *gtk.MenuItem {
-	obj, err := b.builder.GetObject(menuShowHide)
+func (b *builder) GetMenuItemNew() *gtk.MenuItem {
+	obj, err := b.builder.GetObject(menuNew)
 	if err != nil {
-		log.Fatal("Could not get show menu item:", err)
+		log.Fatal("Could not get new menu item:", err)
 	}
 	if ret, ok := obj.(*gtk.MenuItem); !ok {
 		log.Fatal("MenuItem cast error: %T", obj)
