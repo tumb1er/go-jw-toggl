@@ -3,6 +3,7 @@ package jwtoggl
 import (
 	"fmt"
 	"github.com/gotk3/gotk3/gdk"
+	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
@@ -108,17 +109,44 @@ func (f *EntryForm) SetTags(tags gttag.Tags) error {
 }
 
 func (j *jApp) onStartStopClicked() {
-	it, err := j.form.project.GetActiveIter()
-	if err != nil {
-		log.Fatal(err)
+	var it *gtk.TreeIter
+	var err error
+	var glibValue *glib.Value
+	var goValue interface{}
+	var projectId, tagId uint64
+	var description string
+	if it, err = j.form.project.GetActiveIter(); err != nil {
+		log.Fatal("Can't get active project iter:", err)
 	}
-	v, err := j.form.projectsListStore.GetValue(it, 0)
-	if err != nil {
-		log.Fatal(err)
+	if glibValue, err = j.form.projectsListStore.GetValue(it, 0); err != nil {
+		log.Fatal("Can't get project value from store", err)
 	}
-	projectId, err := v.GoValue()
-	if err != nil {
-		log.Fatal(err)
+	if goValue, err = glibValue.GoValue(); err != nil {
+		log.Fatal("Can't get go value from glib", err)
 	}
-	log.Printf("Clicked: %+v", projectId)
+	if v, ok := goValue.(uint64); !ok {
+		log.Fatalf("Can't cast projectId: %+v\n", v)
+	} else {
+		projectId = v
+	}
+
+	if it, err = j.form.tag.GetActiveIter(); err != nil {
+		log.Fatal("Can't get active tag iter:", err)
+	}
+	if glibValue, err = j.form.tagsListStore.GetValue(it, 0); err != nil {
+		log.Fatal("Can't get tag value from store", err)
+	}
+	if goValue, err = glibValue.GoValue(); err != nil {
+		log.Fatal("Can't get go value from glib", err)
+	}
+	if v, ok := goValue.(uint64); !ok {
+		log.Fatalf("Can't cast tagId: %+v\n", v)
+	} else {
+		tagId = v
+	}
+	if description, err = j.form.description.GetText(); err != nil {
+		log.Fatal("Can't get description:", err)
+	}
+
+	log.Printf("Clicked: project %d tag %d description %s", projectId, tagId, description)
 }
