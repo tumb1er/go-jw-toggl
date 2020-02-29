@@ -54,7 +54,7 @@ func (j *jApp) onActivate() {
 	builder := NewBuilder()
 	j.menu = builder.GetMenu()
 	j.showHide = builder.GetShowMenuItem()
-	j.window = builder.GetEntryListWindow()
+	j.window = builder.GetMainWindow()
 	j.indicator = NewIndicator(j.menu, j.showHide)
 	j.initMenu(builder)
 	j.app.AddWindow(j.window)

@@ -8,9 +8,9 @@ import (
 )
 
 const (
-	trayMenuId = "tray_menu"
+	trayMenuId   = "tray_menu"
 	menuShowHide = "menu_show_hide"
-	entryListWindow = "entry_list_window"
+	mainWindow   = "main_window"
 )
 
 type builder struct {
@@ -30,8 +30,8 @@ func (b *builder) GetMenu() *gtk.Menu {
 	}
 }
 
-func (b *builder) GetEntryListWindow() *gtk.ApplicationWindow {
-	obj, err := b.builder.GetObject(entryListWindow)
+func (b *builder) GetMainWindow() *gtk.ApplicationWindow {
+	obj, err := b.builder.GetObject(mainWindow)
 	if err != nil {
 		log.Fatal("Could not get entry list window:", err)
 	}
