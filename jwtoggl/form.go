@@ -1,9 +1,12 @@
 package jwtoggl
 
 import (
+	"fmt"
+	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/gtk"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
+	"image/color"
 	"log"
 )
 
@@ -72,9 +75,18 @@ func NewEntryForm(b *builder) (*EntryForm, error) {
 func (f *EntryForm) SetProjects(projects gtproject.Projects) error {
 	ls := f.projectsListStore
 	ls.Clear()
+	cols := []int{0, 1, 2}
+	var c color.RGBA
 	for _, project := range projects {
 		it := ls.Append()
-		if err := ls.Set(it, []int{0, 1}, []interface{}{project.Id, project.Name}); err != nil {
+		_, err := fmt.Sscanf(project.HexColor, "#%02x%02x%02x", &c.R, &c.G, &c.B)
+		if err != nil {
+			return err
+		}
+		html := fmt.Sprintf("<span foreground=\"%s\">%s</span>", project.HexColor, project.Name)
+		values := []interface{}{project.Id, html, *gdk.NewRGBA(
+			float64(c.R), float64(c.G), float64(c.B), float64(c.A))}
+		if err := ls.Set(it, cols, values); err != nil {
 			return err
 		}
 	}
@@ -84,9 +96,11 @@ func (f *EntryForm) SetProjects(projects gtproject.Projects) error {
 func (f *EntryForm) SetTags(tags gttag.Tags) error {
 	ls := f.tagsListStore
 	ls.Clear()
+	cols := []int{0, 1}
 	for _, tag := range tags {
 		it := ls.Append()
-		if err := ls.Set(it, []int{0, 1}, []interface{}{tag.Id, tag.Name}); err != nil {
+		values := []interface{}{tag.Id, tag.Name}
+		if err := ls.Set(it, cols, values); err != nil {
 			return err
 		}
 	}

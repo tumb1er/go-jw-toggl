@@ -20,6 +20,8 @@
       <column type="guint64"/>
       <!-- column-name Name -->
       <column type="gchararray"/>
+      <!-- column-name Color -->
+      <column type="GdkRGBA"/>
     </columns>
   </object>
   <object class="GtkListStore" id="tags_list_store">
@@ -82,11 +84,16 @@
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="model">projects_list_store</property>
-                        <property name="id_column">0</property>
                         <child>
                           <object class="GtkCellRendererText" id="comboText"/>
                           <attributes>
-                            <attribute name="text">1</attribute>
+                            <attribute name="background-rgba">2</attribute>
+                          </attributes>
+                        </child>
+                        <child>
+                          <object class="GtkCellRendererText" id="project_name"/>
+                          <attributes>
+                            <attribute name="markup">1</attribute>
                           </attributes>
                         </child>
                       </object>

@@ -12,6 +12,7 @@ type Project struct {
 	WId       uint64 `json:"wid"`
 	CId       uint64 `json:"cid"`
 	Name      string `json:"name"`
+	HexColor  string `json:"hex_color"`
 	IsPrivate *bool  `json:"is_private,omitempty"`
 }
 
