@@ -18,6 +18,7 @@ const (
 
 type jApp struct {
 	app       *gtk.Application
+	form      *EntryForm
 	indicator *appindicator.Indicator
 	window    *gtk.ApplicationWindow
 	menu      *gtk.Menu
@@ -48,6 +49,11 @@ func (j *jApp) onActivate() {
 	builder := NewBuilder()
 	j.menu = builder.GetMenu()
 	j.menuNew = builder.GetMenuItemNew()
+	form, err := NewEntryForm(builder)
+	if err != nil {
+		log.Fatal("Form build error:", err)
+	}
+	j.form = form
 	j.window = builder.GetMainWindow()
 	j.indicator = NewIndicator(j.menu, j.menuNew)
 	j.initMenu(builder)

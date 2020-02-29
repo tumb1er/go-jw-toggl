@@ -28,15 +28,9 @@
                 <property name="can_focus">False</property>
                 <property name="orientation">vertical</property>
                 <child>
-                  <object class="GtkComboBox" id="text_entry">
+                  <object class="GtkEntry" id="text_entry">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="has_entry">True</property>
-                    <child internal-child="entry">
-                      <object class="GtkEntry">
-                        <property name="can_focus">False</property>
-                      </object>
-                    </child>
+                    <property name="can_focus">True</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>

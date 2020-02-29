@@ -1,6 +1,7 @@
 package jwtoggl
 
 import (
+	"errors"
 	"github.com/gotk3/gotk3/gtk"
 	"log"
 	"os"
@@ -53,6 +54,54 @@ func (b *builder) GetMenuItemNew() *gtk.MenuItem {
 		return nil
 	} else {
 		return ret
+	}
+}
+
+func (b *builder) GetEntry(id string) (*gtk.Entry, error) {
+	obj, err := b.builder.GetObject(id)
+	if err != nil {
+		log.Fatal("Could not get entry:", err)
+	}
+	if ret, ok := obj.(*gtk.Entry); !ok {
+		return nil, errors.New("entry cast error")
+	} else {
+		return ret, nil
+	}
+}
+
+func (b *builder) GetComboBox(id string) (*gtk.ComboBox, error) {
+	obj, err := b.builder.GetObject(id)
+	if err != nil {
+		log.Fatal("Could not get ComboBox:", err)
+	}
+	if ret, ok := obj.(*gtk.ComboBox); !ok {
+		return nil, errors.New("combobox cast error")
+	} else {
+		return ret, nil
+	}
+}
+
+func (b *builder) GetButton(id string) (*gtk.Button, error) {
+	obj, err := b.builder.GetObject(id)
+	if err != nil {
+		log.Fatal("Could not get Button:", err)
+	}
+	if ret, ok := obj.(*gtk.Button); !ok {
+		return nil, errors.New("button cast error")
+	} else {
+		return ret, nil
+	}
+}
+
+func (b *builder) GetImage(id string) (*gtk.Image, error) {
+	obj, err := b.builder.GetObject(id)
+	if err != nil {
+		log.Fatal("Could not get Image:", err)
+	}
+	if ret, ok := obj.(*gtk.Image); !ok {
+		return nil, errors.New("image cast error")
+	} else {
+		return ret, nil
 	}
 }
 
