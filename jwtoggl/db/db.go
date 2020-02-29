@@ -71,7 +71,13 @@ func (db *DB) SyncUser() error {
 		return err
 	}
 	var changed bool
+	projects := make(gtproject.Projects, 0, len(user.Projects))
 	for _, project := range user.Projects {
+		if project.WId != user.DefaultWId {
+			continue
+		} else {
+			projects = append(projects, project)
+		}
 		existing, ok := db.projects[project.Id]
 		if !ok || !projectsEqual(existing, &project) {
 			db.projects[project.Id] = &project
@@ -79,11 +85,17 @@ func (db *DB) SyncUser() error {
 		}
 	}
 	if changed && db.onProjectsChanged != nil {
-		db.onProjectsChanged(user.Projects)
+		db.onProjectsChanged(projects)
 	}
 
 	changed = false
+	tags := make(gttag.Tags, 0, len(user.Tags))
 	for _, tag := range user.Tags {
+		if tag.WId != user.DefaultWId {
+			continue
+		} else {
+			tags = append(tags, tag)
+		}
 		existing, ok := db.tags[tag.Id]
 		if !ok || !tagsEqual(existing, &tag) {
 			db.tags[tag.Id] = &tag
@@ -91,7 +103,7 @@ func (db *DB) SyncUser() error {
 		}
 	}
 	if changed && db.onTagsChanged != nil {
-		db.onTagsChanged(user.Tags)
+		db.onTagsChanged(tags)
 	}
 	return nil
 }

@@ -16,6 +16,7 @@ type User struct {
 	Email      string                 `json:"email"`
 	FullName   string                 `json:"fullname"`
 	Timezone   string                 `json:"timezone"`
+	DefaultWId uint64                 `json:"default_wid"`
 	Clients    gtclient.Clients       `json:"clients"`
 	Projects   gtproject.Projects     `json:"projects"`
 	Workspaces gtworkspace.Workspaces `json:"workspaces"`
