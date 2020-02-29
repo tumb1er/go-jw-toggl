@@ -62,7 +62,7 @@ func (j *jApp) onActivate() {
 	if _, err := j.form.button.Connect("clicked", j.onStartStopClicked); err != nil {
 		log.Fatal("Button bind error:", err)
 	}
-	go j.periodicSync(j.ctx)
+	go j.StartSync(j.ctx)
 }
 
 // NewApp подготавливает основное окно приложения с иконкой в трее и меню.

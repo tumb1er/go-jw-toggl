@@ -6,7 +6,9 @@ import (
 )
 
 type DB interface {
+	SyncProjects() error
 	SyncCurrentEntry() error
 	OnCurrentEntry(callback db.OnCurrentEntryCallback)
+	OnProjectsChanged(callback db.OnProjectsChangedCallback)
 	StartListen(ctx context.Context)
 }

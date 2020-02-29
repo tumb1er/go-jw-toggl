@@ -3,15 +3,24 @@ package jwtoggl
 import (
 	"context"
 	"github.com/dawidd6/go-appindicator"
+	"github.com/tumb1er/gtoggl-api/gtproject"
 	"github.com/tumb1er/gtoggl-api/gttimentry"
 	"log"
 	"time"
 )
 
+func (j *jApp) StartSync(ctx context.Context) {
+	j.db.OnCurrentEntry(j.onCurrentEntryChanged)
+	j.db.OnProjectsChanged(j.onProjectsChanged)
+	if err := j.db.SyncProjects(); err != nil {
+		log.Fatal("Project sync error:", err)
+	}
+	j.periodicSync(ctx)
+}
+
 func (j *jApp) periodicSync(ctx context.Context) {
 	log.Println("Start periodic sync")
 	t := time.NewTicker(time.Second * 10)
-	j.db.OnCurrentEntry(j.onCurrentEntryChanged)
 	j.db.StartListen(ctx)
 	j.syncCurrentEntry()
 	for {
@@ -31,6 +40,10 @@ func (j *jApp) syncCurrentEntry() {
 	if err := j.db.SyncCurrentEntry(); err != nil {
 		log.Println("Sync current entry error:", err)
 	}
+}
+
+func (j *jApp) onProjectsChanged(projects gtproject.Projects) {
+	log.Printf("Projects: %+v\n", projects)
 }
 
 func (j *jApp) onCurrentEntryChanged(entry *gttimeentry.TimeEntry) {

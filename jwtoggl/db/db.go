@@ -4,19 +4,23 @@ import (
 	"context"
 	"fmt"
 	"github.com/tumb1er/gtoggl"
+	"github.com/tumb1er/gtoggl-api/gtproject"
 	"github.com/tumb1er/gtoggl-api/gttimentry"
 	"github.com/tumb1er/gtoggl-api/gtwebsocket"
 	"log"
 )
 
 type OnCurrentEntryCallback func(entry *gttimeentry.TimeEntry)
+type OnProjectsChangedCallback func(projects gtproject.Projects)
 
 type DB struct {
-	client *gtoggl.TogglClient
-	sub    *gtwebsocket.TogglWebsocketClient
-	Entry  *gttimeentry.TimeEntry
+	client   *gtoggl.TogglClient
+	sub      *gtwebsocket.TogglWebsocketClient
+	Entry    *gttimeentry.TimeEntry
+	projects map[uint64]*gtproject.Project
 
-	onCurrentEntry OnCurrentEntryCallback
+	onCurrentEntry    OnCurrentEntryCallback
+	onProjectsChanged OnProjectsChangedCallback
 }
 
 func NewDB(token string) (*DB, error) {
@@ -25,11 +29,19 @@ func NewDB(token string) (*DB, error) {
 		return nil, err
 	}
 	sub := gtwebsocket.NewClient(token)
-	return &DB{client: client, sub: sub}, nil
+	return &DB{
+		client:   client,
+		sub:      sub,
+		projects: make(map[uint64]*gtproject.Project),
+	}, nil
 }
 
 func (db *DB) OnCurrentEntry(cb OnCurrentEntryCallback) {
 	db.onCurrentEntry = cb
+}
+
+func (db *DB) OnProjectsChanged(cb OnProjectsChangedCallback) {
+	db.onProjectsChanged = cb
 }
 
 func (db *DB) SyncCurrentEntry() error {
@@ -40,6 +52,25 @@ func (db *DB) SyncCurrentEntry() error {
 	if !entriesEqual(db.Entry, entry) {
 		db.Entry = entry
 		db.onCurrentEntry(db.Entry)
+	}
+	return nil
+}
+
+func (db *DB) SyncProjects() error {
+	user, err := db.client.UserClient.Get(true)
+	if err != nil {
+		return err
+	}
+	var projectsChanged bool
+	for _, project := range user.Projects {
+		existing, ok := db.projects[project.Id]
+		if !ok || !projectsEqual(existing, &project) {
+			db.projects[project.Id] = &project
+			projectsChanged = true
+		}
+	}
+	if projectsChanged && db.onProjectsChanged != nil {
+		db.onProjectsChanged(user.Projects)
 	}
 	return nil
 }
