@@ -9,6 +9,7 @@ import (
 	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
 	"go-jw-toggl/jwtoggl/gtoggl/gtwebsocket"
 	"log"
+	"time"
 )
 
 type OnCurrentEntryCallback func(entry *gttimeentry.TimeEntry)
@@ -16,11 +17,12 @@ type OnProjectsChangedCallback func(projects gtproject.Projects)
 type OnTagsChangedCallback func(tags gttag.Tags)
 
 type DB struct {
-	client   *gtoggl.TogglClient
-	sub      *gtwebsocket.TogglWebsocketClient
-	Entry    *gttimeentry.TimeEntry
-	projects map[uint64]*gtproject.Project
-	tags     map[uint64]*gttag.Tag
+	client     *gtoggl.TogglClient
+	sub        *gtwebsocket.TogglWebsocketClient
+	Entry      *gttimeentry.TimeEntry
+	projects   map[uint64]*gtproject.Project
+	tags       map[uint64]*gttag.Tag
+	defaultWId uint64
 
 	onCurrentEntry    OnCurrentEntryCallback
 	onProjectsChanged OnProjectsChangedCallback
@@ -53,6 +55,20 @@ func (db *DB) OnTagsChanged(cb OnTagsChangedCallback) {
 	db.onTagsChanged = cb
 }
 
+func (db *DB) CreateNewEntry(description string, projectId uint64, tagId uint64,
+	start time.Time) error {
+	entry := &gttimeentry.TimeEntry{
+		Description: description,
+		Pid:         projectId,
+		Wid:         db.defaultWId,
+		Tags:        []string{db.tags[tagId].Name},
+		Start:       start,
+		CreatedWith: "go-jw-toggl",
+	}
+	entry, err := db.client.TimeentryClient.Start(entry)
+	return err
+}
+
 func (db *DB) SyncCurrentEntry() error {
 	entry, err := db.client.TimeentryClient.Current()
 	if err != nil {
@@ -70,6 +86,7 @@ func (db *DB) SyncUser() error {
 	if err != nil {
 		return err
 	}
+	db.defaultWId = user.DefaultWId
 	var changed bool
 	projects := make(gtproject.Projects, 0, len(user.Projects))
 	for _, project := range user.Projects {

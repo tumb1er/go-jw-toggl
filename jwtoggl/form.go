@@ -9,6 +9,7 @@ import (
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
 	"image/color"
 	"log"
+	"time"
 )
 
 const (
@@ -149,4 +150,9 @@ func (j *jApp) onStartStopClicked() {
 	}
 
 	log.Printf("Clicked: project %d tag %d description %s", projectId, tagId, description)
+
+	now := time.Now()
+	if err = j.db.CreateNewEntry(description, projectId, tagId, now); err != nil {
+		log.Fatal("Can't create entry:", err)
+	}
 }
