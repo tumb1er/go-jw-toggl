@@ -2,8 +2,8 @@ package jwtoggl
 
 import (
 	"github.com/gotk3/gotk3/gtk"
-	"github.com/tumb1er/gtoggl-api/gtproject"
-	"github.com/tumb1er/gtoggl-api/gttag"
+	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
+	"go-jw-toggl/jwtoggl/gtoggl/gttag"
 	"log"
 )
 

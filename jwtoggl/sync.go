@@ -3,9 +3,9 @@ package jwtoggl
 import (
 	"context"
 	"github.com/dawidd6/go-appindicator"
-	"github.com/tumb1er/gtoggl-api/gtproject"
-	"github.com/tumb1er/gtoggl-api/gttag"
-	"github.com/tumb1er/gtoggl-api/gttimentry"
+	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
+	"go-jw-toggl/jwtoggl/gtoggl/gttag"
+	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
 	"log"
 	"time"
 )

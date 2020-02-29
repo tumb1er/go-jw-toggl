@@ -1,9 +1,9 @@
 package db
 
 import (
-	"github.com/tumb1er/gtoggl-api/gtproject"
-	"github.com/tumb1er/gtoggl-api/gttag"
-	"github.com/tumb1er/gtoggl-api/gttimentry"
+	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
+	"go-jw-toggl/jwtoggl/gtoggl/gttag"
+	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
 )
 
 func entriesEqual(e1 *gttimeentry.TimeEntry, e2 *gttimeentry.TimeEntry) bool {

@@ -3,11 +3,11 @@ package db
 import (
 	"context"
 	"fmt"
-	"github.com/tumb1er/gtoggl"
-	"github.com/tumb1er/gtoggl-api/gtproject"
-	"github.com/tumb1er/gtoggl-api/gttag"
-	"github.com/tumb1er/gtoggl-api/gttimentry"
-	"github.com/tumb1er/gtoggl-api/gtwebsocket"
+	"go-jw-toggl/jwtoggl/gtoggl"
+	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
+	"go-jw-toggl/jwtoggl/gtoggl/gttag"
+	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
+	"go-jw-toggl/jwtoggl/gtoggl/gtwebsocket"
 	"log"
 )
 
