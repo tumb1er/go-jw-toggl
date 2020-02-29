@@ -44,6 +44,10 @@ func (j *jApp) syncCurrentEntry() {
 
 func (j *jApp) onProjectsChanged(projects gtproject.Projects) {
 	log.Printf("Projects: %+v\n", projects)
+	if err := j.form.SetProjects(projects); err != nil {
+		log.Fatal("Projects bind error:", err)
+	}
+	//j.window.ShowAll()
 }
 
 func (j *jApp) onCurrentEntryChanged(entry *gttimeentry.TimeEntry) {

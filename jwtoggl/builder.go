@@ -104,6 +104,17 @@ func (b *builder) GetImage(id string) (*gtk.Image, error) {
 		return ret, nil
 	}
 }
+func (b *builder) GetListStore(id string) (*gtk.ListStore, error) {
+	obj, err := b.builder.GetObject(id)
+	if err != nil {
+		log.Fatal("Could not get ListStore:", err)
+	}
+	if ret, ok := obj.(*gtk.ListStore); !ok {
+		return nil, errors.New("list store cast error")
+	} else {
+		return ret, nil
+	}
+}
 
 func NewBuilder() *builder {
 	b, err := gtk.BuilderNew()

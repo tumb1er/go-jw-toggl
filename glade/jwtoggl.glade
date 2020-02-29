@@ -8,6 +8,20 @@
     <property name="stock">gtk-media-play</property>
     <property name="icon_size">6</property>
   </object>
+  <object class="GtkImage" id="icon_stop">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">gtk-media-stop</property>
+    <property name="icon_size">6</property>
+  </object>
+  <object class="GtkListStore" id="projects_list_store">
+    <columns>
+      <!-- column-name Id -->
+      <column type="guint64"/>
+      <!-- column-name Name -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
   <object class="GtkApplicationWindow" id="main_window">
     <property name="can_focus">False</property>
     <child>
@@ -59,6 +73,14 @@
                       <object class="GtkComboBox" id="text_project">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="model">projects_list_store</property>
+                        <property name="id_column">0</property>
+                        <child>
+                          <object class="GtkCellRendererText" id="comboText"/>
+                          <attributes>
+                            <attribute name="text">1</attribute>
+                          </attributes>
+                        </child>
                       </object>
                       <packing>
                         <property name="expand">True</property>
@@ -209,12 +231,6 @@
         </child>
       </object>
     </child>
-  </object>
-  <object class="GtkImage" id="icon_stop">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">gtk-media-stop</property>
-    <property name="icon_size">6</property>
   </object>
   <object class="GtkMenu" id="tray_menu">
     <property name="visible">True</property>

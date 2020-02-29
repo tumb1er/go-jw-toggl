@@ -2,6 +2,7 @@ package jwtoggl
 
 import (
 	"github.com/gotk3/gotk3/gtk"
+	"github.com/tumb1er/gtoggl-api/gtproject"
 	"log"
 )
 
@@ -14,17 +15,19 @@ const (
 	buttonStartStop = "button_start_stop"
 	imageStart      = "icon_start"
 	imageStop       = "icon_stop"
+	storeProjects   = "projects_list_store"
 )
 
 type EntryForm struct {
-	description *gtk.Entry
-	start       *gtk.Entry
-	stop        *gtk.Entry
-	project     *gtk.ComboBox
-	tag         *gtk.ComboBox
-	button      *gtk.Button
-	imageStop   *gtk.Image
-	imageStart  *gtk.Image
+	description       *gtk.Entry
+	start             *gtk.Entry
+	stop              *gtk.Entry
+	project           *gtk.ComboBox
+	tag               *gtk.ComboBox
+	button            *gtk.Button
+	imageStop         *gtk.Image
+	imageStart        *gtk.Image
+	projectsListStore *gtk.ListStore
 }
 
 func NewEntryForm(b *builder) (*EntryForm, error) {
@@ -54,9 +57,36 @@ func NewEntryForm(b *builder) (*EntryForm, error) {
 	if f.imageStop, err = b.GetImage(imageStop); err != nil {
 		return nil, err
 	}
+	if f.projectsListStore, err = b.GetListStore(storeProjects); err != nil {
+		return nil, err
+	}
 	return f, nil
 }
 
+func (f *EntryForm) SetProjects(projects gtproject.Projects) error {
+	ls := f.projectsListStore
+	ls.Clear()
+	for _, project := range projects {
+		it := ls.Append()
+		if err := ls.Set(it, []int{0, 1}, []interface{}{project.Id, project.Name}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (j *jApp) onStartStopClicked() {
-	log.Println("Clicked")
+	it, err := j.form.project.GetActiveIter()
+	if err != nil {
+		log.Fatal(err)
+	}
+	v, err := j.form.projectsListStore.GetValue(it, 0)
+	if err != nil {
+		log.Fatal(err)
+	}
+	projectId, err := v.GoValue()
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("Clicked: %+v", projectId)
 }
