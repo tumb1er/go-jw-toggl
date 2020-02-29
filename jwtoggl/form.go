@@ -1,6 +1,9 @@
 package jwtoggl
 
-import "github.com/gotk3/gotk3/gtk"
+import (
+	"github.com/gotk3/gotk3/gtk"
+	"log"
+)
 
 const (
 	textDescription = "text_entry"
@@ -52,4 +55,8 @@ func NewEntryForm(b *builder) (*EntryForm, error) {
 		return nil, err
 	}
 	return f, nil
+}
+
+func (j *jApp) onStartStopClicked() {
+	log.Println("Clicked")
 }

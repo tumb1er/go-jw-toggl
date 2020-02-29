@@ -59,6 +59,9 @@ func (j *jApp) onActivate() {
 	j.initMenu(builder)
 	j.app.AddWindow(j.window)
 	j.showNotification("Hello", "JW Toggl started")
+	if _, err := j.form.button.Connect("clicked", j.onStartStopClicked); err != nil {
+		log.Fatal("Button bind error:", err)
+	}
 	go j.periodicSync(j.ctx)
 }
 
