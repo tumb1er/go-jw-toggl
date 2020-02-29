@@ -24,10 +24,7 @@ func NewDB(token string) (*DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	sub, err := gtwebsocket.NewClient(token)
-	if err != nil {
-		return nil, err
-	}
+	sub := gtwebsocket.NewClient(token)
 	return &DB{client: client, sub: sub}, nil
 }
 
@@ -49,7 +46,12 @@ func (db *DB) SyncCurrentEntry() error {
 
 func (db *DB) StartListen(ctx context.Context) {
 	db.sub.OnTimeEntryAction(db.onTimeEntryAction)
-	go db.sub.Listen(ctx)
+	go func() {
+		err := db.sub.Listen(ctx)
+		if err != nil {
+			log.Fatal("WebSocket listen error:", err)
+		}
+	}()
 }
 
 func (db *DB) onTimeEntryAction(action string, entry gttimeentry.TimeEntry) error {
