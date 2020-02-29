@@ -3,6 +3,7 @@ package jwtoggl
 import (
 	"github.com/gotk3/gotk3/gtk"
 	"github.com/tumb1er/gtoggl-api/gtproject"
+	"github.com/tumb1er/gtoggl-api/gttag"
 	"log"
 )
 
@@ -16,6 +17,7 @@ const (
 	imageStart      = "icon_start"
 	imageStop       = "icon_stop"
 	storeProjects   = "projects_list_store"
+	storeTags       = "tags_list_store"
 )
 
 type EntryForm struct {
@@ -28,6 +30,7 @@ type EntryForm struct {
 	imageStop         *gtk.Image
 	imageStart        *gtk.Image
 	projectsListStore *gtk.ListStore
+	tagsListStore     *gtk.ListStore
 }
 
 func NewEntryForm(b *builder) (*EntryForm, error) {
@@ -60,6 +63,9 @@ func NewEntryForm(b *builder) (*EntryForm, error) {
 	if f.projectsListStore, err = b.GetListStore(storeProjects); err != nil {
 		return nil, err
 	}
+	if f.tagsListStore, err = b.GetListStore(storeTags); err != nil {
+		return nil, err
+	}
 	return f, nil
 }
 
@@ -69,6 +75,18 @@ func (f *EntryForm) SetProjects(projects gtproject.Projects) error {
 	for _, project := range projects {
 		it := ls.Append()
 		if err := ls.Set(it, []int{0, 1}, []interface{}{project.Id, project.Name}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (f *EntryForm) SetTags(tags gttag.Tags) error {
+	ls := f.tagsListStore
+	ls.Clear()
+	for _, tag := range tags {
+		it := ls.Append()
+		if err := ls.Set(it, []int{0, 1}, []interface{}{tag.Id, tag.Name}); err != nil {
 			return err
 		}
 	}

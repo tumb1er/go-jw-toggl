@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/tumb1er/gtoggl"
 	"github.com/tumb1er/gtoggl-api/gtproject"
+	"github.com/tumb1er/gtoggl-api/gttag"
 	"github.com/tumb1er/gtoggl-api/gttimentry"
 	"github.com/tumb1er/gtoggl-api/gtwebsocket"
 	"log"
@@ -12,15 +13,18 @@ import (
 
 type OnCurrentEntryCallback func(entry *gttimeentry.TimeEntry)
 type OnProjectsChangedCallback func(projects gtproject.Projects)
+type OnTagsChangedCallback func(tags gttag.Tags)
 
 type DB struct {
 	client   *gtoggl.TogglClient
 	sub      *gtwebsocket.TogglWebsocketClient
 	Entry    *gttimeentry.TimeEntry
 	projects map[uint64]*gtproject.Project
+	tags     map[uint64]*gttag.Tag
 
 	onCurrentEntry    OnCurrentEntryCallback
 	onProjectsChanged OnProjectsChangedCallback
+	onTagsChanged     OnTagsChangedCallback
 }
 
 func NewDB(token string) (*DB, error) {
@@ -33,6 +37,7 @@ func NewDB(token string) (*DB, error) {
 		client:   client,
 		sub:      sub,
 		projects: make(map[uint64]*gtproject.Project),
+		tags:     make(map[uint64]*gttag.Tag),
 	}, nil
 }
 
@@ -42,6 +47,10 @@ func (db *DB) OnCurrentEntry(cb OnCurrentEntryCallback) {
 
 func (db *DB) OnProjectsChanged(cb OnProjectsChangedCallback) {
 	db.onProjectsChanged = cb
+}
+
+func (db *DB) OnTagsChanged(cb OnTagsChangedCallback) {
+	db.onTagsChanged = cb
 }
 
 func (db *DB) SyncCurrentEntry() error {
@@ -56,21 +65,33 @@ func (db *DB) SyncCurrentEntry() error {
 	return nil
 }
 
-func (db *DB) SyncProjects() error {
+func (db *DB) SyncUser() error {
 	user, err := db.client.UserClient.Get(true)
 	if err != nil {
 		return err
 	}
-	var projectsChanged bool
+	var changed bool
 	for _, project := range user.Projects {
 		existing, ok := db.projects[project.Id]
 		if !ok || !projectsEqual(existing, &project) {
 			db.projects[project.Id] = &project
-			projectsChanged = true
+			changed = true
 		}
 	}
-	if projectsChanged && db.onProjectsChanged != nil {
+	if changed && db.onProjectsChanged != nil {
 		db.onProjectsChanged(user.Projects)
+	}
+
+	changed = false
+	for _, tag := range user.Tags {
+		existing, ok := db.tags[tag.Id]
+		if !ok || !tagsEqual(existing, &tag) {
+			db.tags[tag.Id] = &tag
+			changed = true
+		}
+	}
+	if changed && db.onTagsChanged != nil {
+		db.onTagsChanged(user.Tags)
 	}
 	return nil
 }

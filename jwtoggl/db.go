@@ -6,9 +6,10 @@ import (
 )
 
 type DB interface {
-	SyncProjects() error
+	SyncUser() error
 	SyncCurrentEntry() error
 	OnCurrentEntry(callback db.OnCurrentEntryCallback)
 	OnProjectsChanged(callback db.OnProjectsChangedCallback)
+	OnTagsChanged(callback db.OnTagsChangedCallback)
 	StartListen(ctx context.Context)
 }

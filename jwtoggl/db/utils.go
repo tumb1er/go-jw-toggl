@@ -2,6 +2,7 @@ package db
 
 import (
 	"github.com/tumb1er/gtoggl-api/gtproject"
+	"github.com/tumb1er/gtoggl-api/gttag"
 	"github.com/tumb1er/gtoggl-api/gttimentry"
 )
 
@@ -28,6 +29,19 @@ func projectsEqual(p1 *gtproject.Project, p2 *gtproject.Project) bool {
 			p1.CId == p2.CId &&
 			p1.Name == p2.Name &&
 			p1.WId == p2.WId
+	}
+	// e1 == nil && e2 == nil
+	return true
+}
+
+func tagsEqual(t1 *gttag.Tag, t2 *gttag.Tag) bool {
+	if (t1 == nil) != (t2 == nil) {
+		return false
+	}
+	if t1 != nil && t2 != nil {
+		return t1.Id == t2.Id &&
+			t1.WId == t2.WId &&
+			t1.Name == t2.Name
 	}
 	// e1 == nil && e2 == nil
 	return true

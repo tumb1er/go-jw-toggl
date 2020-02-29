@@ -118,6 +118,8 @@ github.com/tumb1er/gtoggl v0.0.0-20200222085913-860819b273be h1:Md+SRm+zhtUb3XZw
 github.com/tumb1er/gtoggl v0.0.0-20200222085913-860819b273be/go.mod h1:1RdhJzjStsG7NKKsduypTPEvN3dJT+evE0QB66bjIf4=
 github.com/tumb1er/gtoggl v0.0.0-20200229073508-12c2b279d471 h1:/74nhM4o5CE3/9DEesjDB7IRFZtUoFyWjAJLmJTth+k=
 github.com/tumb1er/gtoggl v0.0.0-20200229073508-12c2b279d471/go.mod h1:xJnj8qG1q4cmWmN9z9DKNxkwf/IS+QRZoNPSh/Tieic=
+github.com/tumb1er/gtoggl v0.0.0-20200229205020-def0d816daf6 h1:WnFXXzD6wbSBdxo7NRXbruwiK+KE0Rkpwn+3C00Pj7k=
+github.com/tumb1er/gtoggl v0.0.0-20200229205020-def0d816daf6/go.mod h1:G/adBIsxJwQ44SsRgAcnwVuWXppcBV4rGHzI38ENm2A=
 github.com/tumb1er/gtoggl-api v0.0.0-20200222085406-a10574c32b4b h1:BBezmrfjWmr7dgrNibWUkaN5JDbCg7dddvznVxlkYcU=
 github.com/tumb1er/gtoggl-api v0.0.0-20200222085406-a10574c32b4b/go.mod h1:kiDyYJZWqgf9+kax6czRIKriCa2L0hbWIxI2rzy3Gog=
 github.com/tumb1er/gtoggl-api v0.0.0-20200224085226-e7debd640665 h1:Nzcbd188FkKmr5QzdHSsaHwn3buaW5UrlQuhzxN0/P0=
@@ -126,6 +128,8 @@ github.com/tumb1er/gtoggl-api v0.0.0-20200229065920-130d4ce35b6e h1:MEKaai90zXB5
 github.com/tumb1er/gtoggl-api v0.0.0-20200229065920-130d4ce35b6e/go.mod h1:XZ6Ep6sfH4o/rgDHqNwIJcjdGzbOC26OGXV7P6UxbXI=
 github.com/tumb1er/gtoggl-api v0.0.0-20200229073213-c224560862c3 h1:4Vt2wnPtwnyTBCUO+P8Z8zJKj+PqMyfOjpE7A/YwB38=
 github.com/tumb1er/gtoggl-api v0.0.0-20200229073213-c224560862c3/go.mod h1:XZ6Ep6sfH4o/rgDHqNwIJcjdGzbOC26OGXV7P6UxbXI=
+github.com/tumb1er/gtoggl-api v0.0.0-20200229204435-1723ee41ce23 h1:ZaEKxdJ/15dyXW1WPlacfYu5OIicVe98woQicgZIfl0=
+github.com/tumb1er/gtoggl-api v0.0.0-20200229204435-1723ee41ce23/go.mod h1:XZ6Ep6sfH4o/rgDHqNwIJcjdGzbOC26OGXV7P6UxbXI=
 github.com/ugorji/go v1.1.4/go.mod h1:uQMGLiO92mf5W77hV/PUCpI3pbzQx3CRekS0kk+RGrc=
 github.com/urfave/cli v1.22.2/go.mod h1:Gos4lmkARVdJ6EkW0WaNv/tZAAMe9V7XWyB60NtXRu0=
 github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q53MR2AWcXfiuqkDkRtnGDLqkBTpCHuJHxtU=
