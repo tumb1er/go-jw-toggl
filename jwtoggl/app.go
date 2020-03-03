@@ -39,14 +39,19 @@ func (j *jApp) Run(args []string) int {
 func (j *jApp) onActivate() {
 	b := builder.NewBuilder()
 	j.initForm(b)
-	j.menu = b.GetMenu()
-	j.menuNew = b.GetMenuItemNew()
-	j.window = b.GetMainWindow()
-	j.indicator = NewIndicator(j.menu, j.menuNew)
 	j.initMenu(b)
-	j.app.AddWindow(j.window)
+	j.indicator = NewIndicator(j.menu, j.menuNew)
+	j.initWindow(b)
 	//j.showNotification("Hello", "JW Toggl started")
 	go j.StartSync(j.ctx)
+}
+
+func (j *jApp) initWindow(b *builder.Builder) {
+	j.window = b.GetMainWindow()
+	j.app.AddWindow(j.window)
+	if _, err := j.window.Connect("delete-event", j.onWindowDelete); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func (j *jApp) initForm(b *builder.Builder) {
@@ -68,6 +73,12 @@ func (j *jApp) onEntryStopped(entry *gttimeentry.TimeEntry) {
 	if err := j.db.StopEntry(entry); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func (j *jApp) onWindowDelete() bool {
+	j.window.Hide()
+	return true
+
 }
 
 // NewApp подготавливает основное окно приложения с иконкой в трее и меню.
