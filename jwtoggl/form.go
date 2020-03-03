@@ -2,14 +2,11 @@ package jwtoggl
 
 import (
 	"fmt"
-	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
-	"image/color"
 	"log"
-	"time"
 )
 
 const (
@@ -71,24 +68,24 @@ func NewEntryForm(b *builder) (*EntryForm, error) {
 	if f.tagsListStore, err = b.GetListStore(storeTags); err != nil {
 		return nil, err
 	}
+	c, _ := b.GetEntry("text_project_entry")
+	log.Printf("Entry %T: %+v\n", c, c)
 	return f, nil
 }
 
 func (f *EntryForm) SetProjects(projects gtproject.Projects) error {
 	ls := f.projectsListStore
 	ls.Clear()
-	cols := []int{0, 1, 2}
-	var c color.RGBA
 	for _, project := range projects {
 		it := ls.Append()
-		_, err := fmt.Sscanf(project.HexColor, "#%02x%02x%02x", &c.R, &c.G, &c.B)
-		if err != nil {
+		html := fmt.Sprintf("<span foreground=\"%s\">%s</span>", project.HexColor, project.Name)
+		if err := ls.SetValue(it, 0, project.Id); err != nil {
 			return err
 		}
-		html := fmt.Sprintf("<span foreground=\"%s\">%s</span>", project.HexColor, project.Name)
-		values := []interface{}{project.Id, html, *gdk.NewRGBA(
-			float64(c.R), float64(c.G), float64(c.B), float64(c.A))}
-		if err := ls.Set(it, cols, values); err != nil {
+		if err := ls.SetValue(it, 1, project.Name); err != nil {
+			return err
+		}
+		if err := ls.SetValue(it, 2, html); err != nil {
 			return err
 		}
 	}
@@ -150,9 +147,9 @@ func (j *jApp) onStartStopClicked() {
 	}
 
 	log.Printf("Clicked: project %d tag %d description %s", projectId, tagId, description)
-
-	now := time.Now()
-	if err = j.db.CreateNewEntry(description, projectId, tagId, now); err != nil {
-		log.Fatal("Can't create entry:", err)
-	}
+	//
+	//now := time.Now()
+	//if err = j.db.CreateNewEntry(description, projectId, tagId, now); err != nil {
+	//	log.Fatal("Can't create entry:", err)
+	//}
 }

@@ -59,6 +59,7 @@ func (j *jApp) UpdateCurrentEntry(info CurrentEntryInfo) {
 }
 
 func (j *jApp) showNotification(title, body string) {
+	log.Printf("Notify: title=%s body=%s\n", title, body)
 	if err := j.popup.Update("", title, body); err != nil {
 		log.Println("Can't show popup:", err)
 	}

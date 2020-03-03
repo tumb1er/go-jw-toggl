@@ -16,13 +16,24 @@
   </object>
   <object class="GtkListStore" id="projects_list_store">
     <columns>
-      <!-- column-name Id -->
+      <!-- column-name ProjectId -->
       <column type="guint64"/>
       <!-- column-name Name -->
       <column type="gchararray"/>
-      <!-- column-name Color -->
-      <column type="GdkRGBA"/>
+      <!-- column-name Markup -->
+      <column type="gchararray"/>
     </columns>
+  </object>
+  <object class="GtkEntryCompletion" id="project_completion">
+    <property name="model">projects_list_store</property>
+    <property name="text_column">1</property>
+    <property name="inline_completion">True</property>
+    <child>
+      <object class="GtkCellRendererText"/>
+      <attributes>
+        <attribute name="markup">2</attribute>
+      </attributes>
+    </child>
   </object>
   <object class="GtkListStore" id="tags_list_store">
     <columns>
@@ -67,34 +78,20 @@
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <child>
-                      <object class="GtkImage" id="icon_project">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="pixbuf">resources/project.svg</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="padding">4</property>
-                        <property name="position">0</property>
-                      </packing>
-                    </child>
-                    <child>
                       <object class="GtkComboBox" id="text_project">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="model">projects_list_store</property>
-                        <child>
-                          <object class="GtkCellRendererText" id="comboText"/>
-                          <attributes>
-                            <attribute name="background-rgba">2</attribute>
-                          </attributes>
-                        </child>
-                        <child>
-                          <object class="GtkCellRendererText" id="project_name"/>
-                          <attributes>
-                            <attribute name="markup">1</attribute>
-                          </attributes>
+                        <property name="has_entry">True</property>
+                        <property name="entry_text_column">1</property>
+                        <property name="id_column">0</property>
+                        <child internal-child="entry">
+                          <object class="GtkEntry" id="text_project_entry">
+                            <property name="can_focus">True</property>
+                            <property name="primary_icon_pixbuf">resources/project.svg</property>
+                            <property name="placeholder_text" translatable="yes">Project</property>
+                            <property name="completion">project_completion</property>
+                          </object>
                         </child>
                       </object>
                       <packing>
@@ -121,11 +118,19 @@
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="model">tags_list_store</property>
+                        <property name="has_entry">True</property>
+                        <property name="entry_text_column">1</property>
+                        <property name="id_column">0</property>
                         <child>
                           <object class="GtkCellRendererText" id="tag_name"/>
                           <attributes>
                             <attribute name="text">1</attribute>
                           </attributes>
+                        </child>
+                        <child internal-child="entry">
+                          <object class="GtkEntry">
+                            <property name="can_focus">False</property>
+                          </object>
                         </child>
                       </object>
                       <packing>
