@@ -30,6 +30,7 @@ type jApp struct {
 	ctx       context.Context
 	cancel    context.CancelFunc
 	popup     *notifier.Notifier
+	statusBar *gtk.Statusbar
 }
 
 func (j *jApp) Run(args []string) int {
@@ -42,7 +43,7 @@ func (j *jApp) onActivate() {
 	j.initMenu(b)
 	j.indicator = NewIndicator(j.menu, j.menuNew)
 	j.initWindow(b)
-	//j.showNotification("Hello", "JW Toggl started")
+	j.statusBar = b.GetStatusbar()
 	go j.StartSync(j.ctx)
 }
 

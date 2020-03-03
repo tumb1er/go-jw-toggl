@@ -12,6 +12,7 @@ const (
 	trayMenuId = "tray_menu"
 	menuNew    = "menu_new"
 	mainWindow = "main_window"
+	statusBar  = "status_bar"
 )
 
 type Builder struct {
@@ -104,6 +105,7 @@ func (b *Builder) GetImage(id string) (*gtk.Image, error) {
 		return ret, nil
 	}
 }
+
 func (b *Builder) GetListStore(id string) (*gtk.ListStore, error) {
 	obj, err := b.GetObject(id)
 	if err != nil {
@@ -113,6 +115,19 @@ func (b *Builder) GetListStore(id string) (*gtk.ListStore, error) {
 		return nil, errors.New("list store cast error")
 	} else {
 		return ret, nil
+	}
+}
+
+func (b *Builder) GetStatusbar() *gtk.Statusbar {
+	obj, err := b.GetObject(statusBar)
+	if err != nil {
+		log.Fatal("Could not get Statusbar:", err)
+	}
+	if ret, ok := obj.(*gtk.Statusbar); !ok {
+		log.Fatalf("statusbar cast error: %T\n", obj)
+		return nil
+	} else {
+		return ret
 	}
 }
 

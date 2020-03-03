@@ -9,6 +9,7 @@ import (
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
 	"log"
+	"runtime"
 	"strconv"
 )
 
@@ -163,6 +164,7 @@ func (f *EntryForm) GetTimeEntry() *gttimeentry.TimeEntry {
 
 func (f *EntryForm) SetTimeEntry(entry *gttimeentry.TimeEntry) {
 	log.Println("SetTimeEntry:", entry)
+	runtime.LockOSThread()
 	if entry == nil {
 		f.eid = 0
 		f.description.SetText("")
@@ -199,6 +201,7 @@ func (f *EntryForm) SetTimeEntry(entry *gttimeentry.TimeEntry) {
 }
 
 func (f *EntryForm) Validate() bool {
+	runtime.LockOSThread()
 	valid := f.GetTimeEntry() != nil
 	log.Println("validate:", valid)
 	f.button.SetSensitive(valid)
@@ -206,6 +209,7 @@ func (f *EntryForm) Validate() bool {
 }
 
 func (f *EntryForm) SetActiveProject() {
+	runtime.LockOSThread()
 	if project, err := f.projectEntry.GetText(); err != nil {
 		log.Fatal(err)
 	} else {
@@ -247,6 +251,7 @@ func (f *EntryForm) SetActiveProject() {
 }
 
 func (f *EntryForm) SetActiveTag() {
+	runtime.LockOSThread()
 	if tag, err := f.tagEntry.GetText(); err != nil {
 		log.Fatal(err)
 	} else {
