@@ -1,5 +1,6 @@
 package jwtoggl
 
+import "C"
 import (
 	"fmt"
 	"github.com/gotk3/gotk3/glib"
@@ -69,6 +70,13 @@ func NewEntryForm(b *builder) (*EntryForm, error) {
 		return nil, err
 	}
 	c, _ := b.GetEntry("text_project_entry")
+	r, err := gtk.CellRendererTextNew()
+	if err != nil {
+		log.Fatal(err)
+	}
+	Clear(&f.project.CellLayout)
+	PackStart(&f.project.CellLayout, &r.CellRenderer, true)
+	f.project.AddAttribute(r, "markup", 2)
 	log.Printf("Entry %T: %+v\n", c, c)
 	return f, nil
 }
@@ -113,6 +121,7 @@ func (j *jApp) onStartStopClicked() {
 	var goValue interface{}
 	var projectId, tagId uint64
 	var description string
+	log.Println("Project active id:", j.form.project.GetActiveID())
 	if it, err = j.form.project.GetActiveIter(); err != nil {
 		log.Fatal("Can't get active project iter:", err)
 	}
