@@ -3,7 +3,7 @@ package jwtoggl
 import (
 	"context"
 	"go-jw-toggl/jwtoggl/db"
-	"time"
+	gttimeentry "go-jw-toggl/jwtoggl/gtoggl/gttimentry"
 )
 
 type DB interface {
@@ -13,5 +13,5 @@ type DB interface {
 	OnProjectsChanged(callback db.OnProjectsChangedCallback)
 	OnTagsChanged(callback db.OnTagsChangedCallback)
 	StartListen(ctx context.Context)
-	CreateNewEntry(description string, projectId uint64, tagId uint64, start time.Time) error
+	CreateNewEntry(entry *gttimeentry.TimeEntry) error
 }

@@ -9,6 +9,7 @@ import (
 	"go-jw-toggl/jwtoggl/builder"
 	"go-jw-toggl/jwtoggl/db"
 	"go-jw-toggl/jwtoggl/entry_form"
+	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
 	"log"
 	"os"
 )
@@ -37,10 +38,7 @@ func (j *jApp) Run(args []string) int {
 
 func (j *jApp) onActivate() {
 	b := builder.NewBuilder()
-	var err error
-	if j.form, err = entry_form.NewEntryForm(b); err != nil {
-		log.Fatal("Form build error:", err)
-	}
+	j.initForm(b)
 	j.menu = b.GetMenu()
 	j.menuNew = b.GetMenuItemNew()
 	j.window = b.GetMainWindow()
@@ -49,6 +47,20 @@ func (j *jApp) onActivate() {
 	j.app.AddWindow(j.window)
 	//j.showNotification("Hello", "JW Toggl started")
 	go j.StartSync(j.ctx)
+}
+
+func (j *jApp) initForm(b *builder.Builder) {
+	var err error
+	if j.form, err = entry_form.NewEntryForm(b); err != nil {
+		log.Fatal("Form build error:", err)
+	}
+	j.form.OnNewEntryCreated(j.onNewEntryCreated)
+}
+
+func (j *jApp) onNewEntryCreated(entry *gttimeentry.TimeEntry) {
+	if err := j.db.CreateNewEntry(entry); err != nil {
+		log.Fatal(err)
+	}
 }
 
 // NewApp подготавливает основное окно приложения с иконкой в трее и меню.

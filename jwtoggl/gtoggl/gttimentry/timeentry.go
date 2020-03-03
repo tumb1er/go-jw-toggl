@@ -6,6 +6,7 @@ import (
 	"go-jw-toggl/jwtoggl/gtoggl/gthttp"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gtworkspace"
+	"log"
 	"net/url"
 	"time"
 )
@@ -135,6 +136,8 @@ func timeEntryResponse(response *json.RawMessage, error error) (*TimeEntry, erro
 	if tResp.Data == nil {
 		return nil, nil
 	}
+	d := string(*tResp.Data)
+	log.Println(d)
 	err = json.Unmarshal(*tResp.Data, &t)
 	if err != nil {
 		return nil, err

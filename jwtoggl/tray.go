@@ -35,12 +35,13 @@ func getIconPath(filename string) string {
 }
 
 type CurrentEntryInfo struct {
-	Title  string
-	Body   string
-	Label  string
-	Status appindicator.Status
-	Icon   string
-	Menu   string
+	Title    string
+	Body     string
+	Label    string
+	Status   appindicator.Status
+	Icon     string
+	Menu     string
+	External bool
 }
 
 func (j *jApp) UpdateCurrentEntry(info CurrentEntryInfo) {
@@ -52,7 +53,7 @@ func (j *jApp) UpdateCurrentEntry(info CurrentEntryInfo) {
 	j.menuNew.SetLabel(info.Menu)
 	if err := j.popup.SetIcon(getIconPath(info.Icon)); err != nil {
 		log.Fatal("Popup error:", err)
-	} else {
+	} else if info.External {
 		j.showNotification(info.Title, info.Body)
 	}
 

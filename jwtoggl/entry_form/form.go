@@ -7,6 +7,9 @@ import (
 	"go-jw-toggl/jwtoggl/builder"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
+	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
+	"log"
+	"strconv"
 )
 
 const (
@@ -33,7 +36,10 @@ type EntryForm struct {
 	imageStart        *gtk.Image
 	projectsListStore *gtk.ListStore
 	tagsListStore     *gtk.ListStore
+	onNewEntryCreated NewEntryCreatedCallback
 }
+
+type NewEntryCreatedCallback func(entry *gttimeentry.TimeEntry)
 
 func NewEntryForm(b *builder.Builder) (*EntryForm, error) {
 	f := &EntryForm{}
@@ -77,6 +83,9 @@ func NewEntryForm(b *builder.Builder) (*EntryForm, error) {
 		f.project.PackStart(r, true)
 		f.project.AddAttribute(r, "markup", 2)
 	}
+	if _, err = f.button.Connect("clicked", f.onButtonClicked); err != nil {
+		return nil, err
+	}
 	return f, nil
 }
 
@@ -102,15 +111,86 @@ func (f *EntryForm) SetProjects(projects gtproject.Projects) error {
 func (f *EntryForm) SetTags(tags gttag.Tags) error {
 	ls := f.tagsListStore
 	ls.Clear()
-	cols := []int{0, 1}
 	for _, tag := range tags {
 		it := ls.Append()
-		values := []interface{}{tag.Id, tag.Name}
-		if err := ls.Set(it, cols, values); err != nil {
+		if err := ls.SetValue(it, 0, tag.Name); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func (f *EntryForm) GetTimeEntry() *gttimeentry.TimeEntry {
+	var err error
+	entry := &gttimeentry.TimeEntry{}
+	if entry.Description, err = f.description.GetText(); err != nil {
+		return nil
+	}
+	log.Println(1)
+	if entry.Pid, err = strconv.ParseUint(f.project.GetActiveID(), 10, 64); err != nil {
+		return nil
+	}
+	log.Println(2)
+	var tag string
+	if tag = f.tag.GetActiveID(); tag == "" {
+		return nil
+	} else {
+		entry.Tags = []string{tag}
+	}
+	log.Println(3)
+
+	return entry
+}
+
+func (f *EntryForm) SetTimeEntry(entry *gttimeentry.TimeEntry) {
+	if entry == nil {
+		f.description.SetText("")
+		f.project.SetActive(-1)
+		f.tag.SetActive(-1)
+		f.button.SetImage(f.imageStart)
+		f.start.SetText("")
+		f.stop.SetText("")
+	} else {
+		f.description.SetText(entry.Description)
+		if len(entry.Tags) > 0 {
+			f.tag.SetActiveID(entry.Tags[0])
+		} else {
+			f.tag.SetActive(-1)
+		}
+		f.project.SetActiveID(strconv.FormatUint(entry.Pid, 10))
+		f.button.SetImage(f.imageStop)
+		if entry.Start.IsZero() {
+			f.start.SetText("")
+		} else {
+			f.start.SetText(entry.Start.Local().Format("15:04:05"))
+		}
+		if entry.Stop.IsZero() {
+			f.stop.SetText("")
+		} else {
+			f.stop.SetText(entry.Stop.Format("15:04:05"))
+		}
+	}
+}
+
+func (f *EntryForm) Validate() bool {
+	valid := f.GetTimeEntry() != nil
+	if err := f.button.SetProperty("enabled", valid); err != nil {
+		log.Fatal("validate error:", err)
+	}
+	return valid
+}
+
+func (f *EntryForm) OnNewEntryCreated(cb NewEntryCreatedCallback) {
+	f.onNewEntryCreated = cb
+}
+
+func (f *EntryForm) onButtonClicked() {
+	if !f.Validate() {
+		return
+	}
+	if f.onNewEntryCreated != nil {
+		f.onNewEntryCreated(f.GetTimeEntry())
+	}
 }
 
 //

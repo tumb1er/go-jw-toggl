@@ -15,6 +15,9 @@ func (j *jApp) initMenu(b *builder.Builder) {
 func (j *jApp) onToggle() {
 	log.Println("onToggle")
 	visible := j.window.GetVisible()
+	if visible {
+		j.form.Validate()
+	}
 	j.window.SetVisible(!visible)
 }
 

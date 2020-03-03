@@ -58,25 +58,29 @@ func (j *jApp) onTagsChanged(tags gttag.Tags) {
 	}
 }
 
-func (j *jApp) onCurrentEntryChanged(entry *gttimeentry.TimeEntry) {
+func (j *jApp) onCurrentEntryChanged(entry *gttimeentry.TimeEntry, external bool) {
 	if entry == nil {
 		j.UpdateCurrentEntry(CurrentEntryInfo{
-			Title:  "JW Toggl",
-			Body:   "Timer stopped",
-			Label:  " Work!",
-			Status: appindicator.StatusActive,
-			Icon:   TogglIconBW,
-			Menu:   "New...",
+			Body:     "Timer stopped",
+			Label:    " Work!",
+			Status:   appindicator.StatusActive,
+			Icon:     TogglIconBW,
+			Menu:     "New...",
+			External: external,
 		})
 	} else {
 		j.UpdateCurrentEntry(CurrentEntryInfo{
-			Title:  "JW Toggl",
-			Body:   entry.Description,
-			Label:  shorten(entry.Description),
-			Status: appindicator.StatusAttention,
-			Icon:   TogglIcon,
-			Menu:   entry.Description,
+			Title:    "JW Toggl",
+			Body:     entry.Description,
+			Label:    shorten(entry.Description),
+			Status:   appindicator.StatusAttention,
+			Icon:     TogglIcon,
+			Menu:     entry.Description,
+			External: external,
 		})
+	}
+	if external {
+		j.form.SetTimeEntry(entry)
 	}
 }
 

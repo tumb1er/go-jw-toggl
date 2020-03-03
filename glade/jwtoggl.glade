@@ -37,20 +37,18 @@
   </object>
   <object class="GtkListStore" id="tags_list_store">
     <columns>
-      <!-- column-name TagId -->
-      <column type="gchararray"/>
       <!-- column-name Name -->
       <column type="gchararray"/>
     </columns>
   </object>
   <object class="GtkEntryCompletion" id="tag_completion">
     <property name="model">tags_list_store</property>
-    <property name="text_column">1</property>
+    <property name="text_column">0</property>
     <property name="inline_completion">True</property>
     <child>
       <object class="GtkCellRendererText"/>
       <attributes>
-        <attribute name="text">1</attribute>
+        <attribute name="text">0</attribute>
       </attributes>
     </child>
   </object>
@@ -117,7 +115,7 @@
                         <property name="can_focus">False</property>
                         <property name="model">tags_list_store</property>
                         <property name="has_entry">True</property>
-                        <property name="entry_text_column">1</property>
+                        <property name="entry_text_column">0</property>
                         <property name="id_column">0</property>
                         <child internal-child="entry">
                           <object class="GtkEntry">

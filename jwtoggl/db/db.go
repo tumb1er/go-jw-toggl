@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-type OnCurrentEntryCallback func(entry *gttimeentry.TimeEntry)
+type OnCurrentEntryCallback func(entry *gttimeentry.TimeEntry, external bool)
 type OnProjectsChangedCallback func(projects gtproject.Projects)
 type OnTagsChangedCallback func(tags gttag.Tags)
 
@@ -55,17 +55,13 @@ func (db *DB) OnTagsChanged(cb OnTagsChangedCallback) {
 	db.onTagsChanged = cb
 }
 
-func (db *DB) CreateNewEntry(description string, projectId uint64, tagId uint64,
-	start time.Time) error {
-	entry := &gttimeentry.TimeEntry{
-		Description: description,
-		Pid:         projectId,
-		Wid:         db.defaultWId,
-		Tags:        []string{db.tags[tagId].Name},
-		Start:       start,
-		CreatedWith: "go-jw-toggl",
-	}
+func (db *DB) CreateNewEntry(entry *gttimeentry.TimeEntry) error {
+	entry.Wid = db.defaultWId
+	entry.CreatedWith = "go-jw-toggl"
+	entry.Start = time.Now()
 	entry, err := db.client.TimeentryClient.Start(entry)
+	db.Entry = entry
+	db.onCurrentEntry(db.Entry, false)
 	return err
 }
 
@@ -76,7 +72,7 @@ func (db *DB) SyncCurrentEntry() error {
 	}
 	if !entriesEqual(db.Entry, entry) {
 		db.Entry = entry
-		db.onCurrentEntry(db.Entry)
+		db.onCurrentEntry(db.Entry, true)
 	}
 	return nil
 }
@@ -142,7 +138,7 @@ func (db *DB) onTimeEntryAction(action string, entry gttimeentry.TimeEntry) erro
 			log.Println("INSERT new running entry")
 			// New time entry started, replacing current.
 			db.Entry = &entry
-			db.onCurrentEntry(db.Entry)
+			db.onCurrentEntry(db.Entry, true)
 			return nil
 		} else {
 			// Inserted entry directly to history - is it possible?
@@ -155,7 +151,7 @@ func (db *DB) onTimeEntryAction(action string, entry gttimeentry.TimeEntry) erro
 			log.Println("DELETE running entry")
 			// Currently running entry is completely deleted.
 			db.Entry = nil
-			db.onCurrentEntry(nil)
+			db.onCurrentEntry(nil, true)
 			return nil
 		} else {
 			// Deleted historical entry
@@ -168,13 +164,13 @@ func (db *DB) onTimeEntryAction(action string, entry gttimeentry.TimeEntry) erro
 		if entry.Stop.IsZero() {
 			// Current entry is updated
 			db.Entry = &entry
-			db.onCurrentEntry(db.Entry)
+			db.onCurrentEntry(db.Entry, true)
 			return nil
 		}
 		if db.Entry != nil && db.Entry.Id == entry.Id {
 			// Updating current entry, and it's stopped
 			db.Entry = nil
-			db.onCurrentEntry(nil)
+			db.onCurrentEntry(nil, true)
 			return nil
 		} else {
 			// TODO: Update entry in local history
