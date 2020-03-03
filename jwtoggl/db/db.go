@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"go-jw-toggl/jwtoggl/gtoggl"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
@@ -63,6 +64,21 @@ func (db *DB) CreateNewEntry(entry *gttimeentry.TimeEntry) error {
 	db.Entry = entry
 	db.onCurrentEntry(db.Entry, false)
 	return err
+}
+
+func (db *DB) StopEntry(entry *gttimeentry.TimeEntry) error {
+	if entry == nil {
+		return nil
+	}
+	if db.Entry.Id != entry.Id {
+		return errors.New("current entry de-sync")
+	}
+	_, err := db.client.TimeentryClient.Stop(entry)
+	if err != nil {
+		return err
+	}
+	db.onCurrentEntry(nil, false)
+	return nil
 }
 
 func (db *DB) SyncCurrentEntry() error {

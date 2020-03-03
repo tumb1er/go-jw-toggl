@@ -16,6 +16,8 @@ const (
 	textDescription = "text_entry"
 	textStart       = "entry_start"
 	textStop        = "entry_stop"
+	textProject     = "text_project_entry"
+	textTag         = "text_tag_entry"
 	comboProject    = "text_project"
 	comboTag        = "text_tag"
 	buttonStartStop = "button_start_stop"
@@ -26,9 +28,12 @@ const (
 )
 
 type EntryForm struct {
+	eid               uint64
 	description       *gtk.Entry
 	start             *gtk.Entry
 	stop              *gtk.Entry
+	projectEntry      *gtk.Entry
+	tagEntry          *gtk.Entry
 	project           *gtk.ComboBox
 	tag               *gtk.ComboBox
 	button            *gtk.Button
@@ -37,9 +42,11 @@ type EntryForm struct {
 	projectsListStore *gtk.ListStore
 	tagsListStore     *gtk.ListStore
 	onNewEntryCreated NewEntryCreatedCallback
+	onEntryStopped    EntryStoppedCallback
 }
 
 type NewEntryCreatedCallback func(entry *gttimeentry.TimeEntry)
+type EntryStoppedCallback func(entry *gttimeentry.TimeEntry)
 
 func NewEntryForm(b *builder.Builder) (*EntryForm, error) {
 	f := &EntryForm{}
@@ -51,6 +58,12 @@ func NewEntryForm(b *builder.Builder) (*EntryForm, error) {
 		return nil, err
 	}
 	if f.stop, err = b.GetEntry(textStop); err != nil {
+		return nil, err
+	}
+	if f.projectEntry, err = b.GetEntry(textProject); err != nil {
+		return nil, err
+	}
+	if f.tagEntry, err = b.GetEntry(textTag); err != nil {
 		return nil, err
 	}
 	if f.project, err = b.GetComboBox(comboProject); err != nil {
@@ -84,6 +97,15 @@ func NewEntryForm(b *builder.Builder) (*EntryForm, error) {
 		f.project.AddAttribute(r, "markup", 2)
 	}
 	if _, err = f.button.Connect("clicked", f.onButtonClicked); err != nil {
+		return nil, err
+	}
+	if _, err = f.description.Connect("changed", f.Validate); err != nil {
+		return nil, err
+	}
+	if _, err = f.projectEntry.Connect("changed", f.SetActiveProject); err != nil {
+		return nil, err
+	}
+	if _, err = f.tagEntry.Connect("changed", f.SetActiveTag); err != nil {
 		return nil, err
 	}
 	return f, nil
@@ -122,35 +144,38 @@ func (f *EntryForm) SetTags(tags gttag.Tags) error {
 
 func (f *EntryForm) GetTimeEntry() *gttimeentry.TimeEntry {
 	var err error
-	entry := &gttimeentry.TimeEntry{}
+	entry := &gttimeentry.TimeEntry{Id: f.eid}
 	if entry.Description, err = f.description.GetText(); err != nil {
 		return nil
 	}
-	log.Println(1)
 	if entry.Pid, err = strconv.ParseUint(f.project.GetActiveID(), 10, 64); err != nil {
 		return nil
 	}
-	log.Println(2)
 	var tag string
 	if tag = f.tag.GetActiveID(); tag == "" {
 		return nil
 	} else {
 		entry.Tags = []string{tag}
 	}
-	log.Println(3)
 
 	return entry
 }
 
 func (f *EntryForm) SetTimeEntry(entry *gttimeentry.TimeEntry) {
+	log.Println("SetTimeEntry:", entry)
 	if entry == nil {
+		f.eid = 0
 		f.description.SetText("")
 		f.project.SetActive(-1)
 		f.tag.SetActive(-1)
 		f.button.SetImage(f.imageStart)
 		f.start.SetText("")
 		f.stop.SetText("")
+		f.projectEntry.SetText("")
+		f.tagEntry.SetText("")
+		f.button.SetSensitive(false)
 	} else {
+		f.eid = entry.Id
 		f.description.SetText(entry.Description)
 		if len(entry.Tags) > 0 {
 			f.tag.SetActiveID(entry.Tags[0])
@@ -169,27 +194,96 @@ func (f *EntryForm) SetTimeEntry(entry *gttimeentry.TimeEntry) {
 		} else {
 			f.stop.SetText(entry.Stop.Format("15:04:05"))
 		}
+		f.Validate()
 	}
 }
 
 func (f *EntryForm) Validate() bool {
 	valid := f.GetTimeEntry() != nil
-	if err := f.button.SetProperty("enabled", valid); err != nil {
-		log.Fatal("validate error:", err)
-	}
+	log.Println("validate:", valid)
+	f.button.SetSensitive(valid)
 	return valid
+}
+
+func (f *EntryForm) SetActiveProject() {
+	if project, err := f.projectEntry.GetText(); err != nil {
+		log.Fatal(err)
+	} else {
+		getString := func(model *gtk.TreeModel, iter *gtk.TreeIter, column int) (string, error) {
+			glibValue, err := model.GetValue(iter, column)
+			if err != nil {
+				return "", err
+			}
+			v, err := glibValue.GoValue()
+			if err != nil {
+				return "", err
+			}
+			result, ok := v.(string)
+			if !ok {
+				return "", fmt.Errorf("string convertion error: %T", v)
+			}
+			return result, nil
+		}
+		filter := func(model *gtk.TreeModel, path *gtk.TreePath, iter *gtk.TreeIter, userData interface{}) bool {
+			name, err := getString(model, iter, 1)
+			if err != nil {
+				return true
+			}
+			if name == project {
+				projectId, err := getString(model, iter, 0)
+				if err != nil {
+					return true
+				}
+				f.project.SetActiveID(projectId)
+				return true
+			}
+			return false
+		}
+		if err := f.projectsListStore.ForEach(filter); err != nil {
+			log.Fatal(err)
+		}
+		f.Validate()
+	}
+}
+
+func (f *EntryForm) SetActiveTag() {
+	if tag, err := f.tagEntry.GetText(); err != nil {
+		log.Fatal(err)
+	} else {
+		f.tag.SetActiveID(tag)
+		f.Validate()
+	}
 }
 
 func (f *EntryForm) OnNewEntryCreated(cb NewEntryCreatedCallback) {
 	f.onNewEntryCreated = cb
 }
+func (f *EntryForm) OnEntryStopped(cb EntryStoppedCallback) {
+	f.onEntryStopped = cb
+}
 
 func (f *EntryForm) onButtonClicked() {
+	if f.eid != 0 {
+		f.handleStop()
+	} else {
+		f.handleStart()
+	}
+}
+
+func (f *EntryForm) handleStart() {
 	if !f.Validate() {
 		return
 	}
 	if f.onNewEntryCreated != nil {
 		f.onNewEntryCreated(f.GetTimeEntry())
+	}
+}
+
+func (f *EntryForm) handleStop() {
+	entry := f.GetTimeEntry()
+	if entry != nil && f.onEntryStopped != nil {
+		f.onEntryStopped(entry)
+		f.SetTimeEntry(nil)
 	}
 }
 

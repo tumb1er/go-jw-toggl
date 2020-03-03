@@ -95,7 +95,7 @@
                         <property name="entry_text_column">1</property>
                         <property name="id_column">0</property>
                         <child internal-child="entry">
-                          <object class="GtkEntry">
+                          <object class="GtkEntry" id="text_project_entry">
                             <property name="can_focus">True</property>
                             <property name="primary_icon_pixbuf">resources/project.svg</property>
                             <property name="placeholder_text" translatable="yes">Project</property>
@@ -118,7 +118,7 @@
                         <property name="entry_text_column">0</property>
                         <property name="id_column">0</property>
                         <child internal-child="entry">
-                          <object class="GtkEntry">
+                          <object class="GtkEntry" id="text_tag_entry">
                             <property name="can_focus">True</property>
                             <property name="primary_icon_pixbuf">resources/tags.svg</property>
                             <property name="placeholder_text" translatable="yes">Tag</property>
@@ -149,6 +149,7 @@
             <child>
               <object class="GtkButton" id="button_start_stop">
                 <property name="visible">True</property>
+                <property name="sensitive">False</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
                 <property name="image">icon_start</property>

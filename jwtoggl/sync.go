@@ -59,6 +59,7 @@ func (j *jApp) onTagsChanged(tags gttag.Tags) {
 }
 
 func (j *jApp) onCurrentEntryChanged(entry *gttimeentry.TimeEntry, external bool) {
+	log.Println("OnCurrentEntryChanged")
 	if entry == nil {
 		j.UpdateCurrentEntry(CurrentEntryInfo{
 			Body:     "Timer stopped",

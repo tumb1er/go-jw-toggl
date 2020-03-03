@@ -55,10 +55,17 @@ func (j *jApp) initForm(b *builder.Builder) {
 		log.Fatal("Form build error:", err)
 	}
 	j.form.OnNewEntryCreated(j.onNewEntryCreated)
+	j.form.OnEntryStopped(j.onEntryStopped)
 }
 
 func (j *jApp) onNewEntryCreated(entry *gttimeentry.TimeEntry) {
 	if err := j.db.CreateNewEntry(entry); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func (j *jApp) onEntryStopped(entry *gttimeentry.TimeEntry) {
+	if err := j.db.StopEntry(entry); err != nil {
 		log.Fatal(err)
 	}
 }
