@@ -16,11 +16,9 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#pragma once
+// Reduced copy of "gtk.go.h" from "github.com/gotk3/gotk3/gtk"
 
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
+#pragma once
 
 static GtkCellLayout *
 toGtkCellLayout(void *p)

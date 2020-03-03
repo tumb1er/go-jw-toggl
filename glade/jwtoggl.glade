@@ -17,7 +17,7 @@
   <object class="GtkListStore" id="projects_list_store">
     <columns>
       <!-- column-name ProjectId -->
-      <column type="guint64"/>
+      <column type="gchararray"/>
       <!-- column-name Name -->
       <column type="gchararray"/>
       <!-- column-name Markup -->
@@ -27,21 +27,32 @@
   <object class="GtkEntryCompletion" id="project_completion">
     <property name="model">projects_list_store</property>
     <property name="text_column">1</property>
-    <property name="inline_completion">True</property>
     <child>
       <object class="GtkCellRendererText"/>
       <attributes>
         <attribute name="markup">2</attribute>
+        <attribute name="placeholder-text">2</attribute>
       </attributes>
     </child>
   </object>
   <object class="GtkListStore" id="tags_list_store">
     <columns>
-      <!-- column-name id -->
-      <column type="guint64"/>
-      <!-- column-name name -->
+      <!-- column-name TagId -->
+      <column type="gchararray"/>
+      <!-- column-name Name -->
       <column type="gchararray"/>
     </columns>
+  </object>
+  <object class="GtkEntryCompletion" id="tag_completion">
+    <property name="model">tags_list_store</property>
+    <property name="text_column">1</property>
+    <property name="inline_completion">True</property>
+    <child>
+      <object class="GtkCellRendererText"/>
+      <attributes>
+        <attribute name="text">1</attribute>
+      </attributes>
+    </child>
   </object>
   <object class="GtkApplicationWindow" id="main_window">
     <property name="can_focus">False</property>
@@ -86,7 +97,7 @@
                         <property name="entry_text_column">1</property>
                         <property name="id_column">0</property>
                         <child internal-child="entry">
-                          <object class="GtkEntry" id="text_project_entry">
+                          <object class="GtkEntry">
                             <property name="can_focus">True</property>
                             <property name="primary_icon_pixbuf">resources/project.svg</property>
                             <property name="placeholder_text" translatable="yes">Project</property>
@@ -101,36 +112,26 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkImage" id="icon_tag">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="pixbuf">resources/tags.svg</property>
-                      </object>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="fill">True</property>
-                        <property name="padding">4</property>
-                        <property name="position">2</property>
-                      </packing>
-                    </child>
-                    <child>
                       <object class="GtkComboBox" id="text_tag">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="model">tags_list_store</property>
+                        <property name="has_entry">True</property>
                         <property name="entry_text_column">1</property>
                         <property name="id_column">0</property>
-                        <child>
-                          <object class="GtkCellRendererText" id="tag_name"/>
-                          <attributes>
-                            <attribute name="text">1</attribute>
-                          </attributes>
+                        <child internal-child="entry">
+                          <object class="GtkEntry">
+                            <property name="can_focus">True</property>
+                            <property name="primary_icon_pixbuf">resources/tags.svg</property>
+                            <property name="placeholder_text" translatable="yes">Tag</property>
+                            <property name="completion">tag_completion</property>
+                          </object>
                         </child>
                       </object>
                       <packing>
-                        <property name="expand">True</property>
+                        <property name="expand">False</property>
                         <property name="fill">True</property>
-                        <property name="position">3</property>
+                        <property name="position">1</property>
                       </packing>
                     </child>
                   </object>
@@ -252,11 +253,6 @@
         </child>
       </object>
     </child>
-  </object>
-  <object class="GtkEntryCompletion" id="tag_completion">
-    <property name="model">tags_list_store</property>
-    <property name="text_column">1</property>
-    <property name="inline_completion">True</property>
   </object>
   <object class="GtkMenu" id="tray_menu">
     <property name="visible">True</property>

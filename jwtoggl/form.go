@@ -3,11 +3,11 @@ package jwtoggl
 import "C"
 import (
 	"fmt"
-	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
 	"log"
+	"strconv"
 )
 
 const (
@@ -69,15 +69,13 @@ func NewEntryForm(b *builder) (*EntryForm, error) {
 	if f.tagsListStore, err = b.GetListStore(storeTags); err != nil {
 		return nil, err
 	}
-	c, _ := b.GetEntry("text_project_entry")
 	r, err := gtk.CellRendererTextNew()
 	if err != nil {
 		log.Fatal(err)
 	}
-	Clear(&f.project.CellLayout)
-	PackStart(&f.project.CellLayout, &r.CellRenderer, true)
+	CellLayoutClear(&f.project.CellLayout)
+	f.project.PackStart(r, true)
 	f.project.AddAttribute(r, "markup", 2)
-	log.Printf("Entry %T: %+v\n", c, c)
 	return f, nil
 }
 
@@ -115,41 +113,16 @@ func (f *EntryForm) SetTags(tags gttag.Tags) error {
 }
 
 func (j *jApp) onStartStopClicked() {
-	var it *gtk.TreeIter
 	var err error
-	var glibValue *glib.Value
-	var goValue interface{}
-	var projectId, tagId uint64
+	var projectId, tagId int
 	var description string
 	log.Println("Project active id:", j.form.project.GetActiveID())
-	if it, err = j.form.project.GetActiveIter(); err != nil {
-		log.Fatal("Can't get active project iter:", err)
-	}
-	if glibValue, err = j.form.projectsListStore.GetValue(it, 0); err != nil {
-		log.Fatal("Can't get project value from store", err)
-	}
-	if goValue, err = glibValue.GoValue(); err != nil {
-		log.Fatal("Can't get go value from glib", err)
-	}
-	if v, ok := goValue.(uint64); !ok {
-		log.Fatalf("Can't cast projectId: %+v\n", v)
-	} else {
-		projectId = v
+	if projectId, err = strconv.Atoi(j.form.project.GetActiveID()); err != nil {
+		log.Fatal("Project cast error:", err)
 	}
 
-	if it, err = j.form.tag.GetActiveIter(); err != nil {
-		log.Fatal("Can't get active tag iter:", err)
-	}
-	if glibValue, err = j.form.tagsListStore.GetValue(it, 0); err != nil {
-		log.Fatal("Can't get tag value from store", err)
-	}
-	if goValue, err = glibValue.GoValue(); err != nil {
-		log.Fatal("Can't get go value from glib", err)
-	}
-	if v, ok := goValue.(uint64); !ok {
-		log.Fatalf("Can't cast tagId: %+v\n", v)
-	} else {
-		tagId = v
+	if tagId, err = strconv.Atoi(j.form.tag.GetActiveID()); err != nil {
+		log.Fatal("Tag cast error:", err)
 	}
 	if description, err = j.form.description.GetText(); err != nil {
 		log.Fatal("Can't get description:", err)
