@@ -1,4 +1,4 @@
-package jwtoggl
+package builder
 
 import (
 	"errors"
@@ -14,12 +14,12 @@ const (
 	mainWindow = "main_window"
 )
 
-type builder struct {
-	builder *gtk.Builder
+type Builder struct {
+	*gtk.Builder
 }
 
-func (b *builder) GetMenu() *gtk.Menu {
-	obj, err := b.builder.GetObject(trayMenuId)
+func (b *Builder) GetMenu() *gtk.Menu {
+	obj, err := b.GetObject(trayMenuId)
 	if err != nil {
 		log.Fatal("Could not get tray menu:", err)
 	}
@@ -31,8 +31,8 @@ func (b *builder) GetMenu() *gtk.Menu {
 	}
 }
 
-func (b *builder) GetMainWindow() *gtk.ApplicationWindow {
-	obj, err := b.builder.GetObject(mainWindow)
+func (b *Builder) GetMainWindow() *gtk.ApplicationWindow {
+	obj, err := b.GetObject(mainWindow)
 	if err != nil {
 		log.Fatal("Could not get entry list window:", err)
 	}
@@ -44,8 +44,8 @@ func (b *builder) GetMainWindow() *gtk.ApplicationWindow {
 	}
 }
 
-func (b *builder) GetMenuItemNew() *gtk.MenuItem {
-	obj, err := b.builder.GetObject(menuNew)
+func (b *Builder) GetMenuItemNew() *gtk.MenuItem {
+	obj, err := b.GetObject(menuNew)
 	if err != nil {
 		log.Fatal("Could not get new menu item:", err)
 	}
@@ -57,8 +57,8 @@ func (b *builder) GetMenuItemNew() *gtk.MenuItem {
 	}
 }
 
-func (b *builder) GetEntry(id string) (*gtk.Entry, error) {
-	obj, err := b.builder.GetObject(id)
+func (b *Builder) GetEntry(id string) (*gtk.Entry, error) {
+	obj, err := b.GetObject(id)
 	if err != nil {
 		log.Fatal("Could not get entry:", err)
 	}
@@ -69,8 +69,8 @@ func (b *builder) GetEntry(id string) (*gtk.Entry, error) {
 	}
 }
 
-func (b *builder) GetComboBox(id string) (*gtk.ComboBox, error) {
-	obj, err := b.builder.GetObject(id)
+func (b *Builder) GetComboBox(id string) (*gtk.ComboBox, error) {
+	obj, err := b.GetObject(id)
 	if err != nil {
 		log.Fatal("Could not get ComboBox:", err)
 	}
@@ -81,8 +81,8 @@ func (b *builder) GetComboBox(id string) (*gtk.ComboBox, error) {
 	}
 }
 
-func (b *builder) GetButton(id string) (*gtk.Button, error) {
-	obj, err := b.builder.GetObject(id)
+func (b *Builder) GetButton(id string) (*gtk.Button, error) {
+	obj, err := b.GetObject(id)
 	if err != nil {
 		log.Fatal("Could not get Button:", err)
 	}
@@ -93,8 +93,8 @@ func (b *builder) GetButton(id string) (*gtk.Button, error) {
 	}
 }
 
-func (b *builder) GetImage(id string) (*gtk.Image, error) {
-	obj, err := b.builder.GetObject(id)
+func (b *Builder) GetImage(id string) (*gtk.Image, error) {
+	obj, err := b.GetObject(id)
 	if err != nil {
 		log.Fatal("Could not get Image:", err)
 	}
@@ -104,8 +104,8 @@ func (b *builder) GetImage(id string) (*gtk.Image, error) {
 		return ret, nil
 	}
 }
-func (b *builder) GetListStore(id string) (*gtk.ListStore, error) {
-	obj, err := b.builder.GetObject(id)
+func (b *Builder) GetListStore(id string) (*gtk.ListStore, error) {
+	obj, err := b.GetObject(id)
 	if err != nil {
 		log.Fatal("Could not get ListStore:", err)
 	}
@@ -116,7 +116,7 @@ func (b *builder) GetListStore(id string) (*gtk.ListStore, error) {
 	}
 }
 
-func NewBuilder() *builder {
+func NewBuilder() *Builder {
 	b, err := gtk.BuilderNew()
 	if err != nil {
 		log.Fatal("Could not create new builder:", err)
@@ -133,5 +133,5 @@ func NewBuilder() *builder {
 	if err != nil {
 		log.Fatal("Could not open glade file:", err)
 	}
-	return &builder{builder: b}
+	return &Builder{b}
 }

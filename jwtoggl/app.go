@@ -6,7 +6,9 @@ import (
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 	"github.com/tumb1er/go-notifier/notifier"
+	"go-jw-toggl/jwtoggl/builder"
 	"go-jw-toggl/jwtoggl/db"
+	"go-jw-toggl/jwtoggl/entry_form"
 	"log"
 	"os"
 )
@@ -18,7 +20,7 @@ const (
 
 type jApp struct {
 	app       *gtk.Application
-	form      *EntryForm
+	form      *entry_form.EntryForm
 	indicator *appindicator.Indicator
 	window    *gtk.ApplicationWindow
 	menu      *gtk.Menu
@@ -33,35 +35,19 @@ func (j *jApp) Run(args []string) int {
 	return j.app.Run(args)
 }
 
-func (j *jApp) onToggle() {
-	log.Println("onToggle")
-	visible := j.window.GetVisible()
-	j.window.SetVisible(!visible)
-}
-
-func (j *jApp) onExit() {
-	log.Println("onExit")
-	j.cancel()
-	j.app.Quit()
-}
-
 func (j *jApp) onActivate() {
-	builder := NewBuilder()
-	j.menu = builder.GetMenu()
-	j.menuNew = builder.GetMenuItemNew()
-	form, err := NewEntryForm(builder)
-	if err != nil {
+	b := builder.NewBuilder()
+	var err error
+	if j.form, err = entry_form.NewEntryForm(b); err != nil {
 		log.Fatal("Form build error:", err)
 	}
-	j.form = form
-	j.window = builder.GetMainWindow()
+	j.menu = b.GetMenu()
+	j.menuNew = b.GetMenuItemNew()
+	j.window = b.GetMainWindow()
 	j.indicator = NewIndicator(j.menu, j.menuNew)
-	j.initMenu(builder)
+	j.initMenu(b)
 	j.app.AddWindow(j.window)
-	j.showNotification("Hello", "JW Toggl started")
-	if _, err := j.form.button.Connect("clicked", j.onStartStopClicked); err != nil {
-		log.Fatal("Button bind error:", err)
-	}
+	//j.showNotification("Hello", "JW Toggl started")
 	go j.StartSync(j.ctx)
 }
 

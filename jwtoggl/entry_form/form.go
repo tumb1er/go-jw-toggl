@@ -1,13 +1,12 @@
-package jwtoggl
+package entry_form
 
 import "C"
 import (
 	"fmt"
 	"github.com/gotk3/gotk3/gtk"
+	"go-jw-toggl/jwtoggl/builder"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
-	"log"
-	"strconv"
 )
 
 const (
@@ -36,7 +35,7 @@ type EntryForm struct {
 	tagsListStore     *gtk.ListStore
 }
 
-func NewEntryForm(b *builder) (*EntryForm, error) {
+func NewEntryForm(b *builder.Builder) (*EntryForm, error) {
 	f := &EntryForm{}
 	var err error
 	if f.description, err = b.GetEntry(textDescription); err != nil {
@@ -69,13 +68,15 @@ func NewEntryForm(b *builder) (*EntryForm, error) {
 	if f.tagsListStore, err = b.GetListStore(storeTags); err != nil {
 		return nil, err
 	}
-	r, err := gtk.CellRendererTextNew()
-	if err != nil {
-		log.Fatal(err)
+	if r, err := gtk.CellRendererTextNew(); err != nil {
+		return nil, err
+	} else {
+		// Удаляем автоматически добавленную колонку, которая появилась из-за EntryTextColumn
+		CellLayoutClear(&f.project.CellLayout)
+		// Добавляем свою колонку с Markup
+		f.project.PackStart(r, true)
+		f.project.AddAttribute(r, "markup", 2)
 	}
-	CellLayoutClear(&f.project.CellLayout)
-	f.project.PackStart(r, true)
-	f.project.AddAttribute(r, "markup", 2)
 	return f, nil
 }
 
@@ -112,26 +113,27 @@ func (f *EntryForm) SetTags(tags gttag.Tags) error {
 	return nil
 }
 
-func (j *jApp) onStartStopClicked() {
-	var err error
-	var projectId, tagId int
-	var description string
-	log.Println("Project active id:", j.form.project.GetActiveID())
-	if projectId, err = strconv.Atoi(j.form.project.GetActiveID()); err != nil {
-		log.Fatal("Project cast error:", err)
-	}
-
-	if tagId, err = strconv.Atoi(j.form.tag.GetActiveID()); err != nil {
-		log.Fatal("Tag cast error:", err)
-	}
-	if description, err = j.form.description.GetText(); err != nil {
-		log.Fatal("Can't get description:", err)
-	}
-
-	log.Printf("Clicked: project %d tag %d description %s", projectId, tagId, description)
-	//
-	//now := time.Now()
-	//if err = j.db.CreateNewEntry(description, projectId, tagId, now); err != nil {
-	//	log.Fatal("Can't create entry:", err)
-	//}
-}
+//
+//func (j *jwtoggl.jApp) onStartStopClicked() {
+//	var err error
+//	var projectId, tagId int
+//	var description string
+//	log.Println("Project active id:", j.form.project.GetActiveID())
+//	if projectId, err = strconv.Atoi(j.form.project.GetActiveID()); err != nil {
+//		log.Fatal("Project cast error:", err)
+//	}
+//
+//	if tagId, err = strconv.Atoi(j.form.tag.GetActiveID()); err != nil {
+//		log.Fatal("Tag cast error:", err)
+//	}
+//	if description, err = j.form.description.GetText(); err != nil {
+//		log.Fatal("Can't get description:", err)
+//	}
+//
+//	log.Printf("Clicked: project %d tag %d description %s", projectId, tagId, description)
+//	//
+//	//now := time.Now()
+//	//if err = j.db.CreateNewEntry(description, projectId, tagId, now); err != nil {
+//	//	log.Fatal("Can't create entry:", err)
+//	//}
+//}
