@@ -2,7 +2,6 @@ package gtk_entry_form
 
 import (
 	"fmt"
-	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 	"go-jw-toggl/jwtoggl/builder"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
@@ -11,6 +10,7 @@ import (
 	"go-jw-toggl/jwtoggl/tools"
 	"log"
 	"strconv"
+	"strings"
 )
 
 const (
@@ -47,15 +47,20 @@ type GtkEntryForm struct {
 	initialTimeEntry *gttimeentry.TimeEntry
 }
 
-func MarkValid(obj *glib.Object, valid bool) {
+func MarkValid(entry *gtk.Entry, valid bool) bool {
 	var icon string
-	if !valid {
+
+	text, err := entry.GetText()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if !valid && text != "" {
 		icon = iconWarning
 	}
-	if err := obj.SetProperty("secondary-icon-stock", icon); err != nil {
-		log.Fatalf("%+v mark valid error: %+v\n", obj, err)
+	if err := entry.SetProperty("secondary-icon-stock", icon); err != nil {
+		log.Fatalf("%+v mark valid error: %+v\n", entry, err)
 	}
-
+	return valid
 }
 
 func New(b *builder.Builder) (f *GtkEntryForm, err error) {
@@ -194,7 +199,8 @@ func (f *GtkEntryForm) getUITimeEntry() *gttimeentry.TimeEntry {
 	if entry.Description, err = f.description.GetText(); err != nil {
 		log.Fatal(err)
 	}
-	MarkValid(f.description.Object, entry.Description != "")
+	valid := true
+	valid = MarkValid(f.description, strings.HasPrefix(entry.Description, "#")) && valid
 
 	projectId := f.project.GetActiveID()
 	if projectId != "" {
@@ -203,28 +209,35 @@ func (f *GtkEntryForm) getUITimeEntry() *gttimeentry.TimeEntry {
 		}
 	}
 
-	MarkValid(f.projectEntry.Object, entry.Pid != 0)
+	valid = MarkValid(f.projectEntry, entry.Pid != 0) && valid
 
 	var tag string
 	if tag = f.tag.GetActiveID(); tag != "" {
 		entry.Tags = []string{tag}
 	}
 
-	MarkValid(f.tagEntry.Object, len(entry.Tags) != 0)
-	return entry
+	valid = MarkValid(f.tagEntry, len(entry.Tags) != 0) && valid
+	if valid {
+		return entry
+	} else {
+		return nil
+	}
 }
 
 func (f *GtkEntryForm) uiSetTimeEntry(entry *gttimeentry.TimeEntry) {
 	log.Println("SetTimeEntry:", entry)
 	if entry == nil {
 		f.description.SetText("")
+		MarkValid(f.description, true)
 		f.project.SetActive(-1)
 		f.tag.SetActive(-1)
 		f.button.SetImage(f.imageStart)
 		f.start.SetText("")
 		f.stop.SetText("")
 		f.projectEntry.SetText("")
+		MarkValid(f.projectEntry, true)
 		f.tagEntry.SetText("")
+		MarkValid(f.tagEntry, true)
 		f.button.SetSensitive(false)
 	} else {
 		f.description.SetText(entry.Description)
