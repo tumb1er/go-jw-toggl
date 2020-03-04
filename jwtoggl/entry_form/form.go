@@ -4,14 +4,13 @@ import "C"
 import (
 	"errors"
 	"fmt"
-	"github.com/faiface/mainthread"
 	"github.com/gotk3/gotk3/gtk"
 	"go-jw-toggl/jwtoggl/builder"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
+	"go-jw-toggl/jwtoggl/tools"
 	"log"
-	"runtime/debug"
 	"strconv"
 )
 
@@ -31,6 +30,7 @@ const (
 )
 
 type EntryForm struct {
+	ui                tools.UI
 	eid               uint64
 	description       *gtk.Entry
 	start             *gtk.Entry
@@ -115,28 +115,6 @@ func NewEntryForm(b *builder.Builder) (*EntryForm, error) {
 	return f, nil
 }
 
-func (f *EntryForm) UICall(v interface{}, callable func(interface{}) (interface{}, error)) (interface{}, error) {
-	if f.mainThread != nil {
-		if false {
-			fmt.Println(string(f.mainThread))
-			panic(errors.New("main thread reenter"))
-		} else {
-			return callable(v)
-		}
-
-	}
-	f.mainThread = debug.Stack()
-	defer func() {
-		f.mainThread = nil
-	}()
-	var result interface{}
-	var err error
-	mainthread.Call(func() {
-		result, err = callable(v)
-	})
-	return result, err
-}
-
 func (f *EntryForm) SetProjects(projects gtproject.Projects) error {
 	ls := f.projectsListStore
 	ls.Clear()
@@ -168,7 +146,7 @@ func (f *EntryForm) SetTags(tags gttag.Tags) error {
 	return nil
 }
 
-func (f *EntryForm) uiGetTimeEntry(_ interface{}) (interface{}, error) {
+func (f *EntryForm) uiGetTimeEntry() (interface{}, error) {
 	var err error
 	entry := &gttimeentry.TimeEntry{Id: f.eid}
 
@@ -188,14 +166,14 @@ func (f *EntryForm) uiGetTimeEntry(_ interface{}) (interface{}, error) {
 }
 
 func (f *EntryForm) GetTimeEntry() *gttimeentry.TimeEntry {
-	v, err := f.UICall(nil, f.uiGetTimeEntry)
+	v, err := f.ui.CallValueError(f.uiGetTimeEntry)
 	if err != nil {
 		return nil
 	}
 	return v.(*gttimeentry.TimeEntry)
 }
 
-func (f *EntryForm) uiSetTimeEntry(v interface{}) (interface{}, error) {
+func (f *EntryForm) uiSetTimeEntry(v interface{}) {
 	entry := v.(*gttimeentry.TimeEntry)
 	if entry == nil {
 		f.eid = 0
@@ -229,20 +207,16 @@ func (f *EntryForm) uiSetTimeEntry(v interface{}) (interface{}, error) {
 			f.stop.SetText(entry.Stop.Format("15:04:05"))
 		}
 	}
-	return nil, nil
 }
 
 func (f *EntryForm) SetTimeEntry(entry *gttimeentry.TimeEntry) {
 	log.Println("SetTimeEntry:", entry)
-	_, err := f.UICall(entry, f.uiSetTimeEntry)
-	if err != nil {
-		log.Fatal(err)
-	}
+	f.ui.CallParam(f.uiSetTimeEntry, entry)
 	f.Validate()
 }
 
-func (f *EntryForm) uiValidate(v interface{}) (interface{}, error) {
-	entry, err := f.uiGetTimeEntry(v)
+func (f *EntryForm) uiValidate() (interface{}, error) {
+	entry, err := f.uiGetTimeEntry()
 	if err != nil {
 		return nil, err
 	}
@@ -250,7 +224,7 @@ func (f *EntryForm) uiValidate(v interface{}) (interface{}, error) {
 }
 
 func (f *EntryForm) Validate() bool {
-	v, err := f.UICall(nil, f.uiValidate)
+	v, err := f.ui.CallValueError(f.uiValidate)
 	if err != nil {
 		return false
 	}
@@ -260,9 +234,9 @@ func (f *EntryForm) Validate() bool {
 	return valid
 }
 
-func (f *EntryForm) uiSetActiveProject(_ interface{}) (interface{}, error) {
+func (f *EntryForm) uiSetActiveProject() error {
 	if project, err := f.projectEntry.GetText(); err != nil {
-		return nil, err
+		return err
 	} else {
 		getString := func(model *gtk.TreeModel, iter *gtk.TreeIter, column int) (string, error) {
 			glibValue, err := model.GetValue(iter, column)
@@ -294,33 +268,29 @@ func (f *EntryForm) uiSetActiveProject(_ interface{}) (interface{}, error) {
 			}
 			return false
 		}
-		if err := f.projectsListStore.ForEach(filter); err != nil {
-			log.Fatal(err)
-		}
+		return f.projectsListStore.ForEach(filter)
 	}
-	return nil, nil
 }
 
 func (f *EntryForm) SetActiveProject() {
-	var err error
-	_, err = f.UICall(nil, f.uiSetActiveProject)
+	err := f.ui.CallError(f.uiSetActiveProject)
 	if err != nil {
 		log.Fatal(err)
 	}
 	f.Validate()
 }
 
-func (f *EntryForm) uiSetActiveTag(_ interface{}) (interface{}, error) {
+func (f *EntryForm) uiSetActiveTag() error {
 	if tag, err := f.tagEntry.GetText(); err != nil {
-		return nil, err
+		return err
 	} else {
 		f.tag.SetActiveID(tag)
 	}
-	return nil, nil
+	return nil
 }
 
 func (f *EntryForm) SetActiveTag() {
-	_, err := f.UICall(nil, f.uiSetActiveTag)
+	err := f.ui.CallError(f.uiSetActiveTag)
 	if err != nil {
 		log.Fatal(err)
 	}
