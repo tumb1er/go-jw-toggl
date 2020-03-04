@@ -143,3 +143,7 @@ func (f *EntryForm) CheckChanged() {
 		}
 	})
 }
+
+func (f *EntryForm) UpdateDuration() {
+	f.g.UpdateDuration()
+}

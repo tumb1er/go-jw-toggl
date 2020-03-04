@@ -14,18 +14,21 @@ func (j *jApp) StartSync(ctx context.Context) {
 	if err := j.db.SyncUser(); err != nil {
 		log.Fatal("Project sync error:", err)
 	}
+	log.Println("Start periodic sync")
 	j.periodicSync(ctx)
 }
 
 func (j *jApp) periodicSync(ctx context.Context) {
-	log.Println("Start periodic sync")
 	t := time.NewTicker(time.Second * 10)
+	t2 := time.NewTicker(time.Second)
 	j.db.StartListen(ctx)
 	j.syncCurrentEntry()
 	for {
 		select {
 		case <-t.C:
 			j.syncCurrentEntry()
+		case <-t2.C:
+			j.syncDuration()
 		case <-ctx.Done():
 			log.Println("Stop periodic sync")
 			return
@@ -39,6 +42,10 @@ func (j *jApp) syncCurrentEntry() {
 	if err := j.db.SyncCurrentEntry(); err != nil {
 		log.Println("Sync current entry error:", err)
 	}
+}
+
+func (j *jApp) syncDuration() {
+	j.form.UpdateDuration()
 }
 
 func (j *jApp) onCurrentEntryChanged(entry *gttimeentry.TimeEntry, external bool) {

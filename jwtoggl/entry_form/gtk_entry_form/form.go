@@ -223,7 +223,25 @@ func (f *GtkEntryForm) getUITimeEntry() *gttimeentry.TimeEntry {
 
 	valid = MarkValid(f.tagEntry, len(entry.Tags) != 0) && valid
 
+	startTime := f.parseStart()
+	valid = MarkValid(f.start, !startTime.IsZero()) && valid
+	entry.Start = startTime
+
+	if !startTime.IsZero() {
+		entry.Duration = -entry.Start.Unix()
+	} else {
+		entry.Duration = 0
+	}
+	if valid {
+		return entry
+	} else {
+		return nil
+	}
+}
+
+func (f *GtkEntryForm) parseStart() time.Time {
 	var start string
+	var err error
 	if start, err = f.start.GetText(); err != nil {
 		log.Fatal(err)
 	}
@@ -232,24 +250,15 @@ func (f *GtkEntryForm) getUITimeEntry() *gttimeentry.TimeEntry {
 		local := fmt.Sprintf("%sT%s%s",
 			now.Format("2006-01-02"), start, now.Format("-0700"))
 		if parsed, err := time.Parse("2006-01-02T15:04:05-0700", local); err != nil {
-			valid = MarkValid(f.start, false) && valid
+			return time.Time{}
 		} else {
 			if now.Before(parsed) {
 				parsed = parsed.AddDate(0, 0, -1)
 			}
-			entry.Start = parsed
+			return parsed
 		}
 	} else {
-		entry.Start = now
-	}
-
-	if !entry.Start.IsZero() {
-		entry.Duration = -entry.Start.Unix()
-	}
-	if valid {
-		return entry
-	} else {
-		return nil
+		return now
 	}
 }
 
@@ -269,6 +278,8 @@ func (f *GtkEntryForm) uiSetTimeEntry(entry *gttimeentry.TimeEntry) {
 		f.tagEntry.SetText("")
 		MarkValid(f.tagEntry, true)
 		f.button.SetSensitive(false)
+		f.duration.SetText("")
+		f.stop.SetText("")
 	} else {
 		f.entryId = entry.Id
 		f.description.SetText(entry.Description)
@@ -360,5 +371,20 @@ func (f *GtkEntryForm) SetActiveTag() {
 		if f.uiSetActiveTag() != nil {
 			log.Println("Tag not matched")
 		}
+	})
+}
+
+func (f *GtkEntryForm) UpdateDuration() {
+	tools.Schedule(func() {
+		startTime := f.parseStart()
+		var duration string
+		if !startTime.IsZero() {
+			n := time.Now().Local()
+			if startTime.Before(n.Add(-time.Second)) {
+				d := n.Sub(startTime).Truncate(time.Second)
+				duration = d.String()
+			}
+		}
+		f.duration.SetText(duration)
 	})
 }
