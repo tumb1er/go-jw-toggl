@@ -14,7 +14,7 @@ import (
 
 type EntryForm struct {
 	g                 *gtk_entry_form.GtkEntryForm
-	eid               uint64
+	timeEntry         *gttimeentry.TimeEntry
 	onNewEntryCreated EntryCallback
 	onEntryStopped    EntryCallback
 	onEntryChanged    EntryCallback
@@ -32,7 +32,7 @@ func NewEntryForm(b *builder.Builder) (*EntryForm, error) {
 
 	err = g.ConnectSignals(
 		f.onButtonClicked,
-		f.onDescriptionChanged,
+		f.onEditDone,
 		f.onActiveProjectChanged,
 		f.onActiveTagChanged,
 		f.onEditDone)
@@ -73,9 +73,6 @@ func (f *EntryForm) onActiveTagChanged() {
 	f.g.SetActiveTag()
 	f.onEditDone()
 }
-func (f *EntryForm) onDescriptionChanged() {
-	f.Validate()
-}
 
 func (f *EntryForm) onEditDone() {
 	log.Println("EditDone")
@@ -89,11 +86,11 @@ func (f *EntryForm) onEditDone() {
 func (f *EntryForm) onEditCompleted() {
 	log.Println("EditCompleted")
 	f.waiter = nil
-	// TODO compare with current entry
+	f.CheckChanged()
 }
 
 func (f *EntryForm) onButtonClicked() {
-	if f.eid != 0 {
+	if f.timeEntry != nil {
 		f.handleStop()
 	} else {
 		f.handleStart()
@@ -114,16 +111,10 @@ func (f *EntryForm) handleStart() {
 
 func (f *EntryForm) handleStop() {
 	log.Println("handleStop")
-	if f.onEntryStopped == nil {
-		return
+	if f.onEntryStopped != nil {
+		f.onEntryStopped(f.timeEntry)
+		f.SetTimeEntry(nil)
 	}
-	f.g.GetTimeEntry(func(entry *gttimeentry.TimeEntry) {
-		if entry != nil {
-			entry.Id = f.eid
-			f.onEntryStopped(entry)
-			f.g.SetTimeEntry(nil)
-		}
-	})
 }
 
 func (f *EntryForm) SetTags(tags gttag.Tags) {
@@ -135,10 +126,18 @@ func (f *EntryForm) SetProjects(projects gtproject.Projects) {
 }
 
 func (f *EntryForm) SetTimeEntry(entry *gttimeentry.TimeEntry) {
-	if entry != nil {
-		f.eid = entry.Id
-	} else {
-		f.eid = 0
-	}
+	f.timeEntry = entry
 	f.g.SetTimeEntry(entry)
+}
+
+func (f *EntryForm) CheckChanged() {
+	f.g.GetTimeEntry(func(entry *gttimeentry.TimeEntry) {
+		if entry != nil && !tools.EntriesEqual(f.timeEntry, entry) {
+			log.Println("UPDATE!!!")
+			f.timeEntry = entry
+		} else {
+			log.Println("No update")
+		}
+
+	})
 }

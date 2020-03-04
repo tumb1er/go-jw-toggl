@@ -43,8 +43,7 @@ type GtkEntryForm struct {
 	projectsListStore *gtk.ListStore
 	tagsListStore     *gtk.ListStore
 
-	uiTimeEntry      *gttimeentry.TimeEntry
-	initialTimeEntry *gttimeentry.TimeEntry
+	entryId uint64
 }
 
 func MarkValid(entry *gtk.Entry, valid bool) bool {
@@ -194,7 +193,7 @@ func (f *GtkEntryForm) setTags(tags gttag.Tags) error {
 
 func (f *GtkEntryForm) getUITimeEntry() *gttimeentry.TimeEntry {
 	var err error
-	entry := &gttimeentry.TimeEntry{}
+	entry := &gttimeentry.TimeEntry{Id: f.entryId}
 
 	if entry.Description, err = f.description.GetText(); err != nil {
 		log.Fatal(err)
@@ -227,6 +226,7 @@ func (f *GtkEntryForm) getUITimeEntry() *gttimeentry.TimeEntry {
 func (f *GtkEntryForm) uiSetTimeEntry(entry *gttimeentry.TimeEntry) {
 	log.Println("SetTimeEntry:", entry)
 	if entry == nil {
+		f.entryId = 0
 		f.description.SetText("")
 		MarkValid(f.description, true)
 		f.project.SetActive(-1)
@@ -240,6 +240,7 @@ func (f *GtkEntryForm) uiSetTimeEntry(entry *gttimeentry.TimeEntry) {
 		MarkValid(f.tagEntry, true)
 		f.button.SetSensitive(false)
 	} else {
+		f.entryId = entry.Id
 		f.description.SetText(entry.Description)
 		if len(entry.Tags) > 0 {
 			f.tag.SetActiveID(entry.Tags[0])

@@ -9,6 +9,7 @@ import (
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
 	"go-jw-toggl/jwtoggl/gtoggl/gtwebsocket"
+	"go-jw-toggl/jwtoggl/tools"
 	"log"
 	"time"
 )
@@ -102,7 +103,7 @@ func (db *DB) SyncCurrentEntry() error {
 	if err != nil {
 		return err
 	}
-	if !entriesEqual(db.Entry, entry) {
+	if !tools.EntriesEqual(db.Entry, entry) {
 		db.Entry = entry
 		db.onCurrentEntry(db.Entry, true)
 	}
@@ -124,7 +125,7 @@ func (db *DB) SyncUser() error {
 			projects = append(projects, project)
 		}
 		existing, ok := db.projects[project.Id]
-		if !ok || !projectsEqual(existing, &project) {
+		if !ok || !tools.ProjectsEqual(existing, &project) {
 			db.projects[project.Id] = &project
 			changed = true
 		}
@@ -142,7 +143,7 @@ func (db *DB) SyncUser() error {
 			tags = append(tags, tag)
 		}
 		existing, ok := db.tags[tag.Id]
-		if !ok || !tagsEqual(existing, &tag) {
+		if !ok || !tools.TagsEqual(existing, &tag) {
 			db.tags[tag.Id] = &tag
 			changed = true
 		}
