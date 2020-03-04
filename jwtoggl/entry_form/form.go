@@ -117,8 +117,13 @@ func NewEntryForm(b *builder.Builder) (*EntryForm, error) {
 
 func (f *EntryForm) UICall(v interface{}, callable func(interface{}) (interface{}, error)) (interface{}, error) {
 	if f.mainThread != nil {
-		fmt.Println(string(f.mainThread))
-		panic(errors.New("main thread reenter"))
+		if false {
+			fmt.Println(string(f.mainThread))
+			panic(errors.New("main thread reenter"))
+		} else {
+			return callable(v)
+		}
+
 	}
 	f.mainThread = debug.Stack()
 	defer func() {
@@ -245,13 +250,7 @@ func (f *EntryForm) uiValidate(v interface{}) (interface{}, error) {
 }
 
 func (f *EntryForm) Validate() bool {
-	var v interface{}
-	var err error
-	if f.mainThread != nil {
-		v, err = f.uiValidate(nil)
-	} else {
-		v, err = f.UICall(nil, f.uiValidate)
-	}
+	v, err := f.UICall(nil, f.uiValidate)
 	if err != nil {
 		return false
 	}
@@ -303,7 +302,8 @@ func (f *EntryForm) uiSetActiveProject(_ interface{}) (interface{}, error) {
 }
 
 func (f *EntryForm) SetActiveProject() {
-	_, err := f.UICall(nil, f.uiSetActiveProject)
+	var err error
+	_, err = f.UICall(nil, f.uiSetActiveProject)
 	if err != nil {
 		log.Fatal(err)
 	}
