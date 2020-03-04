@@ -1,8 +1,8 @@
 package gtk_entry_form
 
 import (
-	"errors"
 	"fmt"
+	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 	"go-jw-toggl/jwtoggl/builder"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
@@ -11,7 +11,6 @@ import (
 	"go-jw-toggl/jwtoggl/tools"
 	"log"
 	"strconv"
-	"time"
 )
 
 const (
@@ -27,6 +26,7 @@ const (
 	imageStop       = "icon_stop"
 	storeProjects   = "projects_list_store"
 	storeTags       = "tags_list_store"
+	iconWarning     = "gtk-dialog-warning"
 )
 
 type GtkEntryForm struct {
@@ -45,6 +45,17 @@ type GtkEntryForm struct {
 
 	uiTimeEntry      *gttimeentry.TimeEntry
 	initialTimeEntry *gttimeentry.TimeEntry
+}
+
+func MarkValid(obj *glib.Object, valid bool) {
+	var icon string
+	if !valid {
+		icon = iconWarning
+	}
+	if err := obj.SetProperty("secondary-icon-stock", icon); err != nil {
+		log.Fatalf("%+v mark valid error: %+v\n", obj, err)
+	}
+
 }
 
 func New(b *builder.Builder) (f *GtkEntryForm, err error) {
@@ -176,38 +187,31 @@ func (f *GtkEntryForm) setTags(tags gttag.Tags) error {
 	return nil
 }
 
-func (f *GtkEntryForm) getUITimeEntry() (*gttimeentry.TimeEntry, error) {
+func (f *GtkEntryForm) getUITimeEntry() *gttimeentry.TimeEntry {
 	var err error
 	entry := &gttimeentry.TimeEntry{}
 
 	if entry.Description, err = f.description.GetText(); err != nil {
-		return nil, err
+		log.Fatal(err)
 	}
-	if entry.Pid, err = strconv.ParseUint(f.project.GetActiveID(), 10, 64); err != nil {
-		return nil, err
-	}
-	var tag string
-	if tag = f.tag.GetActiveID(); tag == "" {
-		return nil, errors.New("no tags")
-	} else {
-		entry.Tags = []string{tag}
-	}
-	// FIXME: respect timezone!
-	now := time.Now()
-	if start, err := f.start.GetText(); err != nil {
-		return nil, err
+	MarkValid(f.description.Object, entry.Description != "")
 
-	} else if start == "" {
-		entry.Start = now
-	} else {
-		today := now.Format("2006-01-02")
-		tz := now.Format("-0700")
-		entry.Start, err = time.Parse("2006-01-02 15:04:05", today+" "+start+tz)
-		if err != nil {
-			return nil, err
+	projectId := f.project.GetActiveID()
+	if projectId != "" {
+		if entry.Pid, err = strconv.ParseUint(projectId, 10, 64); err != nil {
+			log.Fatal("projectId parse error:", err)
 		}
 	}
-	return entry, nil
+
+	MarkValid(f.projectEntry.Object, entry.Pid != 0)
+
+	var tag string
+	if tag = f.tag.GetActiveID(); tag != "" {
+		entry.Tags = []string{tag}
+	}
+
+	MarkValid(f.tagEntry.Object, len(entry.Tags) != 0)
+	return entry
 }
 
 func (f *GtkEntryForm) uiSetTimeEntry(entry *gttimeentry.TimeEntry) {
@@ -248,7 +252,7 @@ func (f *GtkEntryForm) SetTimeEntry(entry *gttimeentry.TimeEntry) {
 	tools.Schedule(f.uiSetTimeEntry, entry)
 }
 
-func (f *GtkEntryForm) GetTimeEntry(cb func(entry *gttimeentry.TimeEntry, err error)) {
+func (f *GtkEntryForm) GetTimeEntry(cb func(entry *gttimeentry.TimeEntry)) {
 	tools.Schedule(func() {
 		cb(f.getUITimeEntry())
 	})

@@ -47,8 +47,8 @@ func (f *EntryForm) Validate() {
 }
 
 func (f *EntryForm) validate() {
-	f.g.GetTimeEntry(func(entry *gttimeentry.TimeEntry, err error) {
-		valid := entry != nil && err == nil
+	f.g.GetTimeEntry(func(entry *gttimeentry.TimeEntry) {
+		valid := entry != nil
 		log.Println("validate:", valid)
 		f.g.SetButtonSensitive(valid)
 	})
@@ -79,6 +79,7 @@ func (f *EntryForm) onDescriptionChanged() {
 
 func (f *EntryForm) onEditDone() {
 	log.Println("EditDone")
+	f.Validate()
 	if f.waiter != nil {
 		f.waiter.Stop()
 	}
@@ -101,8 +102,11 @@ func (f *EntryForm) onButtonClicked() {
 
 func (f *EntryForm) handleStart() {
 	log.Println("handleStart")
-	f.g.GetTimeEntry(func(entry *gttimeentry.TimeEntry, err error) {
-		if entry != nil && f.onNewEntryCreated != nil {
+	if f.onNewEntryCreated == nil {
+		return
+	}
+	f.g.GetTimeEntry(func(entry *gttimeentry.TimeEntry) {
+		if entry != nil {
 			f.onNewEntryCreated(entry)
 		}
 	})
@@ -110,8 +114,11 @@ func (f *EntryForm) handleStart() {
 
 func (f *EntryForm) handleStop() {
 	log.Println("handleStop")
-	f.g.GetTimeEntry(func(entry *gttimeentry.TimeEntry, err error) {
-		if entry != nil && f.onEntryStopped != nil {
+	if f.onEntryStopped == nil {
+		return
+	}
+	f.g.GetTimeEntry(func(entry *gttimeentry.TimeEntry) {
+		if entry != nil {
 			entry.Id = f.eid
 			f.onEntryStopped(entry)
 			f.g.SetTimeEntry(nil)
