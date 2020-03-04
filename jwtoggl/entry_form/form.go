@@ -2,14 +2,16 @@ package entry_form
 
 import "C"
 import (
+	"errors"
 	"fmt"
+	"github.com/faiface/mainthread"
 	"github.com/gotk3/gotk3/gtk"
 	"go-jw-toggl/jwtoggl/builder"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
 	"log"
-	"runtime"
+	"runtime/debug"
 	"strconv"
 )
 
@@ -44,6 +46,7 @@ type EntryForm struct {
 	tagsListStore     *gtk.ListStore
 	onNewEntryCreated NewEntryCreatedCallback
 	onEntryStopped    EntryStoppedCallback
+	mainThread        []byte
 }
 
 type NewEntryCreatedCallback func(entry *gttimeentry.TimeEntry)
@@ -100,7 +103,7 @@ func NewEntryForm(b *builder.Builder) (*EntryForm, error) {
 	if _, err = f.button.Connect("clicked", f.onButtonClicked); err != nil {
 		return nil, err
 	}
-	if _, err = f.description.Connect("changed", f.Validate); err != nil {
+	if _, err = f.description.Connect("changed", f.onDescriptionChanged); err != nil {
 		return nil, err
 	}
 	if _, err = f.projectEntry.Connect("changed", f.SetActiveProject); err != nil {
@@ -110,6 +113,23 @@ func NewEntryForm(b *builder.Builder) (*EntryForm, error) {
 		return nil, err
 	}
 	return f, nil
+}
+
+func (f *EntryForm) UICall(v interface{}, callable func(interface{}) (interface{}, error)) (interface{}, error) {
+	if f.mainThread != nil {
+		fmt.Println(string(f.mainThread))
+		panic(errors.New("main thread reenter"))
+	}
+	f.mainThread = debug.Stack()
+	defer func() {
+		f.mainThread = nil
+	}()
+	var result interface{}
+	var err error
+	mainthread.Call(func() {
+		result, err = callable(v)
+	})
+	return result, err
 }
 
 func (f *EntryForm) SetProjects(projects gtproject.Projects) error {
@@ -143,28 +163,35 @@ func (f *EntryForm) SetTags(tags gttag.Tags) error {
 	return nil
 }
 
-func (f *EntryForm) GetTimeEntry() *gttimeentry.TimeEntry {
+func (f *EntryForm) uiGetTimeEntry(_ interface{}) (interface{}, error) {
 	var err error
 	entry := &gttimeentry.TimeEntry{Id: f.eid}
+
 	if entry.Description, err = f.description.GetText(); err != nil {
-		return nil
+		return nil, err
 	}
 	if entry.Pid, err = strconv.ParseUint(f.project.GetActiveID(), 10, 64); err != nil {
-		return nil
+		return nil, err
 	}
 	var tag string
 	if tag = f.tag.GetActiveID(); tag == "" {
-		return nil
+		return nil, errors.New("no tags")
 	} else {
 		entry.Tags = []string{tag}
 	}
-
-	return entry
+	return entry, nil
 }
 
-func (f *EntryForm) SetTimeEntry(entry *gttimeentry.TimeEntry) {
-	log.Println("SetTimeEntry:", entry)
-	runtime.LockOSThread()
+func (f *EntryForm) GetTimeEntry() *gttimeentry.TimeEntry {
+	v, err := f.UICall(nil, f.uiGetTimeEntry)
+	if err != nil {
+		return nil
+	}
+	return v.(*gttimeentry.TimeEntry)
+}
+
+func (f *EntryForm) uiSetTimeEntry(v interface{}) (interface{}, error) {
+	entry := v.(*gttimeentry.TimeEntry)
 	if entry == nil {
 		f.eid = 0
 		f.description.SetText("")
@@ -196,22 +223,47 @@ func (f *EntryForm) SetTimeEntry(entry *gttimeentry.TimeEntry) {
 		} else {
 			f.stop.SetText(entry.Stop.Format("15:04:05"))
 		}
-		f.Validate()
 	}
+	return nil, nil
+}
+
+func (f *EntryForm) SetTimeEntry(entry *gttimeentry.TimeEntry) {
+	log.Println("SetTimeEntry:", entry)
+	_, err := f.UICall(entry, f.uiSetTimeEntry)
+	if err != nil {
+		log.Fatal(err)
+	}
+	f.Validate()
+}
+
+func (f *EntryForm) uiValidate(v interface{}) (interface{}, error) {
+	entry, err := f.uiGetTimeEntry(v)
+	if err != nil {
+		return nil, err
+	}
+	return entry != nil, nil
 }
 
 func (f *EntryForm) Validate() bool {
-	runtime.LockOSThread()
-	valid := f.GetTimeEntry() != nil
+	var v interface{}
+	var err error
+	if f.mainThread != nil {
+		v, err = f.uiValidate(nil)
+	} else {
+		v, err = f.UICall(nil, f.uiValidate)
+	}
+	if err != nil {
+		return false
+	}
+	valid := v.(bool)
 	log.Println("validate:", valid)
 	f.button.SetSensitive(valid)
 	return valid
 }
 
-func (f *EntryForm) SetActiveProject() {
-	runtime.LockOSThread()
+func (f *EntryForm) uiSetActiveProject(_ interface{}) (interface{}, error) {
 	if project, err := f.projectEntry.GetText(); err != nil {
-		log.Fatal(err)
+		return nil, err
 	} else {
 		getString := func(model *gtk.TreeModel, iter *gtk.TreeIter, column int) (string, error) {
 			glibValue, err := model.GetValue(iter, column)
@@ -246,18 +298,33 @@ func (f *EntryForm) SetActiveProject() {
 		if err := f.projectsListStore.ForEach(filter); err != nil {
 			log.Fatal(err)
 		}
-		f.Validate()
 	}
+	return nil, nil
+}
+
+func (f *EntryForm) SetActiveProject() {
+	_, err := f.UICall(nil, f.uiSetActiveProject)
+	if err != nil {
+		log.Fatal(err)
+	}
+	f.Validate()
+}
+
+func (f *EntryForm) uiSetActiveTag(_ interface{}) (interface{}, error) {
+	if tag, err := f.tagEntry.GetText(); err != nil {
+		return nil, err
+	} else {
+		f.tag.SetActiveID(tag)
+	}
+	return nil, nil
 }
 
 func (f *EntryForm) SetActiveTag() {
-	runtime.LockOSThread()
-	if tag, err := f.tagEntry.GetText(); err != nil {
+	_, err := f.UICall(nil, f.uiSetActiveTag)
+	if err != nil {
 		log.Fatal(err)
-	} else {
-		f.tag.SetActiveID(tag)
-		f.Validate()
 	}
+	f.Validate()
 }
 
 func (f *EntryForm) OnNewEntryCreated(cb NewEntryCreatedCallback) {
@@ -265,6 +332,9 @@ func (f *EntryForm) OnNewEntryCreated(cb NewEntryCreatedCallback) {
 }
 func (f *EntryForm) OnEntryStopped(cb EntryStoppedCallback) {
 	f.onEntryStopped = cb
+}
+func (f *EntryForm) onDescriptionChanged() {
+	go f.Validate()
 }
 
 func (f *EntryForm) onButtonClicked() {
@@ -276,6 +346,7 @@ func (f *EntryForm) onButtonClicked() {
 }
 
 func (f *EntryForm) handleStart() {
+	log.Println("handleStart")
 	if !f.Validate() {
 		return
 	}
@@ -285,34 +356,10 @@ func (f *EntryForm) handleStart() {
 }
 
 func (f *EntryForm) handleStop() {
+	log.Println("handleStop")
 	entry := f.GetTimeEntry()
 	if entry != nil && f.onEntryStopped != nil {
 		f.onEntryStopped(entry)
 		f.SetTimeEntry(nil)
 	}
 }
-
-//
-//func (j *jwtoggl.jApp) onStartStopClicked() {
-//	var err error
-//	var projectId, tagId int
-//	var description string
-//	log.Println("Project active id:", j.form.project.GetActiveID())
-//	if projectId, err = strconv.Atoi(j.form.project.GetActiveID()); err != nil {
-//		log.Fatal("Project cast error:", err)
-//	}
-//
-//	if tagId, err = strconv.Atoi(j.form.tag.GetActiveID()); err != nil {
-//		log.Fatal("Tag cast error:", err)
-//	}
-//	if description, err = j.form.description.GetText(); err != nil {
-//		log.Fatal("Can't get description:", err)
-//	}
-//
-//	log.Printf("Clicked: project %d tag %d description %s", projectId, tagId, description)
-//	//
-//	//now := time.Now()
-//	//if err = j.db.CreateNewEntry(description, projectId, tagId, now); err != nil {
-//	//	log.Fatal("Can't create entry:", err)
-//	//}
-//}

@@ -3,6 +3,7 @@ package jwtoggl
 import (
 	"context"
 	"github.com/dawidd6/go-appindicator"
+	"github.com/faiface/mainthread"
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 	"github.com/tumb1er/go-notifier/notifier"
@@ -34,7 +35,11 @@ type jApp struct {
 }
 
 func (j *jApp) Run(args []string) int {
-	return j.app.Run(args)
+	var ret int
+	mainthread.Run(func() {
+		ret = j.app.Run(args)
+	})
+	return ret
 }
 
 func (j *jApp) onActivate() {
