@@ -11,6 +11,7 @@ type UI struct {
 }
 
 type ParamValueErrorCallable func(interface{}) (interface{}, error)
+type ParamErrorCallable func(interface{}) error
 type ValueErrorCallable func() (interface{}, error)
 type ParamCallable func(interface{})
 type ErrorCallable func() error
@@ -59,5 +60,12 @@ func (ui *UI) CallError(c ErrorCallable) error {
 	_, err := ui.CallParamValueError(func(_ interface{}) (interface{}, error) {
 		return nil, c()
 	}, nil)
+	return err
+}
+
+func (ui *UI) CallParamError(c ParamErrorCallable, p interface{}) error {
+	_, err := ui.CallParamValueError(func(p interface{}) (interface{}, error) {
+		return nil, c(p)
+	}, p)
 	return err
 }

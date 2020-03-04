@@ -1,4 +1,4 @@
-package entry_form
+package gtk_entry_form
 
 // #cgo pkg-config: gdk-3.0 gio-2.0 glib-2.0 gobject-2.0 gtk+-3.0
 // #include <gtk/gtk.h>
