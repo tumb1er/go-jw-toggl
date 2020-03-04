@@ -11,6 +11,7 @@ import (
 	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
 	"go-jw-toggl/jwtoggl/tools"
 	"go-jw-toggl/jwtoggl/tray"
+	"go-jw-toggl/jwtoggl/window"
 	"log"
 	"os"
 )
@@ -25,7 +26,7 @@ type jApp struct {
 	app       *gtk.Application
 	form      *entry_form.EntryForm
 	tray      *tray.Tray
-	window    *gtk.ApplicationWindow
+	window    *window.MainWindow
 	db        DB
 	ctx       context.Context
 	cancel    context.CancelFunc
@@ -50,11 +51,15 @@ func (j *jApp) onActivate() {
 }
 
 func (j *jApp) initWindow(b *builder.Builder) {
-	j.window = b.GetMainWindow()
-	j.app.AddWindow(j.window)
-	if _, err := j.window.Connect("delete-event", j.onWindowDelete); err != nil {
+	var err error
+	if j.window, err = window.New(b); err != nil {
 		log.Fatal(err)
 	}
+	if err = j.window.ConnectSignals(j.onWindowDelete); err != nil {
+		log.Fatal(err)
+	}
+	j.window.AddToApp(j.app)
+
 }
 
 func (j *jApp) initForm(b *builder.Builder) {

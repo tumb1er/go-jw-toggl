@@ -65,7 +65,6 @@ func (t *Tray) ConnectSignals(
 func (t *Tray) SetCurrentEntry(entry *gttimeentry.TimeEntry) {
 	if entry == nil {
 		t.indicator.SetLabel(" Work!", "")
-		t.indicator.SetStatus(appindicator.StatusPassive)
 		icon := tools.GetIconPath(TogglIconBW)
 		t.indicator.SetIcon(icon)
 		if err := t.popup.SetIcon(icon); err != nil {
@@ -74,7 +73,6 @@ func (t *Tray) SetCurrentEntry(entry *gttimeentry.TimeEntry) {
 		t.menuShow.SetLabel("New...")
 	} else {
 		t.indicator.SetLabel(tools.Shorten(entry.Description), "")
-		t.indicator.SetStatus(appindicator.StatusActive)
 		icon := tools.GetIconPath(TogglIcon)
 		t.indicator.SetIcon(icon)
 		t.menuShow.SetLabel(entry.Description)

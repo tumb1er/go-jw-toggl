@@ -19,8 +19,7 @@ func (j *jApp) initTray(b *builder.Builder) {
 func (j *jApp) onShow() {
 	log.Println("onShow")
 	j.Call(func() {
-		visible := j.window.GetVisible()
-		j.window.SetVisible(!visible)
+		j.window.Show()
 	})
 }
 
