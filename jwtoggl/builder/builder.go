@@ -2,6 +2,7 @@ package builder
 
 import (
 	"errors"
+	"fmt"
 	"github.com/gotk3/gotk3/gtk"
 	"log"
 	"os"
@@ -10,7 +11,6 @@ import (
 
 const (
 	trayMenuId = "tray_menu"
-	menuNew    = "menu_new"
 	mainWindow = "main_window"
 	statusBar  = "status_bar"
 )
@@ -22,10 +22,10 @@ type Builder struct {
 func (b *Builder) GetMenu() *gtk.Menu {
 	obj, err := b.GetObject(trayMenuId)
 	if err != nil {
-		log.Fatal("Could not get tray menu:", err)
+		log.Fatal("Could not get tray tray:", err)
 	}
 	if ret, ok := obj.(*gtk.Menu); !ok {
-		log.Fatal("Tray menu cast error: %T", obj)
+		log.Fatal("Tray tray cast error: %T", obj)
 		return nil
 	} else {
 		return ret
@@ -45,16 +45,15 @@ func (b *Builder) GetMainWindow() *gtk.ApplicationWindow {
 	}
 }
 
-func (b *Builder) GetMenuItemNew() *gtk.MenuItem {
-	obj, err := b.GetObject(menuNew)
+func (b *Builder) GetMenuItem(id string) (*gtk.MenuItem, error) {
+	obj, err := b.GetObject(id)
 	if err != nil {
-		log.Fatal("Could not get new menu item:", err)
+		return nil, err
 	}
 	if ret, ok := obj.(*gtk.MenuItem); !ok {
-		log.Fatal("MenuItem cast error: %T", obj)
-		return nil
+		return nil, fmt.Errorf("MenuItem cast error: %T", obj)
 	} else {
-		return ret
+		return ret, nil
 	}
 }
 

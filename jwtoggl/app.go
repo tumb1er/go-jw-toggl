@@ -2,16 +2,15 @@ package jwtoggl
 
 import (
 	"context"
-	"github.com/dawidd6/go-appindicator"
 	"github.com/faiface/mainthread"
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
-	"github.com/tumb1er/go-notifier/notifier"
 	"go-jw-toggl/jwtoggl/builder"
 	"go-jw-toggl/jwtoggl/db"
 	"go-jw-toggl/jwtoggl/entry_form"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
 	"go-jw-toggl/jwtoggl/tools"
+	"go-jw-toggl/jwtoggl/tray"
 	"log"
 	"os"
 )
@@ -25,14 +24,11 @@ type jApp struct {
 	tools.UI
 	app       *gtk.Application
 	form      *entry_form.EntryForm
-	indicator *appindicator.Indicator
+	tray      *tray.Tray
 	window    *gtk.ApplicationWindow
-	menu      *gtk.Menu
-	menuNew   *gtk.MenuItem
 	db        DB
 	ctx       context.Context
 	cancel    context.CancelFunc
-	popup     *notifier.Notifier
 	statusBar *gtk.Statusbar
 }
 
@@ -47,8 +43,7 @@ func (j *jApp) Run(args []string) int {
 func (j *jApp) onActivate() {
 	b := builder.NewBuilder()
 	j.initForm(b)
-	j.initMenu(b)
-	j.indicator = NewIndicator(j.menu, j.menuNew)
+	j.initTray(b)
 	j.initWindow(b)
 	j.statusBar = b.GetStatusbar()
 	go j.StartSync(j.ctx)
@@ -107,16 +102,11 @@ func NewApp() *jApp {
 		log.Fatal("Could not create DB:", err)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	popup, err := notifier.NewNotifier(getIconPath(TogglIcon))
-	if err != nil {
-		log.Fatal("Could not create popup:", err)
-	}
 	j := &jApp{
 		app:    app,
 		db:     togglDb,
 		ctx:    ctx,
 		cancel: cancel,
-		popup:  popup,
 	}
 	_, err = app.Connect(activate, j.onActivate)
 	if err != nil {

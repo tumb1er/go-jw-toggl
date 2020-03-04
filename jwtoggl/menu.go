@@ -2,20 +2,22 @@ package jwtoggl
 
 import (
 	"go-jw-toggl/jwtoggl/builder"
+	"go-jw-toggl/jwtoggl/tray"
 	"log"
 )
 
-func (j *jApp) initMenu(b *builder.Builder) {
-	j.menu = b.GetMenu()
-	j.menuNew = b.GetMenuItemNew()
-	b.ConnectSignals(map[string]interface{}{
-		"toggle": j.onToggle,
-		"exit":   j.onExit,
-	})
+func (j *jApp) initTray(b *builder.Builder) {
+	var err error
+	if j.tray, err = tray.New(b); err != nil {
+		log.Fatal("tray init error:", err)
+	}
+	if err = j.tray.ConnectSignals(j.onShow, j.onExit); err != nil {
+		log.Fatal("tray signals connect error:", err)
+	}
 }
 
-func (j *jApp) onToggle() {
-	log.Println("onToggle")
+func (j *jApp) onShow() {
+	log.Println("onShow")
 	j.Call(func() {
 		visible := j.window.GetVisible()
 		j.window.SetVisible(!visible)

@@ -2,7 +2,6 @@ package jwtoggl
 
 import (
 	"context"
-	"github.com/dawidd6/go-appindicator"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
@@ -45,14 +44,12 @@ func (j *jApp) syncCurrentEntry() {
 }
 
 func (j *jApp) onProjectsChanged(projects gtproject.Projects) {
-	log.Printf("Projects: %+v\n", projects)
 	if err := j.form.SetProjects(projects); err != nil {
 		log.Fatal("Projects bind error:", err)
 	}
 }
 
 func (j *jApp) onTagsChanged(tags gttag.Tags) {
-	log.Printf("Tags: %+v\n", tags)
 	if err := j.form.SetTags(tags); err != nil {
 		log.Fatal("Tags bind error:", err)
 	}
@@ -60,37 +57,18 @@ func (j *jApp) onTagsChanged(tags gttag.Tags) {
 
 func (j *jApp) onCurrentEntryChanged(entry *gttimeentry.TimeEntry, external bool) {
 	log.Println("OnCurrentEntryChanged")
-	if entry == nil {
-		j.UpdateCurrentEntry(CurrentEntryInfo{
-			Body:     "Timer stopped",
-			Label:    " Work!",
-			Status:   appindicator.StatusActive,
-			Icon:     TogglIconBW,
-			Menu:     "New...",
-			External: external,
-		})
-	} else {
-		j.UpdateCurrentEntry(CurrentEntryInfo{
-			Title:    "JW Toggl",
-			Body:     entry.Description,
-			Label:    shorten(entry.Description),
-			Status:   appindicator.StatusAttention,
-			Icon:     TogglIcon,
-			Menu:     entry.Description,
-			External: external,
-		})
-	}
+	j.tray.SetCurrentEntry(entry)
 	if external {
 		j.form.SetTimeEntry(entry)
-	}
-}
+		var text string
+		if entry != nil {
+			text = entry.Description
+		} else {
+			text = "Timer stopped"
+		}
+		if err := j.tray.ShowNotification("JW Toggl", text); err != nil {
+			log.Fatal(" notification error:", err)
+		}
 
-func shorten(desc string) string {
-	l := len(desc)
-	if l > 10 {
-		desc = " " + desc[:10] + "..."
-	} else {
-		desc = " " + desc
 	}
-	return desc
 }

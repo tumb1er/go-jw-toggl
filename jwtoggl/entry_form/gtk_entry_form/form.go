@@ -7,7 +7,7 @@ import (
 	"go-jw-toggl/jwtoggl/builder"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
-	gttimeentry "go-jw-toggl/jwtoggl/gtoggl/gttimentry"
+	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
 	"go-jw-toggl/jwtoggl/tools"
 	"log"
 	"strconv"
