@@ -11,12 +11,14 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
 	textDescription = "text_entry"
 	textStart       = "entry_start"
 	textStop        = "entry_stop"
+	textDuration    = "entry_duration"
 	textProject     = "text_project_entry"
 	textTag         = "text_tag_entry"
 	comboProject    = "text_project"
@@ -33,6 +35,7 @@ type GtkEntryForm struct {
 	description       *gtk.Entry
 	start             *gtk.Entry
 	stop              *gtk.Entry
+	duration          *gtk.Entry
 	projectEntry      *gtk.Entry
 	tagEntry          *gtk.Entry
 	project           *gtk.ComboBox
@@ -71,6 +74,9 @@ func New(b *builder.Builder) (f *GtkEntryForm, err error) {
 		return f, err
 	}
 	if f.stop, err = b.GetEntry(textStop); err != nil {
+		return f, err
+	}
+	if f.duration, err = b.GetEntry(textDuration); err != nil {
 		return f, err
 	}
 	if f.projectEntry, err = b.GetEntry(textProject); err != nil {
@@ -216,6 +222,30 @@ func (f *GtkEntryForm) getUITimeEntry() *gttimeentry.TimeEntry {
 	}
 
 	valid = MarkValid(f.tagEntry, len(entry.Tags) != 0) && valid
+
+	var start string
+	if start, err = f.start.GetText(); err != nil {
+		log.Fatal(err)
+	}
+	now := time.Now().Local()
+	if start != "" {
+		local := fmt.Sprintf("%sT%s%s",
+			now.Format("2006-01-02"), start, now.Format("-0700"))
+		if parsed, err := time.Parse("2006-01-02T15:04:05-0700", local); err != nil {
+			valid = MarkValid(f.start, false) && valid
+		} else {
+			if now.Before(parsed) {
+				parsed = parsed.AddDate(0, 0, -1)
+			}
+			entry.Start = parsed
+		}
+	} else {
+		entry.Start = now
+	}
+
+	if !entry.Start.IsZero() {
+		entry.Duration = -entry.Start.Unix()
+	}
 	if valid {
 		return entry
 	} else {
@@ -256,8 +286,12 @@ func (f *GtkEntryForm) uiSetTimeEntry(entry *gttimeentry.TimeEntry) {
 		}
 		if entry.Stop.IsZero() {
 			f.stop.SetText("")
+			d := time.Now().Sub(entry.Start)
+			f.duration.SetText(d.Truncate(time.Second).String())
 		} else {
 			f.stop.SetText(entry.Stop.Format("15:04:05"))
+			d := entry.Stop.Sub(entry.Start)
+			f.duration.SetText(d.Truncate(time.Second).String())
 		}
 	}
 }

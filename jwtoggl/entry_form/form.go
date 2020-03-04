@@ -133,11 +133,13 @@ func (f *EntryForm) SetTimeEntry(entry *gttimeentry.TimeEntry) {
 func (f *EntryForm) CheckChanged() {
 	f.g.GetTimeEntry(func(entry *gttimeentry.TimeEntry) {
 		if entry != nil && !tools.EntriesEqual(f.timeEntry, entry) {
-			log.Println("UPDATE!!!")
+			log.Println("UPDATE!!!", entry.Start)
+			if f.onEntryChanged != nil {
+				f.onEntryChanged(entry)
+			}
 			f.timeEntry = entry
 		} else {
 			log.Println("No update")
 		}
-
 	})
 }

@@ -78,6 +78,7 @@
                   <object class="GtkEntry" id="text_entry">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <property name="secondary_icon_stock">gtk-dialog-warning</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -190,7 +191,9 @@
             <child>
               <object class="GtkEntry" id="entry_stop">
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
+                <property name="sensitive">False</property>
+                <property name="can_focus">False</property>
+                <property name="editable">False</property>
                 <property name="primary_icon_pixbuf">resources/stop.png</property>
                 <property name="placeholder_text" translatable="yes">Stop time</property>
               </object>
@@ -201,9 +204,11 @@
               </packing>
             </child>
             <child>
-              <object class="GtkEntry">
+              <object class="GtkEntry" id="entry_duration">
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
+                <property name="sensitive">False</property>
+                <property name="can_focus">False</property>
+                <property name="editable">False</property>
                 <property name="primary_icon_pixbuf">resources/duration.png</property>
                 <property name="placeholder_text" translatable="yes">Duration</property>
               </object>
