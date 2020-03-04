@@ -11,6 +11,7 @@ import (
 	"go-jw-toggl/jwtoggl/db"
 	"go-jw-toggl/jwtoggl/entry_form"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
+	"go-jw-toggl/jwtoggl/tools"
 	"log"
 	"os"
 )
@@ -21,6 +22,7 @@ const (
 )
 
 type jApp struct {
+	tools.UI
 	app       *gtk.Application
 	form      *entry_form.EntryForm
 	indicator *appindicator.Indicator
@@ -67,6 +69,7 @@ func (j *jApp) initForm(b *builder.Builder) {
 	}
 	j.form.OnNewEntryCreated(j.onNewEntryCreated)
 	j.form.OnEntryStopped(j.onEntryStopped)
+	j.form.OnEntryChanged(j.onEntryChanged)
 }
 
 func (j *jApp) onNewEntryCreated(entry *gttimeentry.TimeEntry) {
@@ -85,6 +88,12 @@ func (j *jApp) onWindowDelete() bool {
 	j.window.Hide()
 	return true
 
+}
+
+func (j *jApp) onEntryChanged(entry *gttimeentry.TimeEntry) {
+	if err := j.db.UpdateEntry(entry); err != nil {
+		log.Fatal(err)
+	}
 }
 
 // NewApp подготавливает основное окно приложения с иконкой в трее и меню.

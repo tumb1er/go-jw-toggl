@@ -15,4 +15,5 @@ type DB interface {
 	StartListen(ctx context.Context)
 	CreateNewEntry(entry *gttimeentry.TimeEntry) error
 	StopEntry(entry *gttimeentry.TimeEntry) error
+	UpdateEntry(entry *gttimeentry.TimeEntry) error
 }

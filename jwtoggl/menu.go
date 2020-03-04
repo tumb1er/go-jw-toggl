@@ -16,15 +16,14 @@ func (j *jApp) initMenu(b *builder.Builder) {
 
 func (j *jApp) onToggle() {
 	log.Println("onToggle")
-	visible := j.window.GetVisible()
-	if visible {
-		j.form.Validate()
-	}
-	j.window.SetVisible(!visible)
+	j.Call(func() {
+		visible := j.window.GetVisible()
+		j.window.SetVisible(!visible)
+	})
 }
 
 func (j *jApp) onExit() {
 	log.Println("onExit")
 	j.cancel()
-	j.app.Quit()
+	j.Call(j.app.Quit)
 }

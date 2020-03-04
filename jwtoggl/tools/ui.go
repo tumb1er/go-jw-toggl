@@ -15,6 +15,7 @@ type ParamErrorCallable func(interface{}) error
 type ValueErrorCallable func() (interface{}, error)
 type ParamCallable func(interface{})
 type ErrorCallable func() error
+type Callable func()
 
 func (ui *UI) inMainThread() bool {
 	ui.mu.Lock()
@@ -68,4 +69,11 @@ func (ui *UI) CallParamError(c ParamErrorCallable, p interface{}) error {
 		return nil, c(p)
 	}, p)
 	return err
+}
+
+func (ui *UI) Call(c Callable) {
+	_, _ = ui.CallParamValueError(func(_ interface{}) (interface{}, error) {
+		c()
+		return nil, nil
+	}, nil)
 }

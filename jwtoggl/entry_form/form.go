@@ -8,17 +8,19 @@ import (
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
 	"log"
+	"time"
 )
 
 type EntryForm struct {
 	g                 *gtk_entry_form.GtkEntryForm
 	eid               uint64
-	onNewEntryCreated NewEntryCreatedCallback
-	onEntryStopped    EntryStoppedCallback
+	onNewEntryCreated EntryCallback
+	onEntryStopped    EntryCallback
+	onEntryChanged    EntryCallback
+	waiter            *time.Timer
 }
 
-type NewEntryCreatedCallback func(entry *gttimeentry.TimeEntry)
-type EntryStoppedCallback func(entry *gttimeentry.TimeEntry)
+type EntryCallback func(entry *gttimeentry.TimeEntry)
 
 func NewEntryForm(b *builder.Builder) (*EntryForm, error) {
 	g, err := gtk_entry_form.New(b)
@@ -31,7 +33,8 @@ func NewEntryForm(b *builder.Builder) (*EntryForm, error) {
 		f.onButtonClicked,
 		f.onDescriptionChanged,
 		f.onActiveProjectChanged,
-		f.onActiveTagChanged)
+		f.onActiveTagChanged,
+		f.onEditDone)
 	if err != nil {
 		return nil, err
 	}
@@ -45,24 +48,44 @@ func (f *EntryForm) Validate() bool {
 	return valid
 }
 
-func (f *EntryForm) OnNewEntryCreated(cb NewEntryCreatedCallback) {
+func (f *EntryForm) OnNewEntryCreated(cb EntryCallback) {
 	f.onNewEntryCreated = cb
 }
-func (f *EntryForm) OnEntryStopped(cb EntryStoppedCallback) {
+func (f *EntryForm) OnEntryStopped(cb EntryCallback) {
 	f.onEntryStopped = cb
+}
+func (f *EntryForm) OnEntryChanged(cb EntryCallback) {
+	f.onEntryChanged = cb
 }
 
 func (f *EntryForm) onActiveProjectChanged() {
 	f.g.SetActiveProject()
-	f.Validate()
+	f.onEditDone()
 }
 
 func (f *EntryForm) onActiveTagChanged() {
 	f.g.SetActiveTag()
-	f.Validate()
+	f.onEditDone()
 }
 func (f *EntryForm) onDescriptionChanged() {
-	go f.Validate()
+	f.Validate()
+}
+
+func (f *EntryForm) onEditDone() {
+	log.Println("EditDone")
+	if !f.Validate() {
+		return
+	}
+	if f.waiter != nil {
+		f.waiter.Stop()
+	}
+	f.waiter = time.AfterFunc(5*time.Second, f.onEditCompleted)
+}
+
+func (f *EntryForm) onEditCompleted() {
+	log.Println("EditCompleted")
+	f.waiter = nil
+	// TODO compare with current entry
 }
 
 func (f *EntryForm) onButtonClicked() {

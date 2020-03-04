@@ -56,14 +56,30 @@ func (db *DB) OnTagsChanged(cb OnTagsChangedCallback) {
 	db.onTagsChanged = cb
 }
 
+func (db *DB) UpdateEntry(entry *gttimeentry.TimeEntry) error {
+	// FIXME: compare with current entry
+	entry.Wid = db.defaultWId
+	entry.CreatedWith = "go-jw-toggl"
+	entry, err := db.client.TimeentryClient.Update(entry)
+	if err != nil {
+		return err
+	}
+	db.Entry = entry
+	db.onCurrentEntry(db.Entry, false)
+	return nil
+}
+
 func (db *DB) CreateNewEntry(entry *gttimeentry.TimeEntry) error {
 	entry.Wid = db.defaultWId
 	entry.CreatedWith = "go-jw-toggl"
 	entry.Start = time.Now()
 	entry, err := db.client.TimeentryClient.Start(entry)
+	if err != nil {
+		return err
+	}
 	db.Entry = entry
 	db.onCurrentEntry(db.Entry, false)
-	return err
+	return nil
 }
 
 func (db *DB) StopEntry(entry *gttimeentry.TimeEntry) error {

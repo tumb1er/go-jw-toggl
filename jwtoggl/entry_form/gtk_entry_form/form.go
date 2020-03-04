@@ -11,6 +11,7 @@ import (
 	"go-jw-toggl/jwtoggl/tools"
 	"log"
 	"strconv"
+	"time"
 )
 
 const (
@@ -99,6 +100,7 @@ func (f *GtkEntryForm) ConnectSignals(
 	onDescriptionChanged interface{},
 	onProjectEntryChanged interface{},
 	onTagEntryChanged interface{},
+	onEditDone interface{},
 ) (err error) {
 
 	if _, err = f.button.Connect("clicked", onButtonClicked); err != nil {
@@ -111,6 +113,15 @@ func (f *GtkEntryForm) ConnectSignals(
 		return err
 	}
 	if _, err = f.tagEntry.Connect("changed", onTagEntryChanged); err != nil {
+		return err
+	}
+	if _, err = f.description.Connect("focus-out-event", onEditDone); err != nil {
+		return err
+	}
+	if _, err = f.projectEntry.Connect("focus-out-event", onEditDone); err != nil {
+		return err
+	}
+	if _, err = f.tagEntry.Connect("focus-out-event", onEditDone); err != nil {
 		return err
 	}
 	return nil
@@ -172,6 +183,21 @@ func (f *GtkEntryForm) uiGetTimeEntry(eid interface{}) (interface{}, error) {
 		return nil, errors.New("no tags")
 	} else {
 		entry.Tags = []string{tag}
+	}
+	// FIXME: respect timezone!
+	now := time.Now()
+	if start, err := f.start.GetText(); err != nil {
+		return nil, err
+
+	} else if start == "" {
+		entry.Start = now
+	} else {
+		today := now.Format("2006-01-02")
+		tz := now.Format("-0700")
+		entry.Start, err = time.Parse("2006-01-02 15:04:05", today+" "+start+tz)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return entry, nil
 }
