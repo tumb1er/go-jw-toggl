@@ -2,8 +2,6 @@ package jwtoggl
 
 import (
 	"context"
-	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
-	"go-jw-toggl/jwtoggl/gtoggl/gttag"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
 	"log"
 	"time"
@@ -11,8 +9,8 @@ import (
 
 func (j *jApp) StartSync(ctx context.Context) {
 	j.db.OnCurrentEntry(j.onCurrentEntryChanged)
-	j.db.OnProjectsChanged(j.onProjectsChanged)
-	j.db.OnTagsChanged(j.onTagsChanged)
+	j.db.OnProjectsChanged(j.form.SetProjects)
+	j.db.OnTagsChanged(j.form.SetTags)
 	if err := j.db.SyncUser(); err != nil {
 		log.Fatal("Project sync error:", err)
 	}
@@ -40,18 +38,6 @@ func (j *jApp) syncCurrentEntry() {
 	defer log.Println("sync done")
 	if err := j.db.SyncCurrentEntry(); err != nil {
 		log.Println("Sync current entry error:", err)
-	}
-}
-
-func (j *jApp) onProjectsChanged(projects gtproject.Projects) {
-	if err := j.form.SetProjects(projects); err != nil {
-		log.Fatal("Projects bind error:", err)
-	}
-}
-
-func (j *jApp) onTagsChanged(tags gttag.Tags) {
-	if err := j.form.SetTags(tags); err != nil {
-		log.Fatal("Tags bind error:", err)
 	}
 }
 

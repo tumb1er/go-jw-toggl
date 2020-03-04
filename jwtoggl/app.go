@@ -2,14 +2,12 @@ package jwtoggl
 
 import (
 	"context"
-	"github.com/faiface/mainthread"
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 	"go-jw-toggl/jwtoggl/builder"
 	"go-jw-toggl/jwtoggl/db"
 	"go-jw-toggl/jwtoggl/entry_form"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
-	"go-jw-toggl/jwtoggl/tools"
 	"go-jw-toggl/jwtoggl/tray"
 	"go-jw-toggl/jwtoggl/window"
 	"log"
@@ -22,7 +20,6 @@ const (
 )
 
 type jApp struct {
-	tools.UI
 	app       *gtk.Application
 	form      *entry_form.EntryForm
 	tray      *tray.Tray
@@ -34,11 +31,7 @@ type jApp struct {
 }
 
 func (j *jApp) Run(args []string) int {
-	var ret int
-	mainthread.Run(func() {
-		ret = j.app.Run(args)
-	})
-	return ret
+	return j.app.Run(args)
 }
 
 func (j *jApp) onActivate() {

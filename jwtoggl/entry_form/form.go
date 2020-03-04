@@ -7,6 +7,7 @@ import (
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
+	"go-jw-toggl/jwtoggl/tools"
 	"log"
 	"time"
 )
@@ -41,11 +42,16 @@ func NewEntryForm(b *builder.Builder) (*EntryForm, error) {
 	return f, nil
 }
 
-func (f *EntryForm) Validate() bool {
-	valid := f.g.GetTimeEntry(f.eid) != nil
-	log.Println("validate:", valid)
-	f.g.SetButtonSensitive(valid)
-	return valid
+func (f *EntryForm) Validate() {
+	tools.Schedule(f.validate)
+}
+
+func (f *EntryForm) validate() {
+	f.g.GetTimeEntry(func(entry *gttimeentry.TimeEntry, err error) {
+		valid := entry != nil && err == nil
+		log.Println("validate:", valid)
+		f.g.SetButtonSensitive(valid)
+	})
 }
 
 func (f *EntryForm) OnNewEntryCreated(cb EntryCallback) {
@@ -73,9 +79,6 @@ func (f *EntryForm) onDescriptionChanged() {
 
 func (f *EntryForm) onEditDone() {
 	log.Println("EditDone")
-	if !f.Validate() {
-		return
-	}
 	if f.waiter != nil {
 		f.waiter.Stop()
 	}
@@ -98,29 +101,30 @@ func (f *EntryForm) onButtonClicked() {
 
 func (f *EntryForm) handleStart() {
 	log.Println("handleStart")
-	if !f.Validate() {
-		return
-	}
-	if f.onNewEntryCreated != nil {
-		f.onNewEntryCreated(f.g.GetTimeEntry(f.eid))
-	}
+	f.g.GetTimeEntry(func(entry *gttimeentry.TimeEntry, err error) {
+		if entry != nil && f.onNewEntryCreated != nil {
+			f.onNewEntryCreated(entry)
+		}
+	})
 }
 
 func (f *EntryForm) handleStop() {
 	log.Println("handleStop")
-	entry := f.g.GetTimeEntry(f.eid)
-	if entry != nil && f.onEntryStopped != nil {
-		f.onEntryStopped(entry)
-		f.g.SetTimeEntry(nil)
-	}
+	f.g.GetTimeEntry(func(entry *gttimeentry.TimeEntry, err error) {
+		if entry != nil && f.onEntryStopped != nil {
+			entry.Id = f.eid
+			f.onEntryStopped(entry)
+			f.g.SetTimeEntry(nil)
+		}
+	})
 }
 
-func (f *EntryForm) SetProjects(projects gtproject.Projects) error {
-	return f.g.SetProjects(projects)
+func (f *EntryForm) SetTags(tags gttag.Tags) {
+	f.g.SetTags(tags)
 }
 
-func (f *EntryForm) SetTags(tags gttag.Tags) error {
-	return f.g.SetTags(tags)
+func (f *EntryForm) SetProjects(projects gtproject.Projects) {
+	f.g.SetProjects(projects)
 }
 
 func (f *EntryForm) SetTimeEntry(entry *gttimeentry.TimeEntry) {

@@ -4,7 +4,6 @@ go 1.13
 
 require (
 	github.com/dawidd6/go-appindicator v0.0.0-20190913173241-21b44adc5189
-	github.com/faiface/mainthread v0.0.0-20171120011319-8b78f0a41ae3
 	github.com/gomodule/redigo v2.0.0+incompatible // indirect
 	github.com/gorilla/websocket v1.4.1
 	github.com/gotk3/gotk3 v0.0.0-20200103101635-d3629b451bb5

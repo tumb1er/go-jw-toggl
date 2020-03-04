@@ -30,7 +30,6 @@ const (
 )
 
 type GtkEntryForm struct {
-	ui                tools.UI
 	description       *gtk.Entry
 	start             *gtk.Entry
 	stop              *gtk.Entry
@@ -43,6 +42,9 @@ type GtkEntryForm struct {
 	imageStart        *gtk.Image
 	projectsListStore *gtk.ListStore
 	tagsListStore     *gtk.ListStore
+
+	uiTimeEntry      *gttimeentry.TimeEntry
+	initialTimeEntry *gttimeentry.TimeEntry
 }
 
 func New(b *builder.Builder) (f *GtkEntryForm, err error) {
@@ -127,12 +129,11 @@ func (f *GtkEntryForm) ConnectSignals(
 	return nil
 }
 
-func (f *GtkEntryForm) SetProjects(projects gtproject.Projects) error {
-	return f.ui.CallParamError(f.setProjects, projects)
+func (f *GtkEntryForm) SetProjects(projects gtproject.Projects) {
+	tools.Schedule(f.setProjects, projects)
 }
 
-func (f *GtkEntryForm) setProjects(v interface{}) error {
-	projects := v.(gtproject.Projects)
+func (f *GtkEntryForm) setProjects(projects gtproject.Projects) error {
 	ls := f.projectsListStore
 	ls.Clear()
 	for _, project := range projects {
@@ -151,12 +152,11 @@ func (f *GtkEntryForm) setProjects(v interface{}) error {
 	return nil
 }
 
-func (f *GtkEntryForm) SetTags(tags gttag.Tags) error {
-	return f.ui.CallParamError(f.setTags, tags)
+func (f *GtkEntryForm) SetTags(tags gttag.Tags) {
+	tools.Schedule(f.setTags, tags)
 }
 
-func (f *GtkEntryForm) setTags(v interface{}) error {
-	tags := v.(gttag.Tags)
+func (f *GtkEntryForm) setTags(tags gttag.Tags) error {
 	ls := f.tagsListStore
 	ls.Clear()
 	for _, tag := range tags {
@@ -168,9 +168,9 @@ func (f *GtkEntryForm) setTags(v interface{}) error {
 	return nil
 }
 
-func (f *GtkEntryForm) uiGetTimeEntry(eid interface{}) (interface{}, error) {
+func (f *GtkEntryForm) getUITimeEntry() (*gttimeentry.TimeEntry, error) {
 	var err error
-	entry := &gttimeentry.TimeEntry{Id: eid.(uint64)}
+	entry := &gttimeentry.TimeEntry{}
 
 	if entry.Description, err = f.description.GetText(); err != nil {
 		return nil, err
@@ -202,16 +202,8 @@ func (f *GtkEntryForm) uiGetTimeEntry(eid interface{}) (interface{}, error) {
 	return entry, nil
 }
 
-func (f *GtkEntryForm) GetTimeEntry(eid uint64) *gttimeentry.TimeEntry {
-	v, err := f.ui.CallParamValueError(f.uiGetTimeEntry, eid)
-	if err != nil {
-		return nil
-	}
-	return v.(*gttimeentry.TimeEntry)
-}
-
-func (f *GtkEntryForm) uiSetTimeEntry(v interface{}) {
-	entry := v.(*gttimeentry.TimeEntry)
+func (f *GtkEntryForm) uiSetTimeEntry(entry *gttimeentry.TimeEntry) {
+	log.Println("SetTimeEntry:", entry)
 	if entry == nil {
 		f.description.SetText("")
 		f.project.SetActive(-1)
@@ -245,23 +237,29 @@ func (f *GtkEntryForm) uiSetTimeEntry(v interface{}) {
 }
 
 func (f *GtkEntryForm) SetTimeEntry(entry *gttimeentry.TimeEntry) {
-	log.Println("SetTimeEntry:", entry)
-	f.ui.CallParam(f.uiSetTimeEntry, entry)
+	tools.Schedule(f.uiSetTimeEntry, entry)
+}
+
+func (f *GtkEntryForm) GetTimeEntry(cb func(entry *gttimeentry.TimeEntry, err error)) {
+	tools.Schedule(func() {
+		cb(f.getUITimeEntry())
+	})
 }
 
 func (f *GtkEntryForm) SetButtonSensitive(s bool) {
-	f.ui.CallParam(f.uiSetButtonSensitive, s)
-}
-
-func (f *GtkEntryForm) uiSetButtonSensitive(s interface{}) {
-	f.button.SetSensitive(s.(bool))
+	tools.Schedule(f.button.SetSensitive, s)
 }
 
 func (f *GtkEntryForm) uiSetActiveProject() error {
 	if project, err := f.projectEntry.GetText(); err != nil {
 		return err
 	} else {
-		filter := func(model *gtk.TreeModel, path *gtk.TreePath, iter *gtk.TreeIter, userData interface{}) bool {
+		filter := func(
+			model *gtk.TreeModel,
+			path *gtk.TreePath,
+			iter *gtk.TreeIter,
+			userData interface{},
+		) bool {
 			name, err := tools.GetString(model, iter, 1)
 			if err != nil {
 				return true
@@ -281,10 +279,7 @@ func (f *GtkEntryForm) uiSetActiveProject() error {
 }
 
 func (f *GtkEntryForm) SetActiveProject() {
-	err := f.ui.CallError(f.uiSetActiveProject)
-	if err != nil {
-		log.Fatal(err)
-	}
+	tools.Schedule(f.uiSetActiveProject)
 }
 
 func (f *GtkEntryForm) uiSetActiveTag() error {
@@ -297,8 +292,5 @@ func (f *GtkEntryForm) uiSetActiveTag() error {
 }
 
 func (f *GtkEntryForm) SetActiveTag() {
-	err := f.ui.CallError(f.uiSetActiveTag)
-	if err != nil {
-		log.Fatal(err)
-	}
+	tools.Schedule(f.uiSetActiveTag)
 }

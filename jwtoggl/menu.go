@@ -18,13 +18,11 @@ func (j *jApp) initTray(b *builder.Builder) {
 
 func (j *jApp) onShow() {
 	log.Println("onShow")
-	j.Call(func() {
-		j.window.Show()
-	})
+	j.window.Show()
 }
 
 func (j *jApp) onExit() {
 	log.Println("onExit")
 	j.cancel()
-	j.Call(j.app.Quit)
+	j.app.Quit()
 }
