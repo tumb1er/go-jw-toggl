@@ -130,7 +130,11 @@ func (f *GtkEntryForm) ConnectSignals(
 }
 
 func (f *GtkEntryForm) SetProjects(projects gtproject.Projects) {
-	tools.Schedule(f.setProjects, projects)
+	tools.Schedule(func() {
+		if err := f.setProjects(projects); err != nil {
+			log.Fatal(err)
+		}
+	})
 }
 
 func (f *GtkEntryForm) setProjects(projects gtproject.Projects) error {
@@ -153,7 +157,11 @@ func (f *GtkEntryForm) setProjects(projects gtproject.Projects) error {
 }
 
 func (f *GtkEntryForm) SetTags(tags gttag.Tags) {
-	tools.Schedule(f.setTags, tags)
+	tools.Schedule(func() {
+		if err := f.setTags(tags); err != nil {
+			log.Fatal(err)
+		}
+	})
 }
 
 func (f *GtkEntryForm) setTags(tags gttag.Tags) error {
@@ -279,7 +287,11 @@ func (f *GtkEntryForm) uiSetActiveProject() error {
 }
 
 func (f *GtkEntryForm) SetActiveProject() {
-	tools.Schedule(f.uiSetActiveProject)
+	tools.Schedule(func() {
+		if f.uiSetActiveProject() != nil {
+			log.Println("Project not matched")
+		}
+	})
 }
 
 func (f *GtkEntryForm) uiSetActiveTag() error {
@@ -292,5 +304,9 @@ func (f *GtkEntryForm) uiSetActiveTag() error {
 }
 
 func (f *GtkEntryForm) SetActiveTag() {
-	tools.Schedule(f.uiSetActiveTag)
+	tools.Schedule(func() {
+		if f.uiSetActiveTag() != nil {
+			log.Println("Tag not matched")
+		}
+	})
 }
