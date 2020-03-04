@@ -101,5 +101,10 @@ func (f *EntryForm) SetTags(tags gttag.Tags) error {
 }
 
 func (f *EntryForm) SetTimeEntry(entry *gttimeentry.TimeEntry) {
+	if entry != nil {
+		f.eid = entry.Id
+	} else {
+		f.eid = 0
+	}
 	f.g.SetTimeEntry(entry)
 }
