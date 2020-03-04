@@ -120,7 +120,6 @@ func New(b *builder.Builder) (f *GtkEntryForm, err error) {
 
 func (f *GtkEntryForm) ConnectSignals(
 	onButtonClicked interface{},
-	onDescriptionChanged interface{},
 	onProjectEntryChanged interface{},
 	onTagEntryChanged interface{},
 	onEditDone interface{},
@@ -129,13 +128,19 @@ func (f *GtkEntryForm) ConnectSignals(
 	if _, err = f.button.Connect("clicked", onButtonClicked); err != nil {
 		return err
 	}
-	if _, err = f.description.Connect("changed", onDescriptionChanged); err != nil {
+	if _, err = f.start.Connect("changed", onEditDone); err != nil {
+		return err
+	}
+	if _, err = f.description.Connect("changed", onEditDone); err != nil {
 		return err
 	}
 	if _, err = f.projectEntry.Connect("changed", onProjectEntryChanged); err != nil {
 		return err
 	}
 	if _, err = f.tagEntry.Connect("changed", onTagEntryChanged); err != nil {
+		return err
+	}
+	if _, err = f.start.Connect("focus-out-event", onEditDone); err != nil {
 		return err
 	}
 	if _, err = f.description.Connect("focus-out-event", onEditDone); err != nil {
@@ -223,7 +228,13 @@ func (f *GtkEntryForm) getUITimeEntry() *gttimeentry.TimeEntry {
 
 	valid = MarkValid(f.tagEntry, len(entry.Tags) != 0) && valid
 
-	startTime := f.parseStart()
+	startTime, err := f.parseStart()
+	if err == nil && startTime.IsZero() {
+		startTime = time.Now().Local()
+	}
+	if err != nil {
+		startTime = time.Time{}
+	}
 	valid = MarkValid(f.start, !startTime.IsZero()) && valid
 	entry.Start = startTime
 
@@ -239,7 +250,7 @@ func (f *GtkEntryForm) getUITimeEntry() *gttimeentry.TimeEntry {
 	}
 }
 
-func (f *GtkEntryForm) parseStart() time.Time {
+func (f *GtkEntryForm) parseStart() (time.Time, error) {
 	var start string
 	var err error
 	if start, err = f.start.GetText(); err != nil {
@@ -249,16 +260,20 @@ func (f *GtkEntryForm) parseStart() time.Time {
 	if start != "" {
 		local := fmt.Sprintf("%sT%s%s",
 			now.Format("2006-01-02"), start, now.Format("-0700"))
-		if parsed, err := time.Parse("2006-01-02T15:04:05-0700", local); err != nil {
-			return time.Time{}
+		var parsed time.Time
+		if parsed, err = time.Parse("2006-01-02T15:04:05-0700", local); err != nil {
+			parsed, err = time.Parse("2006-01-02T15:04-0700", local)
+		}
+		if err != nil {
+			return parsed, err
 		} else {
 			if now.Before(parsed) {
 				parsed = parsed.AddDate(0, 0, -1)
 			}
-			return parsed
+			return parsed, nil
 		}
 	} else {
-		return now
+		return time.Time{}, nil
 	}
 }
 
@@ -376,7 +391,10 @@ func (f *GtkEntryForm) SetActiveTag() {
 
 func (f *GtkEntryForm) UpdateDuration() {
 	tools.Schedule(func() {
-		startTime := f.parseStart()
+		startTime, err := f.parseStart()
+		if err != nil {
+			startTime = time.Time{}
+		}
 		var duration string
 		if !startTime.IsZero() {
 			n := time.Now().Local()

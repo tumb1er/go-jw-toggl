@@ -32,7 +32,6 @@ func NewEntryForm(b *builder.Builder) (*EntryForm, error) {
 
 	err = g.ConnectSignals(
 		f.onButtonClicked,
-		f.onEditDone,
 		f.onActiveProjectChanged,
 		f.onActiveTagChanged,
 		f.onEditDone)
@@ -132,7 +131,7 @@ func (f *EntryForm) SetTimeEntry(entry *gttimeentry.TimeEntry) {
 
 func (f *EntryForm) CheckChanged() {
 	f.g.GetTimeEntry(func(entry *gttimeentry.TimeEntry) {
-		if entry != nil && !tools.EntriesEqual(f.timeEntry, entry) {
+		if entry != nil && entry.Id != 0 && !tools.EntriesEqual(f.timeEntry, entry) {
 			log.Println("UPDATE!!!", entry.Start)
 			if f.onEntryChanged != nil {
 				f.onEntryChanged(entry)

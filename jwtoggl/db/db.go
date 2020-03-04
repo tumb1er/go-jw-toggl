@@ -11,7 +11,6 @@ import (
 	"go-jw-toggl/jwtoggl/gtoggl/gtwebsocket"
 	"go-jw-toggl/jwtoggl/tools"
 	"log"
-	"time"
 )
 
 type OnCurrentEntryCallback func(entry *gttimeentry.TimeEntry, external bool)
@@ -73,8 +72,15 @@ func (db *DB) UpdateEntry(entry *gttimeentry.TimeEntry) error {
 func (db *DB) CreateNewEntry(entry *gttimeentry.TimeEntry) error {
 	entry.Wid = db.defaultWId
 	entry.CreatedWith = "go-jw-toggl"
-	entry.Start = time.Now()
-	entry, err := db.client.TimeentryClient.Start(entry)
+	var err error
+	if entry.Start.IsZero() {
+		entry, err = db.client.TimeentryClient.Start(entry)
+	} else {
+		if entry.Stop.IsZero() {
+			entry.Duration = -entry.Start.Unix()
+		}
+		entry, err = db.client.TimeentryClient.Create(entry)
+	}
 	if err != nil {
 		return err
 	}
