@@ -9,6 +9,7 @@ import (
 	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
 	"log"
 	"net/http"
+	"time"
 )
 
 const (
@@ -39,6 +40,8 @@ type TogglWebsocketClient struct {
 	url               string
 	token             string
 	ws                *websocket.Conn
+	waiter            *time.Timer
+	pingTime          time.Time
 	onPing            OnPingCallback
 	onTimeEntryAction OnTimeEntryActionCallback
 }
@@ -75,9 +78,14 @@ func (c *TogglWebsocketClient) Dial() error {
 }
 
 func (c *TogglWebsocketClient) Listen(ctx context.Context) error {
+	timeout := time.Second
 	for {
 		if err := c.Dial(); err != nil {
-			return err
+			time.Sleep(timeout)
+			timeout *= 2
+			continue
+		} else {
+			timeout = time.Second
 		}
 		if err := c.authenticate(); err != nil {
 			return err
@@ -156,6 +164,16 @@ func (c *TogglWebsocketClient) handleMessage(msg []byte) error {
 }
 
 func (c *TogglWebsocketClient) handlePingMessage(msg []byte) error {
+	if c.waiter != nil {
+		c.waiter.Stop()
+		c.waiter = nil
+	}
+	now := time.Now()
+	if !c.pingTime.IsZero() {
+		interval := now.Sub(c.pingTime)
+		c.waiter = time.AfterFunc(interval*2, c.handlePingTimeout)
+	}
+	c.pingTime = now
 	var pingMsg MsgPing
 	if err := json.Unmarshal(msg, &pingMsg); err != nil {
 		return err
@@ -222,4 +240,12 @@ func (c *TogglWebsocketClient) handleActionMessage(msg []byte) error {
 		return c.onTimeEntryAction(actionMsg.Action, timeEntryActionMsg.Data)
 	}
 	return fmt.Errorf("unknown model action: %s", actionMsg.Model)
+}
+
+func (c *TogglWebsocketClient) handlePingTimeout() {
+	log.Println("WebSocket ping timeout")
+	if err := c.ws.Close(); err != nil {
+		log.Println("timeouted websocket close error:", err)
+	}
+	c.waiter = nil
 }

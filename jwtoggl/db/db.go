@@ -5,12 +5,15 @@ import (
 	"errors"
 	"fmt"
 	"go-jw-toggl/jwtoggl/gtoggl"
+	"go-jw-toggl/jwtoggl/gtoggl/gthttp"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
 	"go-jw-toggl/jwtoggl/gtoggl/gtwebsocket"
 	"go-jw-toggl/jwtoggl/tools"
 	"log"
+	"net/http"
+	"time"
 )
 
 type OnCurrentEntryCallback func(entry *gttimeentry.TimeEntry, external bool)
@@ -19,6 +22,7 @@ type OnTagsChangedCallback func(tags gttag.Tags)
 
 type DB struct {
 	client     *gtoggl.TogglClient
+	httpClient *http.Client
 	sub        *gtwebsocket.TogglWebsocketClient
 	Entry      *gttimeentry.TimeEntry
 	projects   map[uint64]*gtproject.Project
@@ -31,16 +35,18 @@ type DB struct {
 }
 
 func NewDB(token string) (*DB, error) {
-	client, err := gtoggl.NewClient(token)
+	httpClient := &http.Client{Timeout: time.Second}
+	client, err := gtoggl.NewClient(token, gthttp.SetHttpClient(httpClient))
 	if err != nil {
 		return nil, err
 	}
 	sub := gtwebsocket.NewClient(token)
 	return &DB{
-		client:   client,
-		sub:      sub,
-		projects: make(map[uint64]*gtproject.Project),
-		tags:     make(map[uint64]*gttag.Tag),
+		client:     client,
+		httpClient: httpClient,
+		sub:        sub,
+		projects:   make(map[uint64]*gtproject.Project),
+		tags:       make(map[uint64]*gttag.Tag),
 	}, nil
 }
 
@@ -107,6 +113,7 @@ func (db *DB) StopEntry(entry *gttimeentry.TimeEntry) error {
 func (db *DB) SyncCurrentEntry() error {
 	entry, err := db.client.TimeentryClient.Current()
 	if err != nil {
+		db.httpClient.CloseIdleConnections()
 		return err
 	}
 	if !tools.EntriesEqual(db.Entry, entry) {
