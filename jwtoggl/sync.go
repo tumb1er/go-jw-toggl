@@ -2,22 +2,33 @@ package jwtoggl
 
 import (
 	"context"
-	"github.com/dawidd6/go-appindicator"
-	"github.com/tumb1er/gtoggl-api/gttimentry"
+	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
 	"log"
 	"time"
 )
 
-func (j *jApp) periodicSync(ctx context.Context) {
-	log.Println("Start periodic sync")
-	t := time.NewTicker(time.Second * 10)
+func (j *jApp) StartSync(ctx context.Context) {
 	j.db.OnCurrentEntry(j.onCurrentEntryChanged)
+	j.db.OnProjectsChanged(j.form.SetProjects)
+	j.db.OnTagsChanged(j.form.SetTags)
+	if err := j.db.SyncUser(); err != nil {
+		log.Fatal("Project sync error:", err)
+	}
+	log.Println("Start periodic sync")
+	j.periodicSync(ctx)
+}
+
+func (j *jApp) periodicSync(ctx context.Context) {
+	t := time.NewTicker(time.Second * 10)
+	t2 := time.NewTicker(time.Second)
 	j.db.StartListen(ctx)
 	j.syncCurrentEntry()
 	for {
 		select {
 		case <-t.C:
 			j.syncCurrentEntry()
+		case <-t2.C:
+			j.syncDuration()
 		case <-ctx.Done():
 			log.Println("Stop periodic sync")
 			return
@@ -33,26 +44,24 @@ func (j *jApp) syncCurrentEntry() {
 	}
 }
 
-func (j *jApp) onCurrentEntryChanged(entry *gttimeentry.TimeEntry) {
-	if entry == nil {
-		j.showNotification("JW Toggl", "Timer stopped")
-		j.indicator.SetLabel("", "")
-		j.indicator.SetStatus(appindicator.StatusActive)
-		j.indicator.SetIcon("/home/tumbler/GolandProjects/go-jw-toggl/toggl_bw.png")
-	} else {
-		j.indicator.SetStatus(appindicator.StatusAttention)
-		j.indicator.SetLabel(shorten(entry.Description), "Guid")
-		j.indicator.SetIconFull("/home/tumbler/GolandProjects/go-jw-toggl/toggl.png", "Descr")
-		j.showNotification("JW Toggl", entry.Description)
-	}
+func (j *jApp) syncDuration() {
+	j.form.UpdateDuration()
 }
 
-func shorten(desc string) string {
-	l := len(desc)
-	if l > 10 {
-		desc = " " + desc[:10] + "..."
-	} else {
-		desc = " " + desc
+func (j *jApp) onCurrentEntryChanged(entry *gttimeentry.TimeEntry, external bool) {
+	log.Println("OnCurrentEntryChanged")
+	j.tray.SetCurrentEntry(entry)
+	if external {
+		j.form.SetTimeEntry(entry)
+		var text string
+		if entry != nil {
+			text = entry.Description
+		} else {
+			text = "Timer stopped"
+		}
+		if err := j.tray.ShowNotification("JW Toggl", text); err != nil {
+			log.Fatal(" notification error:", err)
+		}
+
 	}
-	return desc
 }

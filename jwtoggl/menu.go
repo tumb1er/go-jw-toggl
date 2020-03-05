@@ -1,8 +1,28 @@
 package jwtoggl
 
-func (j *jApp) initMenu(b *builder) {
-	b.builder.ConnectSignals(map[string]interface{}{
-		"toggle": j.onToggle,
-		"exit": j.onExit,
-	})
+import (
+	"go-jw-toggl/jwtoggl/builder"
+	"go-jw-toggl/jwtoggl/tray"
+	"log"
+)
+
+func (j *jApp) initTray(b *builder.Builder) {
+	var err error
+	if j.tray, err = tray.New(b); err != nil {
+		log.Fatal("tray init error:", err)
+	}
+	if err = j.tray.ConnectSignals(j.onShow, j.onExit); err != nil {
+		log.Fatal("tray signals connect error:", err)
+	}
+}
+
+func (j *jApp) onShow() {
+	log.Println("onShow")
+	j.window.Show()
+}
+
+func (j *jApp) onExit() {
+	log.Println("onExit")
+	j.cancel()
+	j.app.Quit()
 }
