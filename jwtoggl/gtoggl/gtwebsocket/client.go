@@ -19,6 +19,8 @@ const (
 	ActionDelete = "DELETE"
 )
 
+var notAuthenticated = errors.New("no session after auth WS message")
+
 func (mp MsgPing) OK() bool {
 	return mp.Type == "ping"
 }
@@ -34,6 +36,12 @@ func defaultOnPing(msg MsgPing) error {
 func defaultOnTimeEntryAction(action string, entry gttimeentry.TimeEntry) error {
 	log.Printf("TimeEntry action: %s %+v", action, entry)
 	return nil
+}
+
+func closeWs(ws *websocket.Conn) {
+	if err := ws.Close(); err != nil {
+		log.Println("Close Websocket error:", err)
+	}
 }
 
 type TogglWebsocketClient struct {
@@ -88,7 +96,13 @@ func (c *TogglWebsocketClient) Listen(ctx context.Context) error {
 			timeout = time.Second
 		}
 		if err := c.authenticate(); err != nil {
-			return err
+			if err == notAuthenticated {
+				log.Println("WS Auth error:", err)
+				return err
+			} else {
+				closeWs(c.ws)
+				continue
+			}
 		}
 
 		disconnected := make(chan error)
@@ -114,10 +128,7 @@ func (c *TogglWebsocketClient) listen(ctx context.Context) error {
 			if mt, data, err := c.ws.ReadMessage(); err != nil {
 				log.Println("Read Websocket error:", err)
 				webSocketClosed <- err
-				if err = c.ws.Close(); err != nil {
-					log.Println("Close Websocket error:", err)
-
-				}
+				closeWs(c.ws)
 				return
 			} else {
 				if mt != websocket.TextMessage {
@@ -130,9 +141,7 @@ func (c *TogglWebsocketClient) listen(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
-			if err := c.ws.Close(); err != nil {
-				log.Println("Websocket close error:", err)
-			}
+			closeWs(c.ws)
 			return nil
 		case err := <-webSocketClosed:
 			log.Println("Websocket closed")
@@ -140,9 +149,7 @@ func (c *TogglWebsocketClient) listen(ctx context.Context) error {
 		case msg := <-messages:
 			if err := c.handleMessage(msg); err != nil {
 				log.Println("Message handle error:", err)
-				if err := c.ws.Close(); err != nil {
-					log.Println("Websocket close error:", err)
-				}
+				closeWs(c.ws)
 				return err
 			}
 		}
@@ -222,7 +229,7 @@ func (c *TogglWebsocketClient) authenticate() error {
 	}
 	log.Printf("Auth: %+v\n", msg)
 	if msg.Session == "" {
-		return errors.New("no session after auth WS message")
+		return notAuthenticated
 	}
 	return err
 }
@@ -244,8 +251,6 @@ func (c *TogglWebsocketClient) handleActionMessage(msg []byte) error {
 
 func (c *TogglWebsocketClient) handlePingTimeout() {
 	log.Println("WebSocket ping timeout")
-	if err := c.ws.Close(); err != nil {
-		log.Println("timeouted websocket close error:", err)
-	}
+	closeWs(c.ws)
 	c.waiter = nil
 }
