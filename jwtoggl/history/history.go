@@ -30,7 +30,7 @@ func New(b *builder.Builder) *History {
 		treeView: b.GetHistoryView(),
 	}
 	column := h.treeView.GetColumn(0)
-	r, err := gtk.CellRendererTextNew()
+	r, err := CellRendererTextNew()
 	if err != nil {
 		log.Fatal(err)
 	}

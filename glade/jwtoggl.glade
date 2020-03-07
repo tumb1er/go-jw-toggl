@@ -10,6 +10,34 @@
       <column type="gchararray"/>
     </columns>
   </object>
+  <object class="GtkBox" id="entry_row">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <child>
+      <object class="GtkImage">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="stock">gtk-add</property>
+      </object>
+      <packing>
+        <property name="expand">False</property>
+        <property name="fill">True</property>
+        <property name="position">0</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkLabel" id="test_label">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">label</property>
+      </object>
+      <packing>
+        <property name="expand">False</property>
+        <property name="fill">True</property>
+        <property name="position">1</property>
+      </packing>
+    </child>
+  </object>
   <object class="GtkImage" id="icon_start">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -59,11 +87,6 @@
         <attribute name="text">0</attribute>
       </attributes>
     </child>
-  </object>
-  <object class="GtkLabel" id="test_label">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="label" translatable="yes">label</property>
   </object>
   <object class="GtkApplicationWindow" id="main_window">
     <property name="can_focus">False</property>
@@ -245,9 +268,8 @@
               <object class="GtkTreeSelection"/>
             </child>
             <child>
-              <object class="GtkTreeViewColumn" id="Description">
-                <property name="title" translatable="yes">Decsription</property>
-                <property name="widget">test_label</property>
+              <object class="GtkTreeViewColumn">
+                <property name="title" translatable="yes">Recent entries</property>
               </object>
             </child>
           </object>

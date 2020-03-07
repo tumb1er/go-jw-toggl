@@ -43,7 +43,7 @@ func (j *jApp) onActivate() {
 	j.initWindow(b)
 	j.initHistory(b)
 	j.statusBar = b.GetStatusbar()
-	go j.StartSync(j.ctx)
+	// go j.StartSync(j.ctx)
 }
 
 func (j *jApp) initHistory(b *builder.Builder) {
