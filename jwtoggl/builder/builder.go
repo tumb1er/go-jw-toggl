@@ -10,9 +10,11 @@ import (
 )
 
 const (
-	trayMenuId = "tray_menu"
-	mainWindow = "main_window"
-	statusBar  = "status_bar"
+	trayMenuId   = "tray_menu"
+	mainWindow   = "main_window"
+	statusBar    = "status_bar"
+	entryHistory = "entry_history"
+	historyView  = "history_view"
 )
 
 type Builder struct {
@@ -114,6 +116,32 @@ func (b *Builder) GetListStore(id string) (*gtk.ListStore, error) {
 		return nil, errors.New("list store cast error")
 	} else {
 		return ret, nil
+	}
+}
+
+func (b *Builder) GetHistoryTreeStore() *gtk.TreeStore {
+	obj, err := b.GetObject(entryHistory)
+	if err != nil {
+		log.Fatal("Could not get TreeStore:", err)
+	}
+	if ret, ok := obj.(*gtk.TreeStore); !ok {
+		log.Fatalf("Tree store cast error: %T\n", obj)
+		return nil
+	} else {
+		return ret
+	}
+}
+
+func (b *Builder) GetHistoryView() *gtk.TreeView {
+	obj, err := b.GetObject(historyView)
+	if err != nil {
+		log.Fatal("Could not get TreeView:", err)
+	}
+	if ret, ok := obj.(*gtk.TreeView); !ok {
+		log.Fatalf("Tree view cast error: %T\n", obj)
+		return nil
+	} else {
+		return ret
 	}
 }
 

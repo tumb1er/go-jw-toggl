@@ -2,6 +2,14 @@
 <!-- Generated with glade 3.22.1 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
+  <object class="GtkTreeStore" id="entry_history">
+    <columns>
+      <!-- column-name Id -->
+      <column type="gchararray"/>
+      <!-- column-name Description -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
   <object class="GtkImage" id="icon_start">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -51,6 +59,11 @@
         <attribute name="text">0</attribute>
       </attributes>
     </child>
+  </object>
+  <object class="GtkLabel" id="test_label">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="label" translatable="yes">label</property>
   </object>
   <object class="GtkApplicationWindow" id="main_window">
     <property name="can_focus">False</property>
@@ -224,7 +237,25 @@
           </packing>
         </child>
         <child>
-          <placeholder/>
+          <object class="GtkTreeView" id="history_view">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="model">entry_history</property>
+            <child internal-child="selection">
+              <object class="GtkTreeSelection"/>
+            </child>
+            <child>
+              <object class="GtkTreeViewColumn" id="Description">
+                <property name="title" translatable="yes">Decsription</property>
+                <property name="widget">test_label</property>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">2</property>
+          </packing>
         </child>
         <child>
           <object class="GtkStatusbar" id="status_bar">
