@@ -10,7 +10,6 @@ import (
 )
 
 const (
-	trayMenuId   = "tray_menu"
 	mainWindow   = "main_window"
 	statusBar    = "status_bar"
 	entryHistory = "entry_history"
@@ -21,16 +20,15 @@ type Builder struct {
 	*gtk.Builder
 }
 
-func (b *Builder) GetMenu() *gtk.Menu {
-	obj, err := b.GetObject(trayMenuId)
+func (b *Builder) GetMenu(id string) (*gtk.Menu, error) {
+	obj, err := b.GetObject(id)
 	if err != nil {
-		log.Fatal("Could not get tray tray:", err)
+		return nil, err
 	}
 	if ret, ok := obj.(*gtk.Menu); !ok {
-		log.Fatal("Tray tray cast error: %T", obj)
-		return nil
+		return nil, fmt.Errorf("menu cast error: %T", obj)
 	} else {
-		return ret
+		return ret, nil
 	}
 }
 

@@ -10,32 +10,24 @@
       <column type="gchararray"/>
     </columns>
   </object>
-  <object class="GtkBox" id="entry_row">
+  <object class="GtkMenu" id="history_menu">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <child>
-      <object class="GtkImage">
+      <object class="GtkMenuItem" id="menu_continue">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="stock">gtk-add</property>
+        <property name="label" translatable="yes">Continue</property>
+        <property name="use_underline">True</property>
       </object>
-      <packing>
-        <property name="expand">False</property>
-        <property name="fill">True</property>
-        <property name="position">0</property>
-      </packing>
     </child>
     <child>
-      <object class="GtkLabel" id="test_label">
+      <object class="GtkMenuItem" id="menu_delete">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="label" translatable="yes">label</property>
+        <property name="label" translatable="yes">Delete</property>
+        <property name="use_underline">True</property>
       </object>
-      <packing>
-        <property name="expand">False</property>
-        <property name="fill">True</property>
-        <property name="position">1</property>
-      </packing>
     </child>
   </object>
   <object class="GtkImage" id="icon_start">
@@ -263,6 +255,7 @@
           <object class="GtkTreeView" id="history_view">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
+            <property name="vexpand">True</property>
             <property name="model">entry_history</property>
             <child internal-child="selection">
               <object class="GtkTreeSelection"/>
@@ -270,6 +263,7 @@
             <child>
               <object class="GtkTreeViewColumn">
                 <property name="title" translatable="yes">Recent entries</property>
+                <property name="expand">True</property>
               </object>
             </child>
           </object>

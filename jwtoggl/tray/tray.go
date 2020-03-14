@@ -14,6 +14,7 @@ const (
 	menuShow    = "menu_show"
 	menuExit    = "menu_exit"
 	trayId      = "go-jw-toggl.notification"
+	trayMenuId  = "tray_menu"
 	TogglIconBW = "toggl_bw.png"
 	TogglIcon   = "toggl.png"
 )
@@ -29,10 +30,12 @@ type Tray struct {
 func New(b *builder.Builder) (*Tray, error) {
 	icon := tools.GetIconPath(TogglIconBW)
 	t := &Tray{
-		menu:      b.GetMenu(),
 		indicator: appindicator.New(trayId, icon, appindicator.CategoryApplicationStatus),
 	}
 	var err error
+	if t.menu, err = b.GetMenu(trayMenuId); err != nil {
+		return nil, err
+	}
 	if t.menuShow, err = b.GetMenuItem(menuShow); err != nil {
 		return nil, err
 	}

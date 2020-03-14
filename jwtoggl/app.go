@@ -47,7 +47,10 @@ func (j *jApp) onActivate() {
 }
 
 func (j *jApp) initHistory(b *builder.Builder) {
-	j.entries = history.New(b)
+	var err error
+	if j.entries, err = history.New(b); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func (j *jApp) initWindow(b *builder.Builder) {

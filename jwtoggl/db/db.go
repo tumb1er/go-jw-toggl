@@ -140,7 +140,7 @@ func (db *DB) SyncCurrentEntry() error {
 
 func (db *DB) SyncLastEntries() error {
 	end := time.Now()
-	start := end.Add(-24 * time.Hour)
+	start := end.Add(-72 * time.Hour)
 	old := db.store.Current()
 	entries, err := db.client.TimeentryClient.GetRange(start, end)
 	if err != nil {

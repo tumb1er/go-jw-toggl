@@ -1,46 +1,26 @@
 package history
 
 import (
-	"fmt"
-	"github.com/gotk3/gotk3/gtk"
 	"go-jw-toggl/jwtoggl/builder"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
-	"go-jw-toggl/jwtoggl/tools"
-	"log"
+	"go-jw-toggl/jwtoggl/history/gtk_history"
 )
 
 type History struct {
-	store    *gtk.TreeStore
-	treeView *gtk.TreeView
+	history *gtk_history.GtkHistory
 }
 
 func (h *History) SetEntries(entries []*gttimeentry.TimeEntry) {
-	tools.Schedule(h.setEntries, entries)
-}
-func (h *History) setEntries(entries []*gttimeentry.TimeEntry) {
-	h.store.Clear()
-	for _, entry := range entries {
-		it := h.store.Append(nil)
-		if err := h.store.SetValue(it, 0, fmt.Sprintf("%d", entry.Id)); err != nil {
-			log.Fatal(err)
-		}
-		if err := h.store.SetValue(it, 1, entry.Description); err != nil {
-			log.Fatal(err)
-		}
-	}
+	h.history.SetEntries(entries)
 }
 
-func New(b *builder.Builder) *History {
-	h := &History{
-		store:    b.GetHistoryTreeStore(),
-		treeView: b.GetHistoryView(),
-	}
-	column := h.treeView.GetColumn(0)
-	r, err := CellRendererTextNew()
+func New(b *builder.Builder) (*History, error) {
+	history, err := gtk_history.New(b)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	column.PackStart(r, true)
-	column.AddAttribute(r, "text", 1)
-	return h
+	h := &History{
+		history: history,
+	}
+	return h, nil
 }
