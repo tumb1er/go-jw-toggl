@@ -40,6 +40,10 @@ func EntriesEqual(e1, e2 *gttimeentry.TimeEntry) bool {
 	return true
 }
 
+func IsCurrent(e *gttimeentry.TimeEntry) bool {
+	return e.Stop.IsZero()
+}
+
 func ProjectsEqual(p1 *gtproject.Project, p2 *gtproject.Project) bool {
 	if (p1 == nil) != (p2 == nil) {
 		return false

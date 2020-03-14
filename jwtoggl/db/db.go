@@ -212,18 +212,27 @@ func (db *DB) StartListen(ctx context.Context) {
 }
 
 func (db *DB) onTimeEntryAction(action string, entry gttimeentry.TimeEntry) error {
+	old := db.store.Current()
 	if action == gtwebsocket.ActionDelete {
-		db.store.Delete(&entry)
-	} else if action == gtwebsocket.ActionUpdate || action == gtwebsocket.ActionInsert {
-		current := db.store.Current()
-		if db.store.Update(&entry) {
-			// TODO: CB на обновление списка
-			if !tools.EntriesEqual(current, &entry) {
+		if db.store.Delete(&entry) {
+			current := db.store.Current()
+			if !tools.EntriesEqual(old, current) {
 				// Обновился текущий
-				db.onCurrentEntry(&entry, true)
+				db.onCurrentEntry(current, true)
 			} else {
 				db.onEntriesChanged(db.store.List())
 			}
+		}
+
+	} else if action == gtwebsocket.ActionUpdate || action == gtwebsocket.ActionInsert {
+		if db.store.Update(&entry) {
+			current := db.store.Current()
+			if !tools.EntriesEqual(old, current) {
+				// Обновился текущий
+				db.onCurrentEntry(current, true)
+			}
+			db.onEntriesChanged(db.store.List())
+
 		}
 	} else {
 		return fmt.Errorf("unhandled action: %s", action)

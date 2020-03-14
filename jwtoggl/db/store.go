@@ -4,14 +4,18 @@ import (
 	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
 	"go-jw-toggl/jwtoggl/tools"
 	"sort"
+	"sync"
 )
 
 type EntryStore struct {
 	index map[uint64]int
 	list  []*gttimeentry.TimeEntry
+	mu    sync.RWMutex
 }
 
 func (s *EntryStore) Update(entry *gttimeentry.TimeEntry) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	updated := s.update(entry)
 	if updated {
 		s.sort()
@@ -20,6 +24,8 @@ func (s *EntryStore) Update(entry *gttimeentry.TimeEntry) bool {
 }
 
 func (s *EntryStore) BulkUpdate(entries gttimeentry.TimeEntries) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	var result bool
 	for _, entry := range entries {
 		entry := entry
@@ -49,12 +55,15 @@ func (s *EntryStore) update(entry *gttimeentry.TimeEntry) bool {
 		return false
 	}
 	s.list[idx] = entry
-	return false
+	s.sort()
+	return true
 }
 
 func (s *EntryStore) Current() *gttimeentry.TimeEntry {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	for _, entry := range s.list {
-		if entry.Stop.IsZero() {
+		if tools.IsCurrent(entry) {
 			return entry
 		}
 	}
@@ -65,6 +74,10 @@ func (s *EntryStore) sort() {
 	sort.Slice(s.list, func(i, j int) bool {
 		return s.list[i].Start.After(s.list[j].Start)
 	})
+	s.reindex()
+}
+
+func (s *EntryStore) reindex() {
 	s.index = make(map[uint64]int, len(s.list))
 	for i, v := range s.list {
 		s.index[v.Id] = i
@@ -72,6 +85,8 @@ func (s *EntryStore) sort() {
 }
 
 func (s *EntryStore) Delete(entry *gttimeentry.TimeEntry) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	idx, ok := s.index[entry.Id]
 	if !ok {
 		// Не найдено
@@ -83,10 +98,13 @@ func (s *EntryStore) Delete(entry *gttimeentry.TimeEntry) bool {
 	s.list[len(s.list)-1] = nil
 	// Меняем длину
 	s.list = s.list[:len(s.list)-1]
+	s.reindex()
 	return true
 }
 
 func (s *EntryStore) List() []*gttimeentry.TimeEntry {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	result := make([]*gttimeentry.TimeEntry, 0, len(s.list))
 	current := s.Current()
 	for _, entry := range s.list {
