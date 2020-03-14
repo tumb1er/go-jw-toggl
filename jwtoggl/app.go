@@ -43,12 +43,11 @@ func (j *jApp) onActivate() {
 	j.initWindow(b)
 	j.initHistory(b)
 	j.statusBar = b.GetStatusbar()
-	// go j.StartSync(j.ctx)
+	go j.StartSync(j.ctx)
 }
 
 func (j *jApp) initHistory(b *builder.Builder) {
 	j.entries = history.New(b)
-	j.entries.Fill()
 }
 
 func (j *jApp) initWindow(b *builder.Builder) {
@@ -92,7 +91,7 @@ func (j *jApp) onWindowDelete() bool {
 }
 
 func (j *jApp) onEntryChanged(entry *gttimeentry.TimeEntry) {
-	if err := j.db.UpdateEntry(entry); err != nil {
+	if err := j.db.UpdateCurrentEntry(entry); err != nil {
 		log.Fatal(err)
 	}
 }

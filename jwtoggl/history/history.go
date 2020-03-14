@@ -1,10 +1,11 @@
 package history
 
 import (
+	"fmt"
 	"github.com/gotk3/gotk3/gtk"
 	"go-jw-toggl/jwtoggl/builder"
+	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
 	"log"
-	"strconv"
 )
 
 type History struct {
@@ -12,13 +13,13 @@ type History struct {
 	treeView *gtk.TreeView
 }
 
-func (h *History) Fill() {
-	for i := 0; i < 5; i++ {
+func (h *History) SetEntries(entries []*gttimeentry.TimeEntry) {
+	for _, entry := range entries {
 		it := h.store.Append(nil)
-		if err := h.store.SetValue(it, 0, strconv.Itoa(i)); err != nil {
+		if err := h.store.SetValue(it, 0, fmt.Sprintf("%d", entry.Id)); err != nil {
 			log.Fatal(err)
 		}
-		if err := h.store.SetValue(it, 1, "entry "+strconv.Itoa(i)); err != nil {
+		if err := h.store.SetValue(it, 1, entry.Description); err != nil {
 			log.Fatal(err)
 		}
 	}

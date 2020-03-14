@@ -11,6 +11,7 @@ func (j *jApp) StartSync(ctx context.Context) {
 	j.db.OnCurrentEntry(j.onCurrentEntryChanged)
 	j.db.OnProjectsChanged(j.form.SetProjects)
 	j.db.OnTagsChanged(j.form.SetTags)
+	j.db.OnEntriesChanged(j.entries.SetEntries)
 	if err := j.db.SyncUser(); err != nil {
 		log.Fatal("Project sync error:", err)
 	}
@@ -22,11 +23,11 @@ func (j *jApp) periodicSync(ctx context.Context) {
 	t := time.NewTicker(time.Second * 10)
 	t2 := time.NewTicker(time.Second)
 	j.db.StartListen(ctx)
-	j.syncCurrentEntry()
+	j.doSync()
 	for {
 		select {
 		case <-t.C:
-			j.syncCurrentEntry()
+			j.doSync()
 		case <-t2.C:
 			j.syncDuration()
 		case <-ctx.Done():
@@ -36,11 +37,14 @@ func (j *jApp) periodicSync(ctx context.Context) {
 	}
 }
 
-func (j *jApp) syncCurrentEntry() {
+func (j *jApp) doSync() {
 	log.Println("start sync")
 	defer log.Println("sync done")
 	if err := j.db.SyncCurrentEntry(); err != nil {
 		log.Println("Sync current entry error:", err)
+	}
+	if err := j.db.SyncLastEntries(); err != nil {
+		log.Println("Sync last entries error:", err)
 	}
 }
 
