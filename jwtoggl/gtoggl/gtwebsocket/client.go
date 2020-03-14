@@ -178,7 +178,7 @@ func (c *TogglWebsocketClient) handlePingMessage(msg []byte) error {
 	now := time.Now()
 	if !c.pingTime.IsZero() {
 		interval := now.Sub(c.pingTime)
-		c.waiter = time.AfterFunc(interval*2, c.handlePingTimeout)
+		c.waiter = time.AfterFunc(interval*3, c.handlePingTimeout)
 	}
 	c.pingTime = now
 	var pingMsg MsgPing

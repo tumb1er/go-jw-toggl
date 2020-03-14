@@ -38,6 +38,7 @@ type TogglHttpClient struct {
 	rateLimiter *throttled.GCRARateLimiter
 	perSec      int
 	cookie      *http.Cookie
+	token       string
 }
 
 type TogglError struct {
@@ -73,6 +74,7 @@ func NewClient(key string, options ...ClientOptionFunc) (*TogglHttpClient, error
 		errorLog:    defaultLogger,
 		infoLog:     defaultLogger,
 		traceLog:    defaultLogger,
+		token:       key,
 	}
 
 	err := SetRateLimit(DefaultRateLimitPerSecond)(c)
@@ -90,11 +92,7 @@ func NewClient(key string, options ...ClientOptionFunc) (*TogglHttpClient, error
 
 	if len(key) < 1 {
 		c.errorLog.Printf("%s\n", "valid token required")
-		return nil, errors.New("Token required")
-	}
-
-	if _, err = c.authenticate(key); err != nil {
-		return nil, err
+		return nil, errors.New("token required")
 	}
 
 	return c, nil
@@ -169,23 +167,23 @@ func (l *nullLogger) Printf(format string, v ...interface{}) {
 
 var defaultLogger = &nullLogger{}
 
-func (c *TogglHttpClient) authenticate(key string) ([]byte, error) {
+func (c *TogglHttpClient) authenticate() error {
 	req, err := http.NewRequest("POST", fmt.Sprintf("%s/%s", c.Url, "sessions"), nil)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	c.dumpRequest(req)
-	req.SetBasicAuth(key, DefaultAuthPassword)
+	req.SetBasicAuth(c.token, DefaultAuthPassword)
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	c.dumpResponse(resp)
 
 	if resp.StatusCode >= 400 {
 		defer resp.Body.Close()
 		b, _ := ioutil.ReadAll(resp.Body)
-		return nil, &TogglError{Code: resp.StatusCode, Status: resp.Status, Msg: string(b)}
+		return &TogglError{Code: resp.StatusCode, Status: resp.Status, Msg: string(b)}
 	}
 	hasSessionCookie := false
 	for _, value := range resp.Cookies() {
@@ -196,10 +194,10 @@ func (c *TogglHttpClient) authenticate(key string) ([]byte, error) {
 		}
 	}
 	if !hasSessionCookie {
-		return nil, fmt.Errorf("Auth cookie %q not found on authentication response", SessionCookieName)
+		return fmt.Errorf("Auth cookie %q not found on authentication response", SessionCookieName)
 	}
 
-	return nil, nil
+	return nil
 }
 
 func requestWithLimit(c *TogglHttpClient, method, endpoint string, b interface{}, attempt int) (*json.RawMessage, error) {
@@ -223,6 +221,12 @@ func requestWithLimit(c *TogglHttpClient, method, endpoint string, b interface{}
 
 	if b != nil {
 		if body, err = json.Marshal(b); err != nil {
+			return nil, err
+		}
+	}
+
+	if c.cookie == nil || c.cookie.Expires.Before(time.Now()) {
+		if err = c.authenticate(); err != nil {
 			return nil, err
 		}
 	}
