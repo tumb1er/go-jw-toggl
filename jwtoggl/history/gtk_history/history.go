@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/gtk"
+	"github.com/gotk3/gotk3/pango"
 	"go-jw-toggl/jwtoggl/builder"
 	"go-jw-toggl/jwtoggl/gtoggl/gtclient"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
@@ -95,7 +96,10 @@ func (h *GtkHistory) setEntries(c entriesContext) {
 			ctx.Duration = duration.Truncate(time.Second).String()
 		}
 
-		if err := h.store.SetValue(it, 1, Render(ctx)); err != nil {
+		if err := h.store.SetValue(it, 1, RenderDescription(ctx)); err != nil {
+			log.Fatal(err)
+		}
+		if err := h.store.SetValue(it, 2, RenderTimings(ctx)); err != nil {
 			log.Fatal(err)
 		}
 	}
@@ -176,13 +180,38 @@ func New(b *builder.Builder) (*GtkHistory, error) {
 		}
 	}
 
-	column := h.treeView.GetColumn(0)
+	column, err := gtk.TreeViewColumnNew()
+	if err != nil {
+		return nil, err
+	}
 	r, err := gtk.CellRendererTextNew()
 	if err != nil {
 		return nil, err
 	}
+	if err := r.SetProperty("ypad", 4); err != nil {
+		return nil, err
+	}
 	column.PackStart(r, true)
 	column.AddAttribute(r, "markup", 1)
+	r, err = gtk.CellRendererTextNew()
+	if err != nil {
+		return nil, err
+	}
+	if err := r.SetProperty("ypad", 4); err != nil {
+		return nil, err
+	}
+	if err := r.SetProperty("xpad", 8); err != nil {
+		return nil, err
+	}
+	if err := r.SetProperty("alignment", pango.ALIGN_RIGHT); err != nil {
+		return nil, err
+	}
+	if err := r.SetProperty("xalign", 1.0); err != nil {
+		return nil, err
+	}
+	column.PackStart(r, true)
+	column.AddAttribute(r, "markup", 2)
+	h.treeView.AppendColumn(column)
 
 	if _, err := h.treeView.Connect("button-press-event", h.OnButtonClick); err != nil {
 		return nil, err

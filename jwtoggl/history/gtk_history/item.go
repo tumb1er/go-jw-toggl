@@ -6,15 +6,26 @@ import (
 	"text/template"
 )
 
-var tmpl *template.Template
+var descriptionTemplate, timingTemplate *template.Template
 
 func init() {
-	tmpl = new(template.Template)
-	tmpl = template.Must(tmpl.Parse(
-		`<span size="large">{{.Description}} {{ if .Project}} <span 
-font_weight="bold" foreground="{{.Color}}">• {{.Project}}</span>{{ if .Client }} <span
-foreground="#AAAAAA">• {{.Client}}</span>{{ end }}{{ end }}</span>
-{{ if .Tag }}{{.Tag}} {{ end }}<span foreground="#AAAAAA" gravity="east">{{.Start}}{{ if .Stop }} - {{.Stop}}{{ else }}...{{ end }}</span>`))
+	descriptionTemplate = new(template.Template)
+	descriptionTemplate = template.Must(descriptionTemplate.Parse(
+		`<span
+foreground="#333333">{{.Description}}</span>
+{{ if .Tag }}<span 
+size="smaller"
+font_style="italic">{{.Tag}}</span> {{ end }}{{ if .Project}}<span 
+font_weight="bold" 
+size="smaller"
+foreground="{{.Color}}">• {{.Project}}</span>{{ if .Client }} <span
+size="smaller"
+foreground="#AAAAAA">• {{.Client}}</span>{{ end }}{{ end }}`))
+	timingTemplate = new(template.Template)
+	timingTemplate = template.Must(timingTemplate.Parse(
+		`<span
+	foreground="#AAAAAA">{{.Start}}{{ if .Stop }} - {{.Stop}}{{ else }}...{{ end }}</span>
+<span size="smaller">{{.Duration}}</span>`))
 }
 
 type Ctx struct {
@@ -28,9 +39,16 @@ type Ctx struct {
 	Duration    string
 }
 
-func Render(c Ctx) string {
+func RenderDescription(c Ctx) string {
 	buffer := bytes.Buffer{}
-	if err := tmpl.Execute(&buffer, c); err != nil {
+	if err := descriptionTemplate.Execute(&buffer, c); err != nil {
+		log.Fatal(err)
+	}
+	return buffer.String()
+}
+func RenderTimings(c Ctx) string {
+	buffer := bytes.Buffer{}
+	if err := timingTemplate.Execute(&buffer, c); err != nil {
 		log.Fatal(err)
 	}
 	return buffer.String()

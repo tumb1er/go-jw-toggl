@@ -8,6 +8,8 @@
       <column type="gchararray"/>
       <!-- column-name Description -->
       <column type="gchararray"/>
+      <!-- column-name Timings -->
+      <column type="gchararray"/>
     </columns>
   </object>
   <object class="GtkMenu" id="history_menu">
@@ -84,7 +86,10 @@
     <property name="can_focus">False</property>
     <property name="vexpand">True</property>
     <property name="title" translatable="yes">JW Toggl</property>
+    <property name="window_position">center</property>
+    <property name="default_height">900</property>
     <property name="icon">resources/toggl.png</property>
+    <property name="gravity">north-east</property>
     <property name="show_menubar">False</property>
     <child>
       <placeholder/>
@@ -266,12 +271,6 @@
                 <property name="search_column">0</property>
                 <child internal-child="selection">
                   <object class="GtkTreeSelection"/>
-                </child>
-                <child>
-                  <object class="GtkTreeViewColumn">
-                    <property name="title" translatable="yes">Recent entries</property>
-                    <property name="expand">True</property>
-                  </object>
                 </child>
               </object>
             </child>
