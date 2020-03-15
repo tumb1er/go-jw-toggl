@@ -5,10 +5,13 @@ import (
 	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/gtk"
 	"go-jw-toggl/jwtoggl/builder"
+	"go-jw-toggl/jwtoggl/gtoggl/gtclient"
+	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
 	"go-jw-toggl/jwtoggl/tools"
 	"log"
 	"strconv"
+	"time"
 )
 
 const (
@@ -18,6 +21,12 @@ const (
 )
 
 type Callback func(entryId uint64)
+
+type entriesContext struct {
+	Entries  gttimeentry.TimeEntries
+	Projects map[uint64]gtproject.Project
+	Clients  map[uint64]gtclient.Client
+}
 
 type GtkHistory struct {
 	store           *gtk.TreeStore
@@ -45,17 +54,48 @@ func (h *GtkHistory) OnButtonClick(_ *gtk.TreeView, e *gdk.Event) {
 	}
 }
 
-func (h *GtkHistory) SetEntries(entries gttimeentry.TimeEntries) {
-	tools.Schedule(h.setEntries, entries)
+func (h *GtkHistory) SetEntries(
+	entries gttimeentry.TimeEntries,
+	projects map[uint64]gtproject.Project,
+	clients map[uint64]gtclient.Client) {
+	tools.Schedule(h.setEntries, entriesContext{
+		Entries:  entries,
+		Projects: projects,
+		Clients:  clients,
+	})
 }
-func (h *GtkHistory) setEntries(entries gttimeentry.TimeEntries) {
+func (h *GtkHistory) setEntries(c entriesContext) {
 	h.store.Clear()
-	for _, entry := range entries {
+	for _, entry := range c.Entries {
 		it := h.store.Append(nil)
 		if err := h.store.SetValue(it, 0, fmt.Sprintf("%d", entry.Id)); err != nil {
 			log.Fatal(err)
 		}
-		if err := h.store.SetValue(it, 1, entry.Description); err != nil {
+
+		var ctx Ctx
+		ctx.Description = entry.Description
+		if project, ok := c.Projects[entry.Pid]; ok {
+			ctx.Project = project.Name
+			ctx.Color = project.HexColor
+			if client, ok := c.Clients[project.CId]; ok {
+				ctx.Client = client.Name
+			}
+		}
+		if len(entry.Tags) >= 1 {
+			ctx.Tag = entry.Tags[0]
+		}
+		if !entry.Start.IsZero() {
+			ctx.Start = entry.Start.Format("15:04")
+		}
+		if !entry.Stop.IsZero() {
+			ctx.Stop = entry.Stop.Format("15:04")
+		}
+		if entry.Duration > 0 {
+			duration := time.Duration(entry.Duration) * time.Second
+			ctx.Duration = duration.Truncate(time.Second).String()
+		}
+
+		if err := h.store.SetValue(it, 1, Render(ctx)); err != nil {
 			log.Fatal(err)
 		}
 	}
@@ -142,7 +182,7 @@ func New(b *builder.Builder) (*GtkHistory, error) {
 		return nil, err
 	}
 	column.PackStart(r, true)
-	column.AddAttribute(r, "text", 1)
+	column.AddAttribute(r, "markup", 1)
 
 	if _, err := h.treeView.Connect("button-press-event", h.OnButtonClick); err != nil {
 		return nil, err

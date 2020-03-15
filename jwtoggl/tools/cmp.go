@@ -1,6 +1,7 @@
 package tools
 
 import (
+	"go-jw-toggl/jwtoggl/gtoggl/gtclient"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
@@ -67,6 +68,19 @@ func TagsEqual(t1 *gttag.Tag, t2 *gttag.Tag) bool {
 			t1.WId == t2.WId &&
 			t1.Name == t2.Name
 	}
-	// e1 == nil && e2 == nil
+	// t1 == nil && t2 == nil
+	return true
+}
+
+func ClientsEqual(c1 *gtclient.Client, c2 *gtclient.Client) bool {
+	if (c1 == nil) != (c2 == nil) {
+		return false
+	}
+	if c1 != nil && c2 != nil {
+		return c1.Id == c2.Id &&
+			c1.WId == c2.WId &&
+			c1.Name == c2.Name
+	}
+	// c1 == nil && c2 == nil
 	return true
 }

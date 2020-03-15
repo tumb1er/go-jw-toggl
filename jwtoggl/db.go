@@ -12,6 +12,7 @@ type DB interface {
 	OnCurrentEntry(callback db.OnCurrentEntryCallback)
 	OnProjectsChanged(callback db.OnProjectsChangedCallback)
 	OnTagsChanged(callback db.OnTagsChangedCallback)
+	OnClientsChanged(changed db.OnClientsChangedCallback)
 	OnEntriesChanged(callback db.OnEntriesChangedCallback)
 	StartListen(ctx context.Context)
 	CreateNewEntry(entry *gttimeentry.TimeEntry) error

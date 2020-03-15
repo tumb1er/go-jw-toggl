@@ -2,16 +2,42 @@ package history
 
 import (
 	"go-jw-toggl/jwtoggl/builder"
+	"go-jw-toggl/jwtoggl/gtoggl/gtclient"
+	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
 	"go-jw-toggl/jwtoggl/history/gtk_history"
 )
 
 type History struct {
-	history *gtk_history.GtkHistory
+	history  *gtk_history.GtkHistory
+	projects map[uint64]gtproject.Project
+	clients  map[uint64]gtclient.Client
+	entries  gttimeentry.TimeEntries
+}
+
+func (h *History) SetProjects(projects gtproject.Projects) {
+	h.projects = make(map[uint64]gtproject.Project)
+	for _, project := range projects {
+		h.projects[project.Id] = project
+	}
+	h.setEntries()
+}
+
+func (h *History) SetClients(clients gtclient.Clients) {
+	h.clients = make(map[uint64]gtclient.Client)
+	for _, client := range clients {
+		h.clients[client.Id] = client
+	}
+	h.setEntries()
+}
+
+func (h *History) setEntries() {
+	h.history.SetEntries(h.entries, h.projects, h.clients)
 }
 
 func (h *History) SetEntries(entries gttimeentry.TimeEntries) {
-	h.history.SetEntries(entries)
+	h.entries = entries
+	h.setEntries()
 }
 
 func (h *History) InitCallbacks(onEntryContinue, onEntryDelete gtk_history.Callback) {
@@ -25,7 +51,9 @@ func New(b *builder.Builder) (*History, error) {
 		return nil, err
 	}
 	h := &History{
-		history: history,
+		history:  history,
+		projects: make(map[uint64]gtproject.Project),
+		clients:  make(map[uint64]gtclient.Client),
 	}
 	return h, nil
 }

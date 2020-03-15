@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"go-jw-toggl/jwtoggl/gtoggl"
+	"go-jw-toggl/jwtoggl/gtoggl/gtclient"
 	"go-jw-toggl/jwtoggl/gtoggl/gthttp"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
@@ -19,7 +20,8 @@ import (
 type OnCurrentEntryCallback func(entry *gttimeentry.TimeEntry, external bool)
 type OnProjectsChangedCallback func(projects gtproject.Projects)
 type OnTagsChangedCallback func(tags gttag.Tags)
-type OnEntriesChangedCallback func(entry gttimeentry.TimeEntries)
+type OnClientsChangedCallback func(clients gtclient.Clients)
+type OnEntriesChangedCallback func(entries gttimeentry.TimeEntries)
 
 type DB struct {
 	client     *gtoggl.TogglClient
@@ -28,12 +30,14 @@ type DB struct {
 	sub        *gtwebsocket.TogglWebsocketClient
 	projects   map[uint64]*gtproject.Project
 	tags       map[uint64]*gttag.Tag
+	clients    map[uint64]*gtclient.Client
 	defaultWId uint64
 
 	onCurrentEntry    OnCurrentEntryCallback
 	onProjectsChanged OnProjectsChangedCallback
 	onTagsChanged     OnTagsChangedCallback
 	onEntriesChanged  OnEntriesChangedCallback
+	onClientsChanged  OnClientsChangedCallback
 }
 
 func NewDB(token string) (*DB, error) {
@@ -53,6 +57,7 @@ func NewDB(token string) (*DB, error) {
 		sub:        sub,
 		projects:   make(map[uint64]*gtproject.Project),
 		tags:       make(map[uint64]*gttag.Tag),
+		clients:    make(map[uint64]*gtclient.Client),
 	}, nil
 }
 
@@ -66,6 +71,10 @@ func (db *DB) OnProjectsChanged(cb OnProjectsChangedCallback) {
 
 func (db *DB) OnTagsChanged(cb OnTagsChangedCallback) {
 	db.onTagsChanged = cb
+}
+
+func (db *DB) OnClientsChanged(cb OnClientsChangedCallback) {
+	db.onClientsChanged = cb
 }
 
 func (db *DB) OnEntriesChanged(cb OnEntriesChangedCallback) {
@@ -235,6 +244,24 @@ func (db *DB) SyncUser() error {
 	}
 	if changed && db.onTagsChanged != nil {
 		db.onTagsChanged(tags)
+	}
+
+	changed = false
+	clients := make(gtclient.Clients, 0, len(user.Clients))
+	for _, client := range user.Clients {
+		if client.WId != user.DefaultWId {
+			continue
+		} else {
+			clients = append(clients, client)
+		}
+		existing, ok := db.clients[client.Id]
+		if !ok || !tools.ClientsEqual(existing, &client) {
+			db.clients[client.Id] = &client
+			changed = true
+		}
+	}
+	if changed && db.onClientsChanged != nil {
+		db.onClientsChanged(clients)
 	}
 	return nil
 }
