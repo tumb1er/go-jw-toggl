@@ -10,7 +10,7 @@ type History struct {
 	history *gtk_history.GtkHistory
 }
 
-func (h *History) SetEntries(entries []*gttimeentry.TimeEntry) {
+func (h *History) SetEntries(entries gttimeentry.TimeEntries) {
 	h.history.SetEntries(entries)
 }
 

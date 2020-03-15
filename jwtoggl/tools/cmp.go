@@ -40,7 +40,7 @@ func EntriesEqual(e1, e2 *gttimeentry.TimeEntry) bool {
 	return true
 }
 
-func IsCurrent(e *gttimeentry.TimeEntry) bool {
+func IsCurrent(e gttimeentry.TimeEntry) bool {
 	return e.Stop.IsZero()
 }
 

@@ -3,17 +3,18 @@ package db
 import (
 	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
 	"go-jw-toggl/jwtoggl/tools"
+	"log"
 	"sort"
 	"sync"
 )
 
 type EntryStore struct {
 	index map[uint64]int
-	list  []*gttimeentry.TimeEntry
+	list  []gttimeentry.TimeEntry
 	mu    sync.RWMutex
 }
 
-func (s *EntryStore) Update(entry *gttimeentry.TimeEntry) bool {
+func (s *EntryStore) Update(entry gttimeentry.TimeEntry) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	updated := s.update(entry)
@@ -29,7 +30,7 @@ func (s *EntryStore) BulkUpdate(entries gttimeentry.TimeEntries) bool {
 	var result bool
 	for _, entry := range entries {
 		entry := entry
-		if s.update(&entry) {
+		if s.update(entry) {
 			result = true
 		}
 	}
@@ -39,9 +40,9 @@ func (s *EntryStore) BulkUpdate(entries gttimeentry.TimeEntries) bool {
 	return result
 }
 
-func (s *EntryStore) update(entry *gttimeentry.TimeEntry) bool {
-	if entry == nil {
-		return false
+func (s *EntryStore) update(entry gttimeentry.TimeEntry) bool {
+	if entry.Id == 0 {
+		log.Fatal("empty entry id")
 	}
 	idx, ok := s.index[entry.Id]
 	if !ok {
@@ -50,7 +51,7 @@ func (s *EntryStore) update(entry *gttimeentry.TimeEntry) bool {
 		s.sort()
 		return true
 	}
-	if tools.EntriesEqual(s.list[idx], entry) {
+	if tools.EntriesEqual(&s.list[idx], &entry) {
 		// Нет изменений
 		return false
 	}
@@ -59,25 +60,34 @@ func (s *EntryStore) update(entry *gttimeentry.TimeEntry) bool {
 	return true
 }
 
-func (s *EntryStore) Get(id uint64) *gttimeentry.TimeEntry {
+func (s *EntryStore) Get(id uint64) (gttimeentry.TimeEntry, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	idx, ok := s.index[id]
 	if !ok {
-		return nil
+		return gttimeentry.TimeEntry{}, false
 	}
-	return s.list[idx]
+	return s.list[idx], true
 }
 
-func (s *EntryStore) Current() *gttimeentry.TimeEntry {
+func (s *EntryStore) current() (gttimeentry.TimeEntry, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	for _, entry := range s.list {
 		if tools.IsCurrent(entry) {
-			return entry
+			return entry, true
 		}
 	}
-	return nil
+	return gttimeentry.TimeEntry{}, false
+}
+
+func (s *EntryStore) Current() *gttimeentry.TimeEntry {
+	entry, ok := s.current()
+	if ok {
+		return &entry
+	} else {
+		return nil
+	}
 }
 
 func (s *EntryStore) sort() {
@@ -94,7 +104,7 @@ func (s *EntryStore) reindex() {
 	}
 }
 
-func (s *EntryStore) Delete(entry *gttimeentry.TimeEntry) bool {
+func (s *EntryStore) Delete(entry gttimeentry.TimeEntry) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	idx, ok := s.index[entry.Id]
@@ -104,21 +114,21 @@ func (s *EntryStore) Delete(entry *gttimeentry.TimeEntry) bool {
 	}
 	// Сдвигаем влево
 	copy(s.list[idx:], s.list[idx+1:])
-	// Стираем ссылку
-	s.list[len(s.list)-1] = nil
+	// Стираем данные
+	s.list[len(s.list)-1] = gttimeentry.TimeEntry{}
 	// Меняем длину
 	s.list = s.list[:len(s.list)-1]
 	s.reindex()
 	return true
 }
 
-func (s *EntryStore) List() []*gttimeentry.TimeEntry {
+func (s *EntryStore) List() gttimeentry.TimeEntries {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	result := make([]*gttimeentry.TimeEntry, 0, len(s.list))
-	current := s.Current()
+	result := make(gttimeentry.TimeEntries, 0, len(s.list))
+	current, ok := s.current()
 	for _, entry := range s.list {
-		if current != nil && entry.Id == current.Id {
+		if ok && entry.Id == current.Id {
 			continue
 		}
 		result = append(result, entry)

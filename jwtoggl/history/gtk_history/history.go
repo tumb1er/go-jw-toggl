@@ -45,10 +45,10 @@ func (h *GtkHistory) OnButtonClick(_ *gtk.TreeView, e *gdk.Event) {
 	}
 }
 
-func (h *GtkHistory) SetEntries(entries []*gttimeentry.TimeEntry) {
+func (h *GtkHistory) SetEntries(entries gttimeentry.TimeEntries) {
 	tools.Schedule(h.setEntries, entries)
 }
-func (h *GtkHistory) setEntries(entries []*gttimeentry.TimeEntry) {
+func (h *GtkHistory) setEntries(entries gttimeentry.TimeEntries) {
 	h.store.Clear()
 	for _, entry := range entries {
 		it := h.store.Append(nil)
