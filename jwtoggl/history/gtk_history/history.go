@@ -17,10 +17,22 @@ const (
 	menuDelete   = "menu_delete"
 )
 
+type Callback func(entryId uint64)
+
 type GtkHistory struct {
-	store    *gtk.TreeStore
-	treeView *gtk.TreeView
-	menu     *gtk.Menu
+	store           *gtk.TreeStore
+	treeView        *gtk.TreeView
+	menu            *gtk.Menu
+	onEntryDelete   Callback
+	onEntryContinue Callback
+}
+
+func (h *GtkHistory) OnEntryContinue(cb Callback) {
+	h.onEntryContinue = cb
+}
+
+func (h *GtkHistory) OnEntryDelete(cb Callback) {
+	h.onEntryDelete = cb
 }
 
 func (h *GtkHistory) OnButtonClick(_ *gtk.TreeView, e *gdk.Event) {
@@ -57,7 +69,7 @@ func (h *GtkHistory) getSelectedEntryId() (uint64, error) {
 	defer s.UnselectAll()
 	_, it, ok := s.GetSelected()
 	if ok {
-		v, err := h.store.GetValue(it, 1)
+		v, err := h.store.GetValue(it, 0)
 		if err != nil {
 			return 0, err
 		}
@@ -80,11 +92,23 @@ func (h *GtkHistory) getSelectedEntryId() (uint64, error) {
 }
 
 func (h *GtkHistory) onMenuContinue() {
-
+	if h.onEntryContinue != nil {
+		entry, err := h.getSelectedEntryId()
+		if err != nil {
+			log.Fatal(err)
+		}
+		h.onEntryContinue(entry)
+	}
 }
 
 func (h *GtkHistory) onMenuDelete() {
-
+	if h.onEntryDelete != nil {
+		entry, err := h.getSelectedEntryId()
+		if err != nil {
+			log.Fatal(err)
+		}
+		h.onEntryDelete(entry)
+	}
 }
 
 func New(b *builder.Builder) (*GtkHistory, error) {

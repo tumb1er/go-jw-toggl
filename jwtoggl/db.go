@@ -18,4 +18,6 @@ type DB interface {
 	StopEntry(entry *gttimeentry.TimeEntry) error
 	UpdateCurrentEntry(entry *gttimeentry.TimeEntry) error
 	SyncLastEntries() error
+	ContinueEntry(id uint64) error
+	DeleteEntry(id uint64) error
 }

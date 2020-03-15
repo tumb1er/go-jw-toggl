@@ -86,6 +86,10 @@ func (db *DB) UpdateCurrentEntry(entry *gttimeentry.TimeEntry) error {
 }
 
 func (db *DB) CreateNewEntry(entry *gttimeentry.TimeEntry) error {
+	return db.createNewEntry(entry, false)
+}
+
+func (db *DB) createNewEntry(entry *gttimeentry.TimeEntry, notify bool) error {
 	entry.Wid = db.defaultWId
 	entry.CreatedWith = "go-jw-toggl"
 	var err error
@@ -101,7 +105,7 @@ func (db *DB) CreateNewEntry(entry *gttimeentry.TimeEntry) error {
 		return err
 	}
 	db.store.Update(entry)
-	db.onCurrentEntry(db.store.Current(), false)
+	db.onCurrentEntry(db.store.Current(), notify)
 	return nil
 }
 
@@ -118,6 +122,31 @@ func (db *DB) StopEntry(entry *gttimeentry.TimeEntry) error {
 	}
 	db.store.Update(entry)
 	db.onCurrentEntry(nil, false)
+	db.onEntriesChanged(db.store.List())
+	return nil
+}
+
+func (db *DB) ContinueEntry(id uint64) error {
+	prev := db.store.Get(id)
+	var err error
+	if prev == nil {
+		prev, err = db.client.TimeentryClient.Get(id)
+		if err != nil {
+			return err
+		}
+	}
+	prev.Id = 0
+	prev.Start = time.Now()
+	prev.Stop = time.Time{}
+	return db.createNewEntry(prev, true)
+}
+
+func (db *DB) DeleteEntry(id uint64) error {
+	if err := db.client.TimeentryClient.Delete(id); err != nil {
+		return err
+	}
+	entry := &gttimeentry.TimeEntry{Id: id}
+	db.store.Delete(entry)
 	db.onEntriesChanged(db.store.List())
 	return nil
 }

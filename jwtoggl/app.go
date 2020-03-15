@@ -46,13 +46,6 @@ func (j *jApp) onActivate() {
 	go j.StartSync(j.ctx)
 }
 
-func (j *jApp) initHistory(b *builder.Builder) {
-	var err error
-	if j.entries, err = history.New(b); err != nil {
-		log.Fatal(err)
-	}
-}
-
 func (j *jApp) initWindow(b *builder.Builder) {
 	var err error
 	if j.window, err = window.New(b); err != nil {

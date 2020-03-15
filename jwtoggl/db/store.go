@@ -59,6 +59,16 @@ func (s *EntryStore) update(entry *gttimeentry.TimeEntry) bool {
 	return true
 }
 
+func (s *EntryStore) Get(id uint64) *gttimeentry.TimeEntry {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	idx, ok := s.index[id]
+	if !ok {
+		return nil
+	}
+	return s.list[idx]
+}
+
 func (s *EntryStore) Current() *gttimeentry.TimeEntry {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
