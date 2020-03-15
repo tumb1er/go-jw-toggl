@@ -184,6 +184,7 @@ func New(b *builder.Builder) (*GtkHistory, error) {
 	if err != nil {
 		return nil, err
 	}
+	column.SetTitle("Recent entries")
 	r, err := gtk.CellRendererTextNew()
 	if err != nil {
 		return nil, err
