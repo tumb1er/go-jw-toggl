@@ -44,7 +44,7 @@ func (w *MainWindow) Show() {
 		log.Fatal(err)
 	}
 	g := monitor.GetGeometry()
-	w.window.SetSizeRequest(g.GetWidth()/4, g.GetHeight())
+	w.window.Resize(g.GetWidth()/4, g.GetHeight())
 	width, _ := w.window.GetSize()
 	w.window.Move(g.GetWidth()-width, g.GetY())
 
