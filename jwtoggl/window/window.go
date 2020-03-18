@@ -1,8 +1,10 @@
 package window
 
 import (
+	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/gtk"
 	"go-jw-toggl/jwtoggl/builder"
+	"log"
 )
 
 type MainWindow struct {
@@ -33,6 +35,19 @@ func (w *MainWindow) Hide() {
 }
 
 func (w *MainWindow) Show() {
+	disp, err := gdk.DisplayGetDefault()
+	if err != nil {
+		log.Fatal(err)
+	}
+	monitor, err := disp.GetPrimaryMonitor()
+	if err != nil {
+		log.Fatal(err)
+	}
+	g := monitor.GetGeometry()
+	w.window.Resize(g.GetWidth()/4, g.GetHeight())
+	width, _ := w.window.GetSize()
+	w.window.Move(g.GetWidth()-width, g.GetY())
+
 	if !w.window.GetVisible() {
 		w.window.SetVisible(true)
 	} else {

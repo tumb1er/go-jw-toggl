@@ -8,6 +8,7 @@ import (
 	"go-jw-toggl/jwtoggl/db"
 	"go-jw-toggl/jwtoggl/entry_form"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
+	"go-jw-toggl/jwtoggl/history"
 	"go-jw-toggl/jwtoggl/tray"
 	"go-jw-toggl/jwtoggl/window"
 	"log"
@@ -22,6 +23,7 @@ const (
 type jApp struct {
 	app       *gtk.Application
 	form      *entry_form.EntryForm
+	entries   *history.History
 	tray      *tray.Tray
 	window    *window.MainWindow
 	db        DB
@@ -39,6 +41,7 @@ func (j *jApp) onActivate() {
 	j.initForm(b)
 	j.initTray(b)
 	j.initWindow(b)
+	j.initHistory(b)
 	j.statusBar = b.GetStatusbar()
 	go j.StartSync(j.ctx)
 }
@@ -84,7 +87,7 @@ func (j *jApp) onWindowDelete() bool {
 }
 
 func (j *jApp) onEntryChanged(entry *gttimeentry.TimeEntry) {
-	if err := j.db.UpdateEntry(entry); err != nil {
+	if err := j.db.UpdateCurrentEntry(entry); err != nil {
 		log.Fatal(err)
 	}
 }

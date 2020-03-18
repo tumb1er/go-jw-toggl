@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"go-jw-toggl/jwtoggl/gtoggl"
+	"go-jw-toggl/jwtoggl/gtoggl/gtclient"
 	"go-jw-toggl/jwtoggl/gtoggl/gthttp"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
@@ -19,19 +20,24 @@ import (
 type OnCurrentEntryCallback func(entry *gttimeentry.TimeEntry, external bool)
 type OnProjectsChangedCallback func(projects gtproject.Projects)
 type OnTagsChangedCallback func(tags gttag.Tags)
+type OnClientsChangedCallback func(clients gtclient.Clients)
+type OnEntriesChangedCallback func(entries gttimeentry.TimeEntries)
 
 type DB struct {
 	client     *gtoggl.TogglClient
+	store      EntryStore
 	httpClient *http.Client
 	sub        *gtwebsocket.TogglWebsocketClient
-	Entry      *gttimeentry.TimeEntry
 	projects   map[uint64]*gtproject.Project
 	tags       map[uint64]*gttag.Tag
+	clients    map[uint64]*gtclient.Client
 	defaultWId uint64
 
 	onCurrentEntry    OnCurrentEntryCallback
 	onProjectsChanged OnProjectsChangedCallback
 	onTagsChanged     OnTagsChangedCallback
+	onEntriesChanged  OnEntriesChangedCallback
+	onClientsChanged  OnClientsChangedCallback
 }
 
 func NewDB(token string) (*DB, error) {
@@ -42,11 +48,16 @@ func NewDB(token string) (*DB, error) {
 	}
 	sub := gtwebsocket.NewClient(token)
 	return &DB{
+		store: EntryStore{
+			index: make(map[uint64]int),
+			list:  make(gttimeentry.TimeEntries, 0),
+		},
 		client:     client,
 		httpClient: httpClient,
 		sub:        sub,
 		projects:   make(map[uint64]*gtproject.Project),
 		tags:       make(map[uint64]*gttag.Tag),
+		clients:    make(map[uint64]*gtclient.Client),
 	}, nil
 }
 
@@ -62,20 +73,32 @@ func (db *DB) OnTagsChanged(cb OnTagsChangedCallback) {
 	db.onTagsChanged = cb
 }
 
-func (db *DB) UpdateEntry(entry *gttimeentry.TimeEntry) error {
-	// FIXME: compare with current entry
+func (db *DB) OnClientsChanged(cb OnClientsChangedCallback) {
+	db.onClientsChanged = cb
+}
+
+func (db *DB) OnEntriesChanged(cb OnEntriesChangedCallback) {
+	db.onEntriesChanged = cb
+}
+
+func (db *DB) UpdateCurrentEntry(entry *gttimeentry.TimeEntry) error {
 	entry.Wid = db.defaultWId
 	entry.CreatedWith = "go-jw-toggl"
 	entry, err := db.client.TimeentryClient.Update(entry)
 	if err != nil {
 		return err
 	}
-	db.Entry = entry
-	db.onCurrentEntry(db.Entry, false)
+	if db.store.Update(*entry) {
+		db.onCurrentEntry(db.store.Current(), false)
+	}
 	return nil
 }
 
 func (db *DB) CreateNewEntry(entry *gttimeentry.TimeEntry) error {
+	return db.createNewEntry(entry, false)
+}
+
+func (db *DB) createNewEntry(entry *gttimeentry.TimeEntry, notify bool) error {
 	entry.Wid = db.defaultWId
 	entry.CreatedWith = "go-jw-toggl"
 	var err error
@@ -90,8 +113,15 @@ func (db *DB) CreateNewEntry(entry *gttimeentry.TimeEntry) error {
 	if err != nil {
 		return err
 	}
-	db.Entry = entry
-	db.onCurrentEntry(db.Entry, false)
+	old := db.store.Current()
+	db.store.Update(*entry)
+	if old != nil && tools.IsCurrent(*entry) {
+		old.Stop = entry.Start
+		old.Duration = int64(old.Stop.Sub(old.Start).Seconds())
+		db.store.Update(*old)
+		db.onEntriesChanged(db.store.List())
+	}
+	db.onCurrentEntry(entry, notify)
 	return nil
 }
 
@@ -99,26 +129,77 @@ func (db *DB) StopEntry(entry *gttimeentry.TimeEntry) error {
 	if entry == nil {
 		return nil
 	}
-	if db.Entry.Id != entry.Id {
+	current := db.store.Current()
+	if current == nil || current.Id != entry.Id {
 		return errors.New("current entry de-sync")
 	}
-	_, err := db.client.TimeentryClient.Stop(entry)
+	entry, err := db.client.TimeentryClient.Stop(entry)
 	if err != nil {
 		return err
 	}
+	db.store.Update(*entry)
 	db.onCurrentEntry(nil, false)
+	db.onEntriesChanged(db.store.List())
+	return nil
+}
+
+func (db *DB) ContinueEntry(id uint64) error {
+	var entry *gttimeentry.TimeEntry
+	var err error
+	if prev, ok := db.store.Get(id); ok {
+		entry = &prev
+	} else {
+		if entry, err = db.client.TimeentryClient.Get(id); err != nil {
+			return err
+		}
+	}
+	entry.Id = 0
+	entry.Start = time.Time{}
+	entry.Stop = time.Time{}
+	entry.Duration = 0
+	return db.createNewEntry(entry, true)
+}
+
+func (db *DB) DeleteEntry(id uint64) error {
+	if err := db.client.TimeentryClient.Delete(id); err != nil {
+		return err
+	}
+	entry := gttimeentry.TimeEntry{Id: id}
+	db.store.Delete(entry)
+	db.onEntriesChanged(db.store.List())
 	return nil
 }
 
 func (db *DB) SyncCurrentEntry() error {
+	old := db.store.Current()
 	entry, err := db.client.TimeentryClient.Current()
 	if err != nil {
-		db.httpClient.CloseIdleConnections()
 		return err
 	}
-	if !tools.EntriesEqual(db.Entry, entry) {
-		db.Entry = entry
-		db.onCurrentEntry(db.Entry, true)
+	if entry != nil && db.store.Update(*entry) {
+		current := db.store.Current()
+		if !tools.EntriesEqual(old, current) {
+			db.onCurrentEntry(current, true)
+		}
+	}
+	return nil
+}
+
+func (db *DB) SyncLastEntries() error {
+	end := time.Now()
+	start := end.Add(-72 * time.Hour)
+	old := db.store.Current()
+	entries, err := db.client.TimeentryClient.GetRange(start, end)
+	if err != nil {
+		return err
+	} else {
+		if db.store.BulkUpdate(entries) {
+			current := db.store.Current()
+			if !tools.EntriesEqual(current, old) {
+				db.onCurrentEntry(current, true)
+			}
+			db.onEntriesChanged(db.store.List())
+		}
 	}
 	return nil
 }
@@ -164,6 +245,24 @@ func (db *DB) SyncUser() error {
 	if changed && db.onTagsChanged != nil {
 		db.onTagsChanged(tags)
 	}
+
+	changed = false
+	clients := make(gtclient.Clients, 0, len(user.Clients))
+	for _, client := range user.Clients {
+		if client.WId != user.DefaultWId {
+			continue
+		} else {
+			clients = append(clients, client)
+		}
+		existing, ok := db.clients[client.Id]
+		if !ok || !tools.ClientsEqual(existing, &client) {
+			db.clients[client.Id] = &client
+			changed = true
+		}
+	}
+	if changed && db.onClientsChanged != nil {
+		db.onClientsChanged(clients)
+	}
 	return nil
 }
 
@@ -178,50 +277,30 @@ func (db *DB) StartListen(ctx context.Context) {
 }
 
 func (db *DB) onTimeEntryAction(action string, entry gttimeentry.TimeEntry) error {
-	if action == gtwebsocket.ActionInsert {
-
-		if entry.Stop.IsZero() {
-			log.Println("INSERT new running entry")
-			// New time entry started, replacing current.
-			db.Entry = &entry
-			db.onCurrentEntry(db.Entry, true)
-			return nil
-		} else {
-			// Inserted entry directly to history - is it possible?
-			return fmt.Errorf("can't handle insert to history: %+v", entry)
-		}
-	}
-
+	old := db.store.Current()
 	if action == gtwebsocket.ActionDelete {
-		if entry.Stop.IsZero() {
-			log.Println("DELETE running entry")
-			// Currently running entry is completely deleted.
-			db.Entry = nil
-			db.onCurrentEntry(nil, true)
-			return nil
-		} else {
-			// Deleted historical entry
-			// TODO: delete entry from local history
-			return nil
+		if db.store.Delete(entry) {
+			current := db.store.Current()
+			if !tools.EntriesEqual(old, current) {
+				// Обновился текущий
+				db.onCurrentEntry(current, true)
+			} else {
+				db.onEntriesChanged(db.store.List())
+			}
 		}
-	}
 
-	if action == gtwebsocket.ActionUpdate {
-		if entry.Stop.IsZero() {
-			// Current entry is updated
-			db.Entry = &entry
-			db.onCurrentEntry(db.Entry, true)
-			return nil
+	} else if action == gtwebsocket.ActionUpdate || action == gtwebsocket.ActionInsert {
+		if db.store.Update(entry) {
+			current := db.store.Current()
+			if !tools.EntriesEqual(old, current) {
+				// Обновился текущий
+				db.onCurrentEntry(current, true)
+			}
+			db.onEntriesChanged(db.store.List())
+
 		}
-		if db.Entry != nil && db.Entry.Id == entry.Id {
-			// Updating current entry, and it's stopped
-			db.Entry = nil
-			db.onCurrentEntry(nil, true)
-			return nil
-		} else {
-			// TODO: Update entry in local history
-			return nil
-		}
+	} else {
+		return fmt.Errorf("unhandled action: %s", action)
 	}
-	return fmt.Errorf("unhandled action: %s", action)
+	return nil
 }
