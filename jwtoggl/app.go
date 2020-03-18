@@ -44,8 +44,6 @@ func (j *jApp) onActivate() {
 	j.initHistory(b)
 	j.statusBar = b.GetStatusbar()
 	go j.StartSync(j.ctx)
-	// FIXME
-	j.onShow()
 }
 
 func (j *jApp) initWindow(b *builder.Builder) {
