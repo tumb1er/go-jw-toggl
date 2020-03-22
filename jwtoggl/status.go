@@ -1,7 +1,6 @@
 package jwtoggl
 
 import (
-	"fmt"
 	"go-jw-toggl/jwtoggl/builder"
 	"go-jw-toggl/jwtoggl/status"
 	"log"
@@ -13,12 +12,16 @@ func (j *jApp) initStatusBar(b *builder.Builder) {
 }
 
 func (j *jApp) OnOnlineStatusChanged(online bool) {
-	msg := "Offline"
-	if online {
-		msg = "Online"
-	}
-	if err := j.tray.ShowNotification("JWToggle", fmt.Sprintf("Client is %s", msg)); err != nil {
-		log.Fatal(err)
-	}
 	j.statusBar.SetOnlineStatus(online)
+}
+
+func (j *jApp) handleError(err error, msg string) {
+	if err != nil {
+		j.statusBar.ShowError(msg)
+		if err := j.tray.ShowNotification("JWToggle", msg); err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		j.statusBar.ClearError()
+	}
 }

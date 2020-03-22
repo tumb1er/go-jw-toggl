@@ -70,32 +70,20 @@ func (j *jApp) initForm(b *builder.Builder) {
 }
 
 func (j *jApp) onNewEntryCreated(entry *gttimeentry.TimeEntry) {
-	if err := j.db.CreateNewEntry(entry); err != nil {
-		j.statusBar.ShowError("Entry creation error")
-		if err := j.tray.ShowNotification("JWToggle", "Entry creation error"); err != nil {
-			log.Fatal(err)
-		}
-	} else {
-		j.statusBar.ClearError()
-	}
+	j.handleError(j.db.CreateNewEntry(entry), "Entry creation error")
 }
 
 func (j *jApp) onEntryStopped(entry *gttimeentry.TimeEntry) {
-	if err := j.db.StopEntry(entry); err != nil {
-		log.Fatal(err)
-	}
+	j.handleError(j.db.StopEntry(entry), "Entry stop error")
+}
+
+func (j *jApp) onEntryChanged(entry *gttimeentry.TimeEntry) {
+	j.handleError(j.db.UpdateCurrentEntry(entry), "Entry save error")
 }
 
 func (j *jApp) onWindowDelete() bool {
 	j.window.Hide()
 	return true
-
-}
-
-func (j *jApp) onEntryChanged(entry *gttimeentry.TimeEntry) {
-	if err := j.db.UpdateCurrentEntry(entry); err != nil {
-		log.Fatal(err)
-	}
 }
 
 // NewApp подготавливает основное окно приложения с иконкой в трее и меню.
