@@ -72,8 +72,8 @@ func (j *jApp) syncDuration() {
 func (j *jApp) OnCurrentEntryChanged(entry *gttimeentry.TimeEntry, external bool) {
 	log.Println("OnCurrentEntryChanged")
 	j.tray.SetCurrentEntry(entry)
+	j.form.SetTimeEntry(entry)
 	if external {
-		j.form.SetTimeEntry(entry)
 		var text string
 		if entry != nil {
 			text = entry.Description
