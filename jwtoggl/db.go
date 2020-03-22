@@ -14,6 +14,7 @@ type DB interface {
 	OnTagsChanged(callback db.OnTagsChangedCallback)
 	OnClientsChanged(callback db.OnClientsChangedCallback)
 	OnEntriesChanged(callback db.OnEntriesChangedCallback)
+	OnOnlineStatusChanged(callback db.OnOnlineStatusChangedCallback)
 	StartListen(ctx context.Context)
 	CreateNewEntry(entry *gttimeentry.TimeEntry) error
 	StopEntry(entry *gttimeentry.TimeEntry) error

@@ -22,6 +22,7 @@ type OnProjectsChangedCallback func(projects gtproject.Projects)
 type OnTagsChangedCallback func(tags gttag.Tags)
 type OnClientsChangedCallback func(clients gtclient.Clients)
 type OnEntriesChangedCallback func(entries gttimeentry.TimeEntries)
+type OnOnlineStatusChangedCallback func(online bool)
 
 type DB struct {
 	client     *gtoggl.TogglClient
@@ -32,12 +33,14 @@ type DB struct {
 	tags       map[uint64]*gttag.Tag
 	clients    map[uint64]*gtclient.Client
 	defaultWId uint64
+	online     bool
 
-	onCurrentEntry    OnCurrentEntryCallback
-	onProjectsChanged OnProjectsChangedCallback
-	onTagsChanged     OnTagsChangedCallback
-	onEntriesChanged  OnEntriesChangedCallback
-	onClientsChanged  OnClientsChangedCallback
+	onCurrentEntry        OnCurrentEntryCallback
+	onProjectsChanged     OnProjectsChangedCallback
+	onTagsChanged         OnTagsChangedCallback
+	onEntriesChanged      OnEntriesChangedCallback
+	onClientsChanged      OnClientsChangedCallback
+	onOnlineStatusChanged OnOnlineStatusChangedCallback
 }
 
 func NewDB(token string) (*DB, error) {
@@ -80,11 +83,15 @@ func (db *DB) OnClientsChanged(cb OnClientsChangedCallback) {
 func (db *DB) OnEntriesChanged(cb OnEntriesChangedCallback) {
 	db.onEntriesChanged = cb
 }
+func (db *DB) OnOnlineStatusChanged(cb OnOnlineStatusChangedCallback) {
+	db.onOnlineStatusChanged = cb
+}
 
 func (db *DB) UpdateCurrentEntry(entry *gttimeentry.TimeEntry) error {
 	entry.Wid = db.defaultWId
 	entry.CreatedWith = "go-jw-toggl"
 	entry, err := db.client.TimeentryClient.Update(entry)
+	db.handleRequestError(err)
 	if err != nil {
 		return err
 	}
@@ -110,6 +117,7 @@ func (db *DB) createNewEntry(entry *gttimeentry.TimeEntry, notify bool) error {
 		}
 		entry, err = db.client.TimeentryClient.Create(entry)
 	}
+	db.handleRequestError(err)
 	if err != nil {
 		return err
 	}
@@ -134,6 +142,7 @@ func (db *DB) StopEntry(entry *gttimeentry.TimeEntry) error {
 		return errors.New("current entry de-sync")
 	}
 	entry, err := db.client.TimeentryClient.Stop(entry)
+	db.handleRequestError(err)
 	if err != nil {
 		return err
 	}
@@ -149,7 +158,9 @@ func (db *DB) ContinueEntry(id uint64) error {
 	if prev, ok := db.store.Get(id); ok {
 		entry = &prev
 	} else {
-		if entry, err = db.client.TimeentryClient.Get(id); err != nil {
+		entry, err = db.client.TimeentryClient.Get(id)
+		db.handleRequestError(err)
+		if err != nil {
 			return err
 		}
 	}
@@ -162,7 +173,10 @@ func (db *DB) ContinueEntry(id uint64) error {
 
 func (db *DB) DeleteEntry(id uint64) error {
 	if err := db.client.TimeentryClient.Delete(id); err != nil {
+		db.handleRequestError(err)
 		return err
+	} else {
+		db.handleRequestError(err)
 	}
 	entry := gttimeentry.TimeEntry{Id: id}
 	db.store.Delete(entry)
@@ -173,6 +187,7 @@ func (db *DB) DeleteEntry(id uint64) error {
 func (db *DB) SyncCurrentEntry() error {
 	old := db.store.Current()
 	entry, err := db.client.TimeentryClient.Current()
+	db.handleRequestError(err)
 	if err != nil {
 		return err
 	}
@@ -190,6 +205,7 @@ func (db *DB) SyncLastEntries() error {
 	start := end.Add(-72 * time.Hour)
 	old := db.store.Current()
 	entries, err := db.client.TimeentryClient.GetRange(start, end)
+	db.handleRequestError(err)
 	if err != nil {
 		return err
 	} else {
@@ -206,6 +222,7 @@ func (db *DB) SyncLastEntries() error {
 
 func (db *DB) SyncUser() error {
 	user, err := db.client.UserClient.Get(true)
+	db.handleRequestError(err)
 	if err != nil {
 		return err
 	}
@@ -303,4 +320,12 @@ func (db *DB) onTimeEntryAction(action string, entry gttimeentry.TimeEntry) erro
 		return fmt.Errorf("unhandled action: %s", action)
 	}
 	return nil
+}
+
+func (db *DB) handleRequestError(err error) {
+	online := err == nil
+	if db.online != online {
+		db.online = online
+		db.onOnlineStatusChanged(online)
+	}
 }
