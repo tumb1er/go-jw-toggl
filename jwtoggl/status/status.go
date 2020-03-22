@@ -18,3 +18,12 @@ func (s *Status) SetOnlineStatus(online bool) {
 	log.Println("Online status:", online)
 	s.status.SetOnlineStatus(online)
 }
+
+func (s *Status) ShowError(msg string) {
+	log.Println("Error:", msg)
+	s.status.ShowError(msg)
+}
+
+func (s *Status) ClearError() {
+	s.status.ClearError()
+}

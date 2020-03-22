@@ -71,7 +71,12 @@ func (j *jApp) initForm(b *builder.Builder) {
 
 func (j *jApp) onNewEntryCreated(entry *gttimeentry.TimeEntry) {
 	if err := j.db.CreateNewEntry(entry); err != nil {
-		log.Fatal(err)
+		j.statusBar.ShowError("Entry creation error")
+		if err := j.tray.ShowNotification("JWToggle", "Entry creation error"); err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		j.statusBar.ClearError()
 	}
 }
 
