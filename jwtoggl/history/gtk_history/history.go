@@ -86,10 +86,10 @@ func (h *GtkHistory) setEntries(c entriesContext) {
 			ctx.Tag = entry.Tags[0]
 		}
 		if !entry.Start.IsZero() {
-			ctx.Start = entry.Start.Format("15:04")
+			ctx.Start = entry.Start.Local().Format("15:04")
 		}
 		if !entry.Stop.IsZero() {
-			ctx.Stop = entry.Stop.Format("15:04")
+			ctx.Stop = entry.Stop.Local().Format("15:04")
 		}
 		if entry.Duration > 0 {
 			duration := time.Duration(entry.Duration) * time.Second
