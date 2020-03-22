@@ -115,7 +115,7 @@ func (db *DB) createNewEntry(entry *gttimeentry.TimeEntry, notify bool) error {
 	}
 	old := db.store.Current()
 	db.store.Update(*entry)
-	if old != nil && tools.IsCurrent(*entry) {
+	if old != nil && old.Id != entry.Id && tools.IsCurrent(*entry) {
 		old.Stop = entry.Start
 		old.Duration = int64(old.Stop.Sub(old.Start).Seconds())
 		db.store.Update(*old)
