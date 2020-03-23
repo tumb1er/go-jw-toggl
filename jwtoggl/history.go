@@ -15,13 +15,9 @@ func (j *jApp) initHistory(b *builder.Builder) {
 }
 
 func (j *jApp) OnEntryContinue(id uint64) {
-	if err := j.db.ContinueEntry(id); err != nil {
-		log.Fatal(err)
-	}
+	j.handleError(j.db.ContinueEntry(id), "Continue entry error")
 }
 
 func (j *jApp) OnEntryDelete(id uint64) {
-	if err := j.db.DeleteEntry(id); err != nil {
-		log.Fatal(err)
-	}
+	j.handleError(j.db.DeleteEntry(id), "Entry delete error")
 }
