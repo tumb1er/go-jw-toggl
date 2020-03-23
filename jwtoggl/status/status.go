@@ -7,16 +7,26 @@ import (
 )
 
 type Status struct {
-	status *gtk_status.GtkStatus
+	status    *gtk_status.GtkStatus
+	online    bool
+	connected bool
 }
 
 func New(b *builder.Builder) *Status {
 	return &Status{status: gtk_status.New(b)}
 }
 
-func (s *Status) SetOnlineStatus(online bool) {
+func (s *Status) SetOnlineStatus(online bool) bool {
+	if s.online == online {
+		return false
+	}
 	log.Println("Online status:", online)
+	s.online = online
+	if online {
+		s.connected = true
+	}
 	s.status.SetOnlineStatus(online)
+	return !s.connected
 }
 
 func (s *Status) ShowError(msg string) {

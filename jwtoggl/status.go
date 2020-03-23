@@ -12,10 +12,11 @@ func (j *jApp) initStatusBar(b *builder.Builder) {
 
 func (j *jApp) handleError(err error, msg string) {
 	if err != nil {
-		j.statusBar.SetOnlineStatus(false)
 		j.statusBar.ShowError(msg)
-		if err := j.tray.ShowNotification("JWToggle", msg); err != nil {
-			log.Fatal(err)
+		if j.statusBar.SetOnlineStatus(false) {
+			if err := j.tray.ShowNotification("JWToggle", msg); err != nil {
+				log.Fatal(err)
+			}
 		}
 	} else {
 		j.statusBar.ClearError()

@@ -33,7 +33,6 @@ type DB struct {
 	tags       map[uint64]*gttag.Tag
 	clients    map[uint64]*gtclient.Client
 	defaultWId uint64
-	online     bool
 
 	onCurrentEntry    OnCurrentEntryCallback
 	onProjectsChanged OnProjectsChangedCallback
