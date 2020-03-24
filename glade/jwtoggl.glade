@@ -10,6 +10,8 @@
       <column type="gchararray"/>
       <!-- column-name Timings -->
       <column type="gchararray"/>
+      <!-- column-name GroupCount -->
+      <column type="gchararray"/>
     </columns>
   </object>
   <object class="GtkMenu" id="history_menu">
@@ -268,6 +270,7 @@
                 <property name="can_focus">True</property>
                 <property name="model">entry_history</property>
                 <property name="search_column">1</property>
+                <property name="activate_on_single_click">True</property>
                 <child internal-child="selection">
                   <object class="GtkTreeSelection"/>
                 </child>

@@ -16,9 +16,13 @@ import (
 )
 
 const (
-	popupMenuId  = "history_menu"
-	menuContinue = "menu_continue"
-	menuDelete   = "menu_delete"
+	popupMenuId       = "history_menu"
+	menuContinue      = "menu_continue"
+	menuDelete        = "menu_delete"
+	columnId          = 0
+	columnDescription = 1
+	columnTimings     = 2
+	columnGroupCount  = 3
 )
 
 type Callback func(entryId uint64)
@@ -67,9 +71,30 @@ func (h *GtkHistory) SetEntries(
 }
 func (h *GtkHistory) setEntries(c entriesContext) {
 	h.store.Clear()
+
+	type parent struct {
+		it *gtk.TreeIter
+		c  int
+	}
+	taskNodes := make(map[string]*parent)
 	for _, entry := range c.Entries {
-		it := h.store.Append(nil)
-		if err := h.store.SetValue(it, 0, fmt.Sprintf("%d", entry.Id)); err != nil {
+		key := tools.TaskKey(entry)
+		var it *gtk.TreeIter
+		if p, ok := taskNodes[key]; ok {
+			it = h.store.Append(p.it)
+			p.c++
+			value := fmt.Sprintf("%dx", p.c)
+			if err := h.store.SetValue(p.it, columnGroupCount, value); err != nil {
+				log.Fatal(err)
+			}
+		} else {
+			it = h.store.Append(nil)
+			taskNodes[key] = &parent{
+				it: it,
+				c:  1,
+			}
+		}
+		if err := h.store.SetValue(it, columnId, fmt.Sprintf("%d", entry.Id)); err != nil {
 			log.Fatal(err)
 		}
 
@@ -96,10 +121,10 @@ func (h *GtkHistory) setEntries(c entriesContext) {
 			ctx.Duration = duration.Truncate(time.Second).String()
 		}
 
-		if err := h.store.SetValue(it, 1, RenderDescription(ctx)); err != nil {
+		if err := h.store.SetValue(it, columnDescription, RenderDescription(ctx)); err != nil {
 			log.Fatal(err)
 		}
-		if err := h.store.SetValue(it, 2, RenderTimings(ctx)); err != nil {
+		if err := h.store.SetValue(it, columnTimings, RenderTimings(ctx)); err != nil {
 			log.Fatal(err)
 		}
 	}
@@ -132,6 +157,18 @@ func (h *GtkHistory) getSelectedEntryId() (uint64, error) {
 		}
 	} else {
 		return 0, fmt.Errorf("nothing selected")
+	}
+}
+
+func (h *GtkHistory) onRowActivated(_ *gtk.TreeView, path *gtk.TreePath) {
+	if path.GetDepth() == 1 {
+		// Entry key press - expand/collapse
+		if h.treeView.RowExpanded(path) {
+			h.treeView.CollapseRow(path)
+		} else {
+			h.treeView.CollapseAll()
+			h.treeView.ExpandRow(path, false)
+		}
 	}
 }
 
@@ -180,38 +217,51 @@ func New(b *builder.Builder) (*GtkHistory, error) {
 		}
 	}
 
+	if _, err = h.treeView.Connect("row-activated", h.onRowActivated); err != nil {
+		return nil, err
+	}
+
 	column, err := gtk.TreeViewColumnNew()
 	if err != nil {
 		return nil, err
+	} else {
+		column.SetTitle("Recent entries")
 	}
-	column.SetTitle("Recent entries")
-	r, err := gtk.CellRendererTextNew()
-	if err != nil {
+	if r, err := gtk.CellRendererTextNew(); err != nil {
 		return nil, err
+	} else {
+		column.PackStart(r, false)
+		column.AddAttribute(r, "markup", columnGroupCount)
 	}
-	if err := r.SetProperty("ypad", 4); err != nil {
+
+	if r, err := gtk.CellRendererTextNew(); err != nil {
 		return nil, err
+	} else {
+		if err := r.SetProperty("ypad", 4); err != nil {
+			return nil, err
+		}
+		column.PackStart(r, true)
+		column.AddAttribute(r, "markup", columnDescription)
 	}
-	column.PackStart(r, true)
-	column.AddAttribute(r, "markup", 1)
-	r, err = gtk.CellRendererTextNew()
-	if err != nil {
+
+	if r, err := gtk.CellRendererTextNew(); err != nil {
 		return nil, err
+	} else {
+		if err := r.SetProperty("ypad", 4); err != nil {
+			return nil, err
+		}
+		if err := r.SetProperty("xpad", 8); err != nil {
+			return nil, err
+		}
+		if err := r.SetProperty("alignment", pango.ALIGN_RIGHT); err != nil {
+			return nil, err
+		}
+		if err := r.SetProperty("xalign", 1.0); err != nil {
+			return nil, err
+		}
+		column.PackStart(r, true)
+		column.AddAttribute(r, "markup", columnTimings)
 	}
-	if err := r.SetProperty("ypad", 4); err != nil {
-		return nil, err
-	}
-	if err := r.SetProperty("xpad", 8); err != nil {
-		return nil, err
-	}
-	if err := r.SetProperty("alignment", pango.ALIGN_RIGHT); err != nil {
-		return nil, err
-	}
-	if err := r.SetProperty("xalign", 1.0); err != nil {
-		return nil, err
-	}
-	column.PackStart(r, true)
-	column.AddAttribute(r, "markup", 2)
 	h.treeView.AppendColumn(column)
 
 	if _, err := h.treeView.Connect("button-press-event", h.OnButtonClick); err != nil {
