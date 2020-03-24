@@ -306,6 +306,7 @@ func New(b *builder.Builder) (*GtkHistory, error) {
 		column.AddAttribute(r, "background", columnBackground)
 	}
 	h.treeView.AppendColumn(column)
+	h.treeView.SetSearchEqualSubstringMatch()
 
 	if _, err := h.treeView.Connect("button-press-event", h.OnButtonClick); err != nil {
 		return nil, err
