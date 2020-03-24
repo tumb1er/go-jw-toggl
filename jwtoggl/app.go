@@ -9,6 +9,7 @@ import (
 	"go-jw-toggl/jwtoggl/entry_form"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
 	"go-jw-toggl/jwtoggl/history"
+	"go-jw-toggl/jwtoggl/status"
 	"go-jw-toggl/jwtoggl/tray"
 	"go-jw-toggl/jwtoggl/window"
 	"log"
@@ -26,10 +27,10 @@ type jApp struct {
 	entries   *history.History
 	tray      *tray.Tray
 	window    *window.MainWindow
+	statusBar *status.Status
 	db        DB
 	ctx       context.Context
 	cancel    context.CancelFunc
-	statusBar *gtk.Statusbar
 }
 
 func (j *jApp) Run(args []string) int {
@@ -42,7 +43,7 @@ func (j *jApp) onActivate() {
 	j.initTray(b)
 	j.initWindow(b)
 	j.initHistory(b)
-	j.statusBar = b.GetStatusbar()
+	j.initStatusBar(b)
 	go j.StartSync(j.ctx)
 }
 
@@ -69,27 +70,20 @@ func (j *jApp) initForm(b *builder.Builder) {
 }
 
 func (j *jApp) onNewEntryCreated(entry *gttimeentry.TimeEntry) {
-	if err := j.db.CreateNewEntry(entry); err != nil {
-		log.Fatal(err)
-	}
+	j.handleError(j.db.CreateNewEntry(entry), "Entry creation error")
 }
 
 func (j *jApp) onEntryStopped(entry *gttimeentry.TimeEntry) {
-	if err := j.db.StopEntry(entry); err != nil {
-		log.Fatal(err)
-	}
+	j.handleError(j.db.StopEntry(entry), "Entry stop error")
+}
+
+func (j *jApp) onEntryChanged(entry *gttimeentry.TimeEntry) {
+	j.handleError(j.db.UpdateCurrentEntry(entry), "Entry save error")
 }
 
 func (j *jApp) onWindowDelete() bool {
 	j.window.Hide()
 	return true
-
-}
-
-func (j *jApp) onEntryChanged(entry *gttimeentry.TimeEntry) {
-	if err := j.db.UpdateCurrentEntry(entry); err != nil {
-		log.Fatal(err)
-	}
 }
 
 // NewApp подготавливает основное окно приложения с иконкой в трее и меню.

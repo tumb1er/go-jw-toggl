@@ -22,6 +22,7 @@ type OnProjectsChangedCallback func(projects gtproject.Projects)
 type OnTagsChangedCallback func(tags gttag.Tags)
 type OnClientsChangedCallback func(clients gtclient.Clients)
 type OnEntriesChangedCallback func(entries gttimeentry.TimeEntries)
+type OnOnlineStatusChangedCallback func(online bool)
 
 type DB struct {
 	client     *gtoggl.TogglClient
@@ -149,7 +150,8 @@ func (db *DB) ContinueEntry(id uint64) error {
 	if prev, ok := db.store.Get(id); ok {
 		entry = &prev
 	} else {
-		if entry, err = db.client.TimeentryClient.Get(id); err != nil {
+		entry, err = db.client.TimeentryClient.Get(id)
+		if err != nil {
 			return err
 		}
 	}

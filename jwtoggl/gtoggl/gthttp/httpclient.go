@@ -8,6 +8,7 @@ import (
 	"github.com/throttled/throttled"
 	"github.com/throttled/throttled/store/memstore"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -225,8 +226,9 @@ func requestWithLimit(c *TogglHttpClient, method, endpoint string, b interface{}
 		}
 	}
 
-	if c.cookie == nil || c.cookie.Expires.Before(time.Now()) {
+	if c.cookie == nil || !c.cookie.Expires.IsZero() && c.cookie.Expires.Before(time.Now()) {
 		if err = c.authenticate(); err != nil {
+			c.resetHttpClient("auth", err)
 			return nil, err
 		}
 	}
@@ -239,6 +241,7 @@ func requestWithLimit(c *TogglHttpClient, method, endpoint string, b interface{}
 	c.dumpRequest(req)
 	resp, err := c.client.Do(req)
 	if err != nil {
+		c.resetHttpClient("req", err)
 		return nil, err
 	}
 	c.dumpResponse(resp)
@@ -246,6 +249,7 @@ func requestWithLimit(c *TogglHttpClient, method, endpoint string, b interface{}
 
 	js, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		c.resetHttpClient("body", err)
 		return nil, err
 	}
 	if resp.StatusCode == 429 {
@@ -257,6 +261,7 @@ func requestWithLimit(c *TogglHttpClient, method, endpoint string, b interface{}
 		return nil, nil
 	}
 	if resp.StatusCode >= 400 {
+		c.resetHttpClient("status", fmt.Errorf("response status %d", resp.StatusCode))
 		return nil, &TogglError{Code: resp.StatusCode, Status: resp.Status, Msg: string(js)}
 	}
 	var raw json.RawMessage
@@ -288,4 +293,10 @@ func (c *TogglHttpClient) PutRequest(endpoint string, body interface{}) (*json.R
 // Utility to GET requests
 func (c *TogglHttpClient) GetRequest(endpoint string) (*json.RawMessage, error) {
 	return request(c, "GET", endpoint, nil)
+}
+
+func (c *TogglHttpClient) resetHttpClient(reason string, err error) {
+	log.Printf("Resetting client (%s): %+v", reason, err)
+	c.client.CloseIdleConnections()
+	c.cookie = nil
 }
