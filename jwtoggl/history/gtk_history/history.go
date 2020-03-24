@@ -23,6 +23,8 @@ const (
 	columnDescription = 1
 	columnTimings     = 2
 	columnGroupCount  = 3
+	columnBackground  = 4
+	dayBackground     = "#eeeeee"
 )
 
 type Callback func(entryId uint64)
@@ -77,7 +79,39 @@ func (h *GtkHistory) setEntries(c entriesContext) {
 		c  int
 	}
 	taskNodes := make(map[string]*parent)
+	type dayNode struct {
+		it       *gtk.TreeIter
+		day      string
+		duration time.Duration
+	}
+	dayNodes := make(map[string]*dayNode)
 	for _, entry := range c.Entries {
+		day := entry.Start.Local().Format("2006-01-02")
+		var dayIt *gtk.TreeIter
+		if d, ok := dayNodes[day]; ok {
+			dayIt = d.it
+			d.duration += entry.Stop.Sub(entry.Start)
+			if err := h.store.SetValue(dayIt, columnTimings, d.duration.String()); err != nil {
+				log.Fatal(err)
+			}
+		} else {
+			dayIt = h.store.Append(nil)
+			d = &dayNode{
+				it:       dayIt,
+				day:      day,
+				duration: entry.Stop.Sub(entry.Start),
+			}
+			dayNodes[day] = d
+			if err := h.store.SetValue(dayIt, columnDescription, day); err != nil {
+				log.Fatal(err)
+			}
+			if err := h.store.SetValue(dayIt, columnTimings, d.duration.String()); err != nil {
+				log.Fatal(err)
+			}
+			if err := h.store.SetValue(dayIt, columnBackground, dayBackground); err != nil {
+				log.Fatal(err)
+			}
+		}
 		key := tools.TaskKey(entry)
 		var it *gtk.TreeIter
 		if p, ok := taskNodes[key]; ok {
@@ -88,7 +122,7 @@ func (h *GtkHistory) setEntries(c entriesContext) {
 				log.Fatal(err)
 			}
 		} else {
-			it = h.store.Append(nil)
+			it = h.store.Append(dayIt)
 			taskNodes[key] = &parent{
 				it: it,
 				c:  1,
@@ -128,6 +162,14 @@ func (h *GtkHistory) setEntries(c entriesContext) {
 			log.Fatal(err)
 		}
 	}
+
+	for _, d := range dayNodes {
+		if path, err := h.store.GetPath(d.it); err != nil {
+			log.Fatal(err)
+		} else {
+			h.treeView.ExpandRow(path, false)
+		}
+	}
 }
 
 func (h *GtkHistory) getSelectedEntryId() (uint64, error) {
@@ -161,14 +203,12 @@ func (h *GtkHistory) getSelectedEntryId() (uint64, error) {
 }
 
 func (h *GtkHistory) onRowActivated(_ *gtk.TreeView, path *gtk.TreePath) {
-	if path.GetDepth() == 1 {
-		// Entry key press - expand/collapse
-		if h.treeView.RowExpanded(path) {
-			h.treeView.CollapseRow(path)
-		} else {
-			h.treeView.CollapseAll()
-			h.treeView.ExpandRow(path, false)
-		}
+	// Entry key press - expand/collapse
+	if h.treeView.RowExpanded(path) {
+		h.treeView.CollapseRow(path)
+	} else {
+		//h.treeView.CollapseAll()
+		h.treeView.ExpandToPath(path)
 	}
 }
 
@@ -232,6 +272,7 @@ func New(b *builder.Builder) (*GtkHistory, error) {
 	} else {
 		column.PackStart(r, false)
 		column.AddAttribute(r, "markup", columnGroupCount)
+		column.AddAttribute(r, "background", columnBackground)
 	}
 
 	if r, err := gtk.CellRendererTextNew(); err != nil {
@@ -242,6 +283,7 @@ func New(b *builder.Builder) (*GtkHistory, error) {
 		}
 		column.PackStart(r, true)
 		column.AddAttribute(r, "markup", columnDescription)
+		column.AddAttribute(r, "background", columnBackground)
 	}
 
 	if r, err := gtk.CellRendererTextNew(); err != nil {
@@ -261,6 +303,7 @@ func New(b *builder.Builder) (*GtkHistory, error) {
 		}
 		column.PackStart(r, true)
 		column.AddAttribute(r, "markup", columnTimings)
+		column.AddAttribute(r, "background", columnBackground)
 	}
 	h.treeView.AppendColumn(column)
 
