@@ -91,7 +91,8 @@ func (h *GtkHistory) setEntries(c entriesContext) {
 		if d, ok := dayNodes[day]; ok {
 			dayIt = d.it
 			d.duration += entry.Stop.Sub(entry.Start)
-			if err := h.store.SetValue(dayIt, columnTimings, d.duration.String()); err != nil {
+			value := RenderDate(d.duration.String())
+			if err := h.store.SetValue(dayIt, columnTimings, value); err != nil {
 				log.Fatal(err)
 			}
 		} else {
@@ -102,10 +103,12 @@ func (h *GtkHistory) setEntries(c entriesContext) {
 				duration: entry.Stop.Sub(entry.Start),
 			}
 			dayNodes[day] = d
-			if err := h.store.SetValue(dayIt, columnDescription, day); err != nil {
+			value := RenderDate(day)
+			if err := h.store.SetValue(dayIt, columnDescription, value); err != nil {
 				log.Fatal(err)
 			}
-			if err := h.store.SetValue(dayIt, columnTimings, d.duration.String()); err != nil {
+			value = RenderDate(d.duration.String())
+			if err := h.store.SetValue(dayIt, columnTimings, value); err != nil {
 				log.Fatal(err)
 			}
 			if err := h.store.SetValue(dayIt, columnBackground, dayBackground); err != nil {
