@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"path/filepath"
 )
 
 const (
@@ -161,7 +162,7 @@ func NewBuilder() *Builder {
 	if err != nil {
 		log.Fatal("Could not create new builder:", err)
 	}
-	cwd, err := os.Getwd()
+	cwd, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
 		log.Fatal("Could not get cwd:", err)
 	}

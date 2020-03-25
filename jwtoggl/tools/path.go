@@ -4,10 +4,11 @@ import (
 	"log"
 	"os"
 	"path"
+	"path/filepath"
 )
 
 func GetIconPath(filename string) string {
-	cwd, err := os.Getwd()
+	cwd, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
 		log.Fatal("Could not get cwd:", err)
 	}
