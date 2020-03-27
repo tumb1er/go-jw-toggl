@@ -270,43 +270,14 @@ func New(b *builder.Builder) (*GtkHistory, error) {
 	} else {
 		column.SetTitle("Recent entries")
 	}
-	if r, err := gtk.CellRendererTextNew(); err != nil {
+	if err := setupGroupCountRenderer(column); err != nil {
 		return nil, err
-	} else {
-		column.PackStart(r, false)
-		column.AddAttribute(r, "markup", columnGroupCount)
-		column.AddAttribute(r, "background", columnBackground)
 	}
-
-	if r, err := gtk.CellRendererTextNew(); err != nil {
+	if err := setupDescriptionRenderer(column); err != nil {
 		return nil, err
-	} else {
-		if err := r.SetProperty("ypad", 4); err != nil {
-			return nil, err
-		}
-		column.PackStart(r, true)
-		column.AddAttribute(r, "markup", columnDescription)
-		column.AddAttribute(r, "background", columnBackground)
 	}
-
-	if r, err := gtk.CellRendererTextNew(); err != nil {
+	if err := setupTimingsRenderer(column); err != nil {
 		return nil, err
-	} else {
-		if err := r.SetProperty("ypad", 4); err != nil {
-			return nil, err
-		}
-		if err := r.SetProperty("xpad", 8); err != nil {
-			return nil, err
-		}
-		if err := r.SetProperty("alignment", pango.ALIGN_RIGHT); err != nil {
-			return nil, err
-		}
-		if err := r.SetProperty("xalign", 1.0); err != nil {
-			return nil, err
-		}
-		column.PackStart(r, true)
-		column.AddAttribute(r, "markup", columnTimings)
-		column.AddAttribute(r, "background", columnBackground)
 	}
 	h.treeView.AppendColumn(column)
 	h.treeView.SetSearchEqualSubstringMatch()
@@ -315,4 +286,52 @@ func New(b *builder.Builder) (*GtkHistory, error) {
 		return nil, err
 	}
 	return h, nil
+}
+
+func setupTimingsRenderer(column *gtk.TreeViewColumn) error {
+	if r, err := gtk.CellRendererTextNew(); err != nil {
+		return err
+	} else {
+		if err := r.SetProperty("ypad", 4); err != nil {
+			return err
+		}
+		if err := r.SetProperty("xpad", 8); err != nil {
+			return err
+		}
+		if err := r.SetProperty("alignment", pango.ALIGN_RIGHT); err != nil {
+			return err
+		}
+		if err := r.SetProperty("xalign", 1.0); err != nil {
+			return err
+		}
+		column.PackStart(r, true)
+		column.AddAttribute(r, "markup", columnTimings)
+		column.AddAttribute(r, "background", columnBackground)
+		return nil
+	}
+}
+
+func setupGroupCountRenderer(column *gtk.TreeViewColumn) error {
+	if r, err := gtk.CellRendererTextNew(); err != nil {
+		return err
+	} else {
+		column.PackStart(r, false)
+		column.AddAttribute(r, "markup", columnGroupCount)
+		column.AddAttribute(r, "background", columnBackground)
+		return nil
+	}
+}
+
+func setupDescriptionRenderer(column *gtk.TreeViewColumn) error {
+	if r, err := gtk.CellRendererTextNew(); err != nil {
+		return err
+	} else {
+		if err := r.SetProperty("ypad", 4); err != nil {
+			return err
+		}
+		column.PackStart(r, true)
+		column.AddAttribute(r, "markup", columnDescription)
+		column.AddAttribute(r, "background", columnBackground)
+		return nil
+	}
 }
