@@ -87,8 +87,12 @@ func ClientsEqual(c1 *gtclient.Client, c2 *gtclient.Client) bool {
 }
 
 func TaskKey(e gttimeentry.TimeEntry) string {
+	key := e.Description
 	if strings.HasPrefix(e.Description, "#") {
-		return strings.SplitN(e.Description, " ", 2)[0]
+		key = strings.SplitN(e.Description, " ", 2)[0]
 	}
-	return e.Description
+	if len(e.Tags) > 0 {
+		key += e.Tags[0]
+	}
+	return key
 }

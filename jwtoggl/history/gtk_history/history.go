@@ -71,107 +71,94 @@ func (h *GtkHistory) SetEntries(
 		Clients:  clients,
 	})
 }
+
 func (h *GtkHistory) setEntries(c entriesContext) {
 	h.store.Clear()
 
-	type parent struct {
-		it *gtk.TreeIter
-		c  int
-	}
-	taskNodes := make(map[string]*parent)
-	type dayNode struct {
-		it       *gtk.TreeIter
-		day      string
-		duration time.Duration
-	}
-	dayNodes := make(map[string]*dayNode)
+	cache := make(dayGroup)
+
 	for _, entry := range c.Entries {
-		day := entry.Start.Local().Format("2006-01-02")
-		var dayIt *gtk.TreeIter
-		if d, ok := dayNodes[day]; ok {
-			dayIt = d.it
-			d.duration += entry.Stop.Sub(entry.Start)
-			value := RenderDate(d.duration.String())
-			if err := h.store.SetValue(dayIt, columnTimings, value); err != nil {
-				log.Fatal(err)
-			}
+		duration := entry.Stop.Sub(entry.Start)
+		ds := cache.add(h.store, entry)
+		ds.duration += duration
+		ts := ds.add(h.store, entry)
+		if ts.count == 0 {
+			h.insertEntry(c, ts.it, entry)
 		} else {
-			dayIt = h.store.Append(nil)
-			d = &dayNode{
-				it:       dayIt,
-				day:      day,
-				duration: entry.Stop.Sub(entry.Start),
-			}
-			dayNodes[day] = d
-			value := RenderDate(day)
-			if err := h.store.SetValue(dayIt, columnDescription, value); err != nil {
-				log.Fatal(err)
-			}
-			value = RenderDate(d.duration.String())
-			if err := h.store.SetValue(dayIt, columnTimings, value); err != nil {
-				log.Fatal(err)
-			}
-			if err := h.store.SetValue(dayIt, columnBackground, dayBackground); err != nil {
-				log.Fatal(err)
-			}
+			it := h.store.Append(ts.it)
+			h.insertEntry(c, it, entry)
 		}
-		key := tools.TaskKey(entry)
-		var it *gtk.TreeIter
-		if p, ok := taskNodes[key]; ok {
-			it = h.store.Append(p.it)
-			p.c++
-			value := fmt.Sprintf("%dx", p.c)
-			if err := h.store.SetValue(p.it, columnGroupCount, value); err != nil {
-				log.Fatal(err)
-			}
-		} else {
-			it = h.store.Append(dayIt)
-			taskNodes[key] = &parent{
-				it: it,
-				c:  1,
-			}
-		}
-		if err := h.store.SetValue(it, columnId, fmt.Sprintf("%d", entry.Id)); err != nil {
-			log.Fatal(err)
-		}
-
-		var ctx Ctx
-		ctx.Description = entry.Description
-		if project, ok := c.Projects[entry.Pid]; ok {
-			ctx.Project = project.Name
-			ctx.Color = project.HexColor
-			if client, ok := c.Clients[project.CId]; ok {
-				ctx.Client = client.Name
-			}
-		}
-		if len(entry.Tags) >= 1 {
-			ctx.Tag = entry.Tags[0]
-		}
-		if !entry.Start.IsZero() {
-			ctx.Start = entry.Start.Local().Format("15:04")
-		}
-		if !entry.Stop.IsZero() {
-			ctx.Stop = entry.Stop.Local().Format("15:04")
-		}
-		if entry.Duration > 0 {
-			duration := time.Duration(entry.Duration) * time.Second
-			ctx.Duration = duration.Truncate(time.Second).String()
-		}
-
-		if err := h.store.SetValue(it, columnDescription, RenderDescription(ctx)); err != nil {
-			log.Fatal(err)
-		}
-		if err := h.store.SetValue(it, columnTimings, RenderTimings(ctx)); err != nil {
-			log.Fatal(err)
-		}
+		ts.count += 1
 	}
 
-	for _, d := range dayNodes {
-		if path, err := h.store.GetPath(d.it); err != nil {
-			log.Fatal(err)
-		} else {
-			h.treeView.ExpandRow(path, false)
+	for day, ds := range cache {
+		h.insertDayEntry(day.Format("2006-01-02"), ds.it, ds.duration)
+		for _, ts := range ds.tasks {
+			if ts.count > 1 {
+				h.insertTaskSummary(ts.it, ts.count)
+			}
 		}
+	}
+}
+
+func (h *GtkHistory) insertTaskSummary(it *gtk.TreeIter, count int) {
+	value := fmt.Sprintf("%dx", count)
+	if err := h.store.SetValue(it, columnGroupCount, value); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func (h *GtkHistory) insertDayEntry(day string, it *gtk.TreeIter, duration time.Duration) {
+	value := RenderDate(day)
+	if err := h.store.SetValue(it, columnDescription, value); err != nil {
+		log.Fatal(err)
+	}
+	value = RenderDate(duration.String())
+	if err := h.store.SetValue(it, columnTimings, value); err != nil {
+		log.Fatal(err)
+	}
+	if err := h.store.SetValue(it, columnBackground, dayBackground); err != nil {
+		log.Fatal(err)
+	}
+	if path, err := h.store.GetPath(it); err != nil {
+		log.Fatal(err)
+	} else {
+		h.treeView.ExpandRow(path, false)
+	}
+}
+
+func (h *GtkHistory) insertEntry(entries entriesContext, it *gtk.TreeIter, entry gttimeentry.TimeEntry) {
+	var ctx Ctx
+	ctx.Description = entry.Description
+	if project, ok := entries.Projects[entry.Pid]; ok {
+		ctx.Project = project.Name
+		ctx.Color = project.HexColor
+		if client, ok := entries.Clients[project.CId]; ok {
+			ctx.Client = client.Name
+		}
+	}
+	if len(entry.Tags) >= 1 {
+		ctx.Tag = entry.Tags[0]
+	}
+	if !entry.Start.IsZero() {
+		ctx.Start = entry.Start.Local().Format("15:04")
+	}
+	if !entry.Stop.IsZero() {
+		ctx.Stop = entry.Stop.Local().Format("15:04")
+	}
+	if entry.Duration > 0 {
+		duration := time.Duration(entry.Duration) * time.Second
+		ctx.Duration = duration.Truncate(time.Second).String()
+	}
+
+	if err := h.store.SetValue(it, columnId, fmt.Sprintf("%d", entry.Id)); err != nil {
+		log.Fatal(err)
+	}
+	if err := h.store.SetValue(it, columnDescription, RenderDescription(ctx)); err != nil {
+		log.Fatal(err)
+	}
+	if err := h.store.SetValue(it, columnTimings, RenderTimings(ctx)); err != nil {
+		log.Fatal(err)
 	}
 }
 
