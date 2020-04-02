@@ -5,6 +5,7 @@ import (
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
+	"strings"
 )
 
 func TagSlicesEqual(t1, t2 []string) bool {
@@ -83,4 +84,15 @@ func ClientsEqual(c1 *gtclient.Client, c2 *gtclient.Client) bool {
 	}
 	// c1 == nil && c2 == nil
 	return true
+}
+
+func TaskKey(e gttimeentry.TimeEntry) string {
+	key := e.Description
+	if strings.HasPrefix(e.Description, "#") {
+		key = strings.SplitN(e.Description, " ", 2)[0]
+	}
+	if len(e.Tags) > 0 {
+		key += e.Tags[0]
+	}
+	return key
 }

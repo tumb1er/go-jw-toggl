@@ -16,9 +16,28 @@ import (
 )
 
 const (
-	popupMenuId  = "history_menu"
-	menuContinue = "menu_continue"
-	menuDelete   = "menu_delete"
+	popupMenuId        = "history_menu"
+	menuContinue       = "menu_continue"
+	menuDelete         = "menu_delete"
+	columnId           = 0
+	columnDescription  = 1
+	columnTimings      = 2
+	columnGroupCount   = 3
+	columnBackground   = 4
+	columnGroupXPad    = 5
+	columnGroupWidth   = 6
+	dayBackground      = "#eeeeee"
+	attrMarkup         = "markup"
+	attrBackground     = "background"
+	attrXPad           = "xpad"
+	attrWidth          = "width"
+	propXPad           = "xpad"
+	propYPad           = "ypad"
+	propAlignment      = "alignment"
+	propXAlign         = "xalign"
+	signalActivate     = "activate"
+	signalRowActivated = "row-activated"
+	signalButtonPress  = "button-press-event"
 )
 
 type Callback func(entryId uint64)
@@ -65,43 +84,115 @@ func (h *GtkHistory) SetEntries(
 		Clients:  clients,
 	})
 }
+
 func (h *GtkHistory) setEntries(c entriesContext) {
 	h.store.Clear()
-	for _, entry := range c.Entries {
-		it := h.store.Append(nil)
-		if err := h.store.SetValue(it, 0, fmt.Sprintf("%d", entry.Id)); err != nil {
-			log.Fatal(err)
-		}
 
-		var ctx Ctx
-		ctx.Description = entry.Description
-		if project, ok := c.Projects[entry.Pid]; ok {
-			ctx.Project = project.Name
-			ctx.Color = project.HexColor
-			if client, ok := c.Clients[project.CId]; ok {
-				ctx.Client = client.Name
+	cache := make(dayGroup)
+
+	for _, entry := range c.Entries {
+		duration := entry.Stop.Sub(entry.Start)
+		ds := cache.add(h.store, entry)
+		ds.duration += duration
+		ts := ds.add(h.store, entry)
+		if ts.count == 0 {
+			h.insertEntry(c, ts.it, entry, false)
+		} else {
+			it := h.store.Append(ts.it)
+			h.insertEntry(c, it, entry, true)
+		}
+		ts.count += 1
+	}
+
+	for day, ds := range cache {
+		h.insertDayEntry(day.Format("2006-01-02"), ds.it, ds.duration)
+		for _, ts := range ds.tasks {
+			if ts.count > 1 {
+				h.insertTaskSummary(ts.it, ts.count)
 			}
 		}
-		if len(entry.Tags) >= 1 {
-			ctx.Tag = entry.Tags[0]
-		}
-		if !entry.Start.IsZero() {
-			ctx.Start = entry.Start.Local().Format("15:04")
-		}
-		if !entry.Stop.IsZero() {
-			ctx.Stop = entry.Stop.Local().Format("15:04")
-		}
-		if entry.Duration > 0 {
-			duration := time.Duration(entry.Duration) * time.Second
-			ctx.Duration = duration.Truncate(time.Second).String()
-		}
+	}
+}
 
-		if err := h.store.SetValue(it, 1, RenderDescription(ctx)); err != nil {
-			log.Fatal(err)
+func (h *GtkHistory) insertTaskSummary(it *gtk.TreeIter, count int) {
+	value := RenderGroup(count)
+	if err := h.store.SetValue(it, columnGroupCount, value); err != nil {
+		log.Fatal(err)
+	}
+	xpad := 0
+	width := 0
+	if count > 0 {
+		xpad = 8
+		width = 32
+	}
+	if err := h.store.SetValue(it, columnGroupXPad, xpad); err != nil {
+		log.Fatal(err)
+	}
+	if err := h.store.SetValue(it, columnGroupWidth, width); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func (h *GtkHistory) insertDayEntry(day string, it *gtk.TreeIter, duration time.Duration) {
+	value := RenderDate(day)
+	if err := h.store.SetValue(it, columnDescription, value); err != nil {
+		log.Fatal(err)
+	}
+	value = RenderDate(duration.Round(time.Second).String())
+	if err := h.store.SetValue(it, columnTimings, value); err != nil {
+		log.Fatal(err)
+	}
+	if err := h.store.SetValue(it, columnBackground, dayBackground); err != nil {
+		log.Fatal(err)
+	}
+	if path, err := h.store.GetPath(it); err != nil {
+		log.Fatal(err)
+	} else {
+		h.treeView.ExpandRow(path, false)
+	}
+}
+
+func (h *GtkHistory) insertEntry(entries entriesContext, it *gtk.TreeIter,
+	entry gttimeentry.TimeEntry, grouped bool) {
+	var ctx Ctx
+	ctx.Description = entry.Description
+	if project, ok := entries.Projects[entry.Pid]; ok {
+		ctx.Project = project.Name
+		ctx.Color = project.HexColor
+		if client, ok := entries.Clients[project.CId]; ok {
+			ctx.Client = client.Name
 		}
-		if err := h.store.SetValue(it, 2, RenderTimings(ctx)); err != nil {
-			log.Fatal(err)
-		}
+	}
+	if len(entry.Tags) >= 1 {
+		ctx.Tag = entry.Tags[0]
+	}
+	if !entry.Start.IsZero() {
+		ctx.Start = entry.Start.Local().Format("15:04")
+	}
+	if !entry.Stop.IsZero() {
+		ctx.Stop = entry.Stop.Local().Format("15:04")
+	}
+	if entry.Duration > 0 {
+		duration := time.Duration(entry.Duration) * time.Second
+		ctx.Duration = duration.Truncate(time.Second).String()
+	}
+
+	if err := h.store.SetValue(it, columnId, fmt.Sprintf("%d", entry.Id)); err != nil {
+		log.Fatal(err)
+	}
+	if err := h.store.SetValue(it, columnDescription, RenderDescription(ctx)); err != nil {
+		log.Fatal(err)
+	}
+	if err := h.store.SetValue(it, columnTimings, RenderTimings(ctx)); err != nil {
+		log.Fatal(err)
+	}
+
+	width := 0
+	if grouped {
+		width = 32
+	}
+	if err := h.store.SetValue(it, columnGroupWidth, width); err != nil {
+		log.Fatal(err)
 	}
 }
 
@@ -132,6 +223,15 @@ func (h *GtkHistory) getSelectedEntryId() (uint64, error) {
 		}
 	} else {
 		return 0, fmt.Errorf("nothing selected")
+	}
+}
+
+func (h *GtkHistory) onRowActivated(_ *gtk.TreeView, path *gtk.TreePath) {
+	// Entry key press - expand/collapse
+	if h.treeView.RowExpanded(path) {
+		h.treeView.CollapseRow(path)
+	} else {
+		h.treeView.ExpandToPath(path)
 	}
 }
 
@@ -167,7 +267,7 @@ func New(b *builder.Builder) (*GtkHistory, error) {
 	if menuItem, err := b.GetMenuItem(menuContinue); err != nil {
 		return nil, err
 	} else {
-		if _, err = menuItem.Connect("activate", h.onMenuContinue); err != nil {
+		if _, err = menuItem.Connect(signalActivate, h.onMenuContinue); err != nil {
 			return nil, err
 		}
 	}
@@ -175,47 +275,93 @@ func New(b *builder.Builder) (*GtkHistory, error) {
 	if menuItem, err := b.GetMenuItem(menuDelete); err != nil {
 		return nil, err
 	} else {
-		if _, err = menuItem.Connect("activate", h.onMenuDelete); err != nil {
+		if _, err = menuItem.Connect(signalActivate, h.onMenuDelete); err != nil {
 			return nil, err
 		}
 	}
 
-	column, err := gtk.TreeViewColumnNew()
-	if err != nil {
+	if _, err = h.treeView.Connect(signalRowActivated, h.onRowActivated); err != nil {
 		return nil, err
 	}
-	column.SetTitle("Recent entries")
-	r, err := gtk.CellRendererTextNew()
-	if err != nil {
-		return nil, err
-	}
-	if err := r.SetProperty("ypad", 4); err != nil {
-		return nil, err
-	}
-	column.PackStart(r, true)
-	column.AddAttribute(r, "markup", 1)
-	r, err = gtk.CellRendererTextNew()
-	if err != nil {
-		return nil, err
-	}
-	if err := r.SetProperty("ypad", 4); err != nil {
-		return nil, err
-	}
-	if err := r.SetProperty("xpad", 8); err != nil {
-		return nil, err
-	}
-	if err := r.SetProperty("alignment", pango.ALIGN_RIGHT); err != nil {
-		return nil, err
-	}
-	if err := r.SetProperty("xalign", 1.0); err != nil {
-		return nil, err
-	}
-	column.PackStart(r, true)
-	column.AddAttribute(r, "markup", 2)
-	h.treeView.AppendColumn(column)
 
-	if _, err := h.treeView.Connect("button-press-event", h.OnButtonClick); err != nil {
+	area, err := CellAreaBoxNew()
+	if err != nil {
+		log.Fatal(err)
+	}
+	column, err := TreeViewColumnNewWithArea(area)
+	if err != nil {
+		return nil, err
+	} else {
+		column.SetTitle("Recent entries")
+	}
+
+	widgets := []func(*gtk.TreeViewColumn, *CellAreaBox) error{
+		setupGroupCountRenderer,
+		setupDescriptionRenderer,
+		setupTimingsRenderer,
+	}
+	for _, widget := range widgets {
+		if err := widget(column, area); err != nil {
+			return nil, err
+		}
+	}
+	h.treeView.AppendColumn(column)
+	h.treeView.SetSearchEqualSubstringMatch()
+
+	if _, err := h.treeView.Connect(signalButtonPress, h.OnButtonClick); err != nil {
 		return nil, err
 	}
 	return h, nil
+}
+
+func setupTimingsRenderer(column *gtk.TreeViewColumn, area *CellAreaBox) error {
+	if r, err := CellRendererTextNew(); err != nil {
+		return err
+	} else {
+		if err := SetProperties(r.Object, map[string]interface{}{
+			propXPad:      8,
+			propYPad:      4,
+			propAlignment: pango.ALIGN_RIGHT,
+			propXAlign:    1.0,
+		}); err != nil {
+			return err
+		}
+		area.PackStart(r, true, false, false)
+		AddAttributes(column, r, map[string]int{
+			attrMarkup:     columnTimings,
+			attrBackground: columnBackground,
+		})
+		return nil
+	}
+}
+
+func setupGroupCountRenderer(column *gtk.TreeViewColumn, area *CellAreaBox) error {
+	if r, err := CellRendererTextNew(); err != nil {
+		return err
+	} else {
+		area.PackStart(r, false, false, false)
+		AddAttributes(column, r, map[string]int{
+			attrMarkup:     columnGroupCount,
+			attrBackground: columnBackground,
+			attrXPad:       columnGroupXPad,
+			attrWidth:      columnGroupWidth,
+		})
+		return nil
+	}
+}
+
+func setupDescriptionRenderer(column *gtk.TreeViewColumn, area *CellAreaBox) error {
+	if r, err := CellRendererTextNew(); err != nil {
+		return err
+	} else {
+		if err := r.SetProperty(propYPad, 4); err != nil {
+			return err
+		}
+		area.PackStart(r, true, false, false)
+		AddAttributes(column, r, map[string]int{
+			attrMarkup:     columnDescription,
+			attrBackground: columnBackground,
+		})
+		return nil
+	}
 }
