@@ -16,15 +16,24 @@ import (
 )
 
 const (
-	popupMenuId       = "history_menu"
-	menuContinue      = "menu_continue"
-	menuDelete        = "menu_delete"
-	columnId          = 0
-	columnDescription = 1
-	columnTimings     = 2
-	columnGroupCount  = 3
-	columnBackground  = 4
-	dayBackground     = "#eeeeee"
+	popupMenuId        = "history_menu"
+	menuContinue       = "menu_continue"
+	menuDelete         = "menu_delete"
+	columnId           = 0
+	columnDescription  = 1
+	columnTimings      = 2
+	columnGroupCount   = 3
+	columnBackground   = 4
+	dayBackground      = "#eeeeee"
+	attrMarkup         = "markup"
+	attrBackground     = "background"
+	propXPad           = "xpad"
+	propYPad           = "ypad"
+	propAlignment      = "alignment"
+	propXAlign         = "xalign"
+	signalActivate     = "activate"
+	signalRowActivated = "row-activated"
+	signalButtonPress  = "button-press-event"
 )
 
 type Callback func(entryId uint64)
@@ -113,7 +122,7 @@ func (h *GtkHistory) insertDayEntry(day string, it *gtk.TreeIter, duration time.
 	if err := h.store.SetValue(it, columnDescription, value); err != nil {
 		log.Fatal(err)
 	}
-	value = RenderDate(duration.String())
+	value = RenderDate(duration.Round(time.Second).String())
 	if err := h.store.SetValue(it, columnTimings, value); err != nil {
 		log.Fatal(err)
 	}
@@ -197,7 +206,6 @@ func (h *GtkHistory) onRowActivated(_ *gtk.TreeView, path *gtk.TreePath) {
 	if h.treeView.RowExpanded(path) {
 		h.treeView.CollapseRow(path)
 	} else {
-		//h.treeView.CollapseAll()
 		h.treeView.ExpandToPath(path)
 	}
 }
@@ -234,7 +242,7 @@ func New(b *builder.Builder) (*GtkHistory, error) {
 	if menuItem, err := b.GetMenuItem(menuContinue); err != nil {
 		return nil, err
 	} else {
-		if _, err = menuItem.Connect("activate", h.onMenuContinue); err != nil {
+		if _, err = menuItem.Connect(signalActivate, h.onMenuContinue); err != nil {
 			return nil, err
 		}
 	}
@@ -242,12 +250,12 @@ func New(b *builder.Builder) (*GtkHistory, error) {
 	if menuItem, err := b.GetMenuItem(menuDelete); err != nil {
 		return nil, err
 	} else {
-		if _, err = menuItem.Connect("activate", h.onMenuDelete); err != nil {
+		if _, err = menuItem.Connect(signalActivate, h.onMenuDelete); err != nil {
 			return nil, err
 		}
 	}
 
-	if _, err = h.treeView.Connect("row-activated", h.onRowActivated); err != nil {
+	if _, err = h.treeView.Connect(signalRowActivated, h.onRowActivated); err != nil {
 		return nil, err
 	}
 
@@ -257,19 +265,21 @@ func New(b *builder.Builder) (*GtkHistory, error) {
 	} else {
 		column.SetTitle("Recent entries")
 	}
-	if err := setupGroupCountRenderer(column); err != nil {
-		return nil, err
+
+	widgets := []func(*gtk.TreeViewColumn) error{
+		setupGroupCountRenderer,
+		setupDescriptionRenderer,
+		setupTimingsRenderer,
 	}
-	if err := setupDescriptionRenderer(column); err != nil {
-		return nil, err
-	}
-	if err := setupTimingsRenderer(column); err != nil {
-		return nil, err
+	for _, widget := range widgets {
+		if err := widget(column); err != nil {
+			return nil, err
+		}
 	}
 	h.treeView.AppendColumn(column)
 	h.treeView.SetSearchEqualSubstringMatch()
 
-	if _, err := h.treeView.Connect("button-press-event", h.OnButtonClick); err != nil {
+	if _, err := h.treeView.Connect(signalButtonPress, h.OnButtonClick); err != nil {
 		return nil, err
 	}
 	return h, nil
@@ -279,21 +289,19 @@ func setupTimingsRenderer(column *gtk.TreeViewColumn) error {
 	if r, err := gtk.CellRendererTextNew(); err != nil {
 		return err
 	} else {
-		if err := r.SetProperty("ypad", 4); err != nil {
-			return err
-		}
-		if err := r.SetProperty("xpad", 8); err != nil {
-			return err
-		}
-		if err := r.SetProperty("alignment", pango.ALIGN_RIGHT); err != nil {
-			return err
-		}
-		if err := r.SetProperty("xalign", 1.0); err != nil {
+		if err := tools.SetProperties(r.Object, map[string]interface{}{
+			propXPad:      8,
+			propYPad:      4,
+			propAlignment: pango.ALIGN_RIGHT,
+			propXAlign:    1.0,
+		}); err != nil {
 			return err
 		}
 		column.PackStart(r, true)
-		column.AddAttribute(r, "markup", columnTimings)
-		column.AddAttribute(r, "background", columnBackground)
+		tools.AddAttributes(column, r, map[string]int{
+			attrMarkup:     columnTimings,
+			attrBackground: columnBackground,
+		})
 		return nil
 	}
 }
@@ -303,8 +311,10 @@ func setupGroupCountRenderer(column *gtk.TreeViewColumn) error {
 		return err
 	} else {
 		column.PackStart(r, false)
-		column.AddAttribute(r, "markup", columnGroupCount)
-		column.AddAttribute(r, "background", columnBackground)
+		tools.AddAttributes(column, r, map[string]int{
+			attrMarkup:     columnGroupCount,
+			attrBackground: columnBackground,
+		})
 		return nil
 	}
 }
@@ -313,12 +323,14 @@ func setupDescriptionRenderer(column *gtk.TreeViewColumn) error {
 	if r, err := gtk.CellRendererTextNew(); err != nil {
 		return err
 	} else {
-		if err := r.SetProperty("ypad", 4); err != nil {
+		if err := r.SetProperty(propYPad, 4); err != nil {
 			return err
 		}
 		column.PackStart(r, true)
-		column.AddAttribute(r, "markup", columnDescription)
-		column.AddAttribute(r, "background", columnBackground)
+		tools.AddAttributes(column, r, map[string]int{
+			attrMarkup:     columnDescription,
+			attrBackground: columnBackground,
+		})
 		return nil
 	}
 }
