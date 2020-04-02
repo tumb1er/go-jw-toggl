@@ -6,7 +6,7 @@ import (
 	"text/template"
 )
 
-var descriptionTemplate, timingTemplate, dateTemplate *template.Template
+var descriptionTemplate, timingTemplate, dateTemplate, groupTemplate *template.Template
 
 func init() {
 	descriptionTemplate = new(template.Template)
@@ -31,6 +31,10 @@ foreground="#AAAAAA">• {{.Client}}</span>{{ end }}{{ end }}`))
 		`<span
 	font_weight="bold"
 	foreground="#555555">{{.}}</span>`))
+	groupTemplate = new(template.Template)
+	groupTemplate = template.Must(groupTemplate.Parse(
+		`<span
+	font_weight="bold">x{{.}}</span>`))
 }
 
 type Date struct {
@@ -66,6 +70,16 @@ func RenderTimings(c Ctx) string {
 func RenderDate(v string) string {
 	buffer := bytes.Buffer{}
 	if err := dateTemplate.Execute(&buffer, v); err != nil {
+		log.Fatal(err)
+	}
+	return buffer.String()
+}
+func RenderGroup(count int) string {
+	if count == 0 {
+		return ""
+	}
+	buffer := bytes.Buffer{}
+	if err := groupTemplate.Execute(&buffer, count); err != nil {
 		log.Fatal(err)
 	}
 	return buffer.String()

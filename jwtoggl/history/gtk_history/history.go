@@ -24,9 +24,13 @@ const (
 	columnTimings      = 2
 	columnGroupCount   = 3
 	columnBackground   = 4
+	columnGroupXPad    = 5
+	columnGroupWidth   = 6
 	dayBackground      = "#eeeeee"
 	attrMarkup         = "markup"
 	attrBackground     = "background"
+	attrXPad           = "xpad"
+	attrWidth          = "width"
 	propXPad           = "xpad"
 	propYPad           = "ypad"
 	propAlignment      = "alignment"
@@ -92,10 +96,10 @@ func (h *GtkHistory) setEntries(c entriesContext) {
 		ds.duration += duration
 		ts := ds.add(h.store, entry)
 		if ts.count == 0 {
-			h.insertEntry(c, ts.it, entry)
+			h.insertEntry(c, ts.it, entry, false)
 		} else {
 			it := h.store.Append(ts.it)
-			h.insertEntry(c, it, entry)
+			h.insertEntry(c, it, entry, true)
 		}
 		ts.count += 1
 	}
@@ -111,8 +115,20 @@ func (h *GtkHistory) setEntries(c entriesContext) {
 }
 
 func (h *GtkHistory) insertTaskSummary(it *gtk.TreeIter, count int) {
-	value := fmt.Sprintf("%dx", count)
+	value := RenderGroup(count)
 	if err := h.store.SetValue(it, columnGroupCount, value); err != nil {
+		log.Fatal(err)
+	}
+	xpad := 0
+	width := 0
+	if count > 0 {
+		xpad = 8
+		width = 32
+	}
+	if err := h.store.SetValue(it, columnGroupXPad, xpad); err != nil {
+		log.Fatal(err)
+	}
+	if err := h.store.SetValue(it, columnGroupWidth, width); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -136,7 +152,8 @@ func (h *GtkHistory) insertDayEntry(day string, it *gtk.TreeIter, duration time.
 	}
 }
 
-func (h *GtkHistory) insertEntry(entries entriesContext, it *gtk.TreeIter, entry gttimeentry.TimeEntry) {
+func (h *GtkHistory) insertEntry(entries entriesContext, it *gtk.TreeIter,
+	entry gttimeentry.TimeEntry, grouped bool) {
 	var ctx Ctx
 	ctx.Description = entry.Description
 	if project, ok := entries.Projects[entry.Pid]; ok {
@@ -167,6 +184,14 @@ func (h *GtkHistory) insertEntry(entries entriesContext, it *gtk.TreeIter, entry
 		log.Fatal(err)
 	}
 	if err := h.store.SetValue(it, columnTimings, RenderTimings(ctx)); err != nil {
+		log.Fatal(err)
+	}
+
+	width := 0
+	if grouped {
+		width = 32
+	}
+	if err := h.store.SetValue(it, columnGroupWidth, width); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -259,20 +284,24 @@ func New(b *builder.Builder) (*GtkHistory, error) {
 		return nil, err
 	}
 
-	column, err := gtk.TreeViewColumnNew()
+	area, err := CellAreaBoxNew()
+	if err != nil {
+		log.Fatal(err)
+	}
+	column, err := TreeViewColumnNewWithArea(area)
 	if err != nil {
 		return nil, err
 	} else {
 		column.SetTitle("Recent entries")
 	}
 
-	widgets := []func(*gtk.TreeViewColumn) error{
+	widgets := []func(*gtk.TreeViewColumn, *CellAreaBox) error{
 		setupGroupCountRenderer,
 		setupDescriptionRenderer,
 		setupTimingsRenderer,
 	}
 	for _, widget := range widgets {
-		if err := widget(column); err != nil {
+		if err := widget(column, area); err != nil {
 			return nil, err
 		}
 	}
@@ -285,11 +314,11 @@ func New(b *builder.Builder) (*GtkHistory, error) {
 	return h, nil
 }
 
-func setupTimingsRenderer(column *gtk.TreeViewColumn) error {
-	if r, err := gtk.CellRendererTextNew(); err != nil {
+func setupTimingsRenderer(column *gtk.TreeViewColumn, area *CellAreaBox) error {
+	if r, err := CellRendererTextNew(); err != nil {
 		return err
 	} else {
-		if err := tools.SetProperties(r.Object, map[string]interface{}{
+		if err := SetProperties(r.Object, map[string]interface{}{
 			propXPad:      8,
 			propYPad:      4,
 			propAlignment: pango.ALIGN_RIGHT,
@@ -297,8 +326,8 @@ func setupTimingsRenderer(column *gtk.TreeViewColumn) error {
 		}); err != nil {
 			return err
 		}
-		column.PackStart(r, true)
-		tools.AddAttributes(column, r, map[string]int{
+		area.PackStart(r, true, false, false)
+		AddAttributes(column, r, map[string]int{
 			attrMarkup:     columnTimings,
 			attrBackground: columnBackground,
 		})
@@ -306,28 +335,30 @@ func setupTimingsRenderer(column *gtk.TreeViewColumn) error {
 	}
 }
 
-func setupGroupCountRenderer(column *gtk.TreeViewColumn) error {
-	if r, err := gtk.CellRendererTextNew(); err != nil {
+func setupGroupCountRenderer(column *gtk.TreeViewColumn, area *CellAreaBox) error {
+	if r, err := CellRendererTextNew(); err != nil {
 		return err
 	} else {
-		column.PackStart(r, false)
-		tools.AddAttributes(column, r, map[string]int{
+		area.PackStart(r, false, false, false)
+		AddAttributes(column, r, map[string]int{
 			attrMarkup:     columnGroupCount,
 			attrBackground: columnBackground,
+			attrXPad:       columnGroupXPad,
+			attrWidth:      columnGroupWidth,
 		})
 		return nil
 	}
 }
 
-func setupDescriptionRenderer(column *gtk.TreeViewColumn) error {
-	if r, err := gtk.CellRendererTextNew(); err != nil {
+func setupDescriptionRenderer(column *gtk.TreeViewColumn, area *CellAreaBox) error {
+	if r, err := CellRendererTextNew(); err != nil {
 		return err
 	} else {
 		if err := r.SetProperty(propYPad, 4); err != nil {
 			return err
 		}
-		column.PackStart(r, true)
-		tools.AddAttributes(column, r, map[string]int{
+		area.PackStart(r, true, false, false)
+		AddAttributes(column, r, map[string]int{
 			attrMarkup:     columnDescription,
 			attrBackground: columnBackground,
 		})
