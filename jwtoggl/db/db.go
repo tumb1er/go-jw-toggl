@@ -42,7 +42,7 @@ type DB struct {
 }
 
 func NewDB(token string) (*DB, error) {
-	httpClient := &http.Client{Timeout: time.Second}
+	httpClient := &http.Client{Timeout: 10 * time.Second}
 	client, err := gtoggl.NewClient(token, gthttp.SetHttpClient(httpClient))
 	if err != nil {
 		return nil, err

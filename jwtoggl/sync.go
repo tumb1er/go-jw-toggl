@@ -16,9 +16,13 @@ func (j *jApp) StartSync(ctx context.Context) {
 	j.db.OnTagsChanged(j.OnTagsChanged)
 	j.db.OnClientsChanged(j.OnClientsChanged)
 	j.db.OnEntriesChanged(j.entries.SetEntries)
-	j.handleError(j.db.SyncUser(), "Sync error")
+	j.syncUser()
 	log.Println("Start periodic sync")
 	j.periodicSync(ctx)
+}
+
+func (j *jApp) syncUser() {
+	j.handleError(j.db.SyncUser(), "Sync error")
 }
 
 func (j *jApp) OnProjectsChanged(projects gtproject.Projects) {

@@ -330,6 +330,21 @@
       </object>
     </child>
     <child>
+      <object class="GtkMenuItem" id="menu_sync">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Sync</property>
+        <property name="use_underline">True</property>
+        <accelerator key="r" signal="activate" modifiers="GDK_CONTROL_MASK"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkSeparatorMenuItem">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+      </object>
+    </child>
+    <child>
       <object class="GtkMenuItem" id="menu_exit">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
