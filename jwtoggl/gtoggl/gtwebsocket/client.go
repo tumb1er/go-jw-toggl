@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gorilla/websocket"
+	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
 	"log"
 	"net/http"
@@ -38,6 +39,11 @@ func defaultOnTimeEntryAction(action string, entry gttimeentry.TimeEntry) error 
 	return nil
 }
 
+func defaultOnProjectAction(action string, project gtproject.Project) error {
+	log.Printf("Project action: %s %+v", action, project)
+	return nil
+}
+
 func closeWs(ws *websocket.Conn) {
 	if err := ws.Close(); err != nil {
 		log.Println("Close Websocket error:", err)
@@ -52,6 +58,7 @@ type TogglWebsocketClient struct {
 	pingTime          time.Time
 	onPing            OnPingCallback
 	onTimeEntryAction OnTimeEntryActionCallback
+	onProjectAction   OnProjectActionCallback
 }
 
 func NewClient(token string) *TogglWebsocketClient {
@@ -60,6 +67,7 @@ func NewClient(token string) *TogglWebsocketClient {
 		token:             token,
 		onPing:            defaultOnPing,
 		onTimeEntryAction: defaultOnTimeEntryAction,
+		onProjectAction:   defaultOnProjectAction,
 	}
 }
 
@@ -69,6 +77,10 @@ func (c *TogglWebsocketClient) OnPing(callback OnPingCallback) {
 
 func (c *TogglWebsocketClient) OnTimeEntryAction(callback OnTimeEntryActionCallback) {
 	c.onTimeEntryAction = callback
+}
+
+func (c *TogglWebsocketClient) OnProjectAction(callback OnProjectActionCallback) {
+	c.onProjectAction = callback
 }
 
 func (c *TogglWebsocketClient) Dial() error {
@@ -245,6 +257,14 @@ func (c *TogglWebsocketClient) handleActionMessage(msg []byte) error {
 			return err
 		}
 		return c.onTimeEntryAction(actionMsg.Action, timeEntryActionMsg.Data)
+	}
+	if actionMsg.Model == "project" {
+		var projectActionMsg MsgProjectAction
+		if err := json.Unmarshal(msg, &projectActionMsg); err != nil {
+			return err
+		}
+		return c.onProjectAction(actionMsg.Action, projectActionMsg.Data)
+
 	}
 	return fmt.Errorf("unknown model action: %s", actionMsg.Model)
 }

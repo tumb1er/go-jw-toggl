@@ -215,7 +215,7 @@ func (db *DB) SyncUser() error {
 	var changed bool
 	projects := make(gtproject.Projects, 0, len(user.Projects))
 	for _, project := range user.Projects {
-		if project.WId != user.DefaultWId {
+		if project.WId != user.DefaultWId || !project.Active {
 			continue
 		} else {
 			projects = append(projects, project)
@@ -270,12 +270,18 @@ func (db *DB) SyncUser() error {
 
 func (db *DB) StartListen(ctx context.Context) {
 	db.sub.OnTimeEntryAction(db.onTimeEntryAction)
+	db.sub.OnProjectAction(db.onProjectAction)
 	go func() {
 		err := db.sub.Listen(ctx)
 		if err != nil {
 			log.Fatal("WebSocket listen error:", err)
 		}
 	}()
+}
+
+func (db *DB) onProjectAction(action string, project gtproject.Project) error {
+	log.Printf("project %s %s, sync user", project.Name, action)
+	return db.SyncUser()
 }
 
 func (db *DB) onTimeEntryAction(action string, entry gttimeentry.TimeEntry) error {

@@ -1,6 +1,9 @@
 package gtwebsocket
 
-import "go-jw-toggl/jwtoggl/gtoggl/gttimentry"
+import (
+	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
+	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
+)
 
 type MsgPing struct {
 	Type string `json:"type"`
@@ -18,4 +21,11 @@ type MsgTimeEntryAction struct {
 	Data gttimeentry.TimeEntry `json:"data"`
 }
 
+type MsgProjectAction struct {
+	MsgAction
+	Data gtproject.Project `json:"data"`
+}
+
 type OnTimeEntryActionCallback func(action string, entry gttimeentry.TimeEntry) error
+
+type OnProjectActionCallback func(action string, project gtproject.Project) error
