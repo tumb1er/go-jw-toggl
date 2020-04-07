@@ -271,6 +271,7 @@ func (db *DB) SyncUser() error {
 func (db *DB) StartListen(ctx context.Context) {
 	db.sub.OnTimeEntryAction(db.onTimeEntryAction)
 	db.sub.OnProjectAction(db.onProjectAction)
+	db.sub.OnClientAction(db.onClientAction)
 	go func() {
 		err := db.sub.Listen(ctx)
 		if err != nil {
@@ -281,6 +282,11 @@ func (db *DB) StartListen(ctx context.Context) {
 
 func (db *DB) onProjectAction(action string, project gtproject.Project) error {
 	log.Printf("project %s %s, sync user", project.Name, action)
+	return db.SyncUser()
+}
+
+func (db *DB) onClientAction(action string, client gtclient.Client) error {
+	log.Printf("client %s %s, sync user", client.Name, action)
 	return db.SyncUser()
 }
 

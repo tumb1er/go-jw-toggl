@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gorilla/websocket"
+	"go-jw-toggl/jwtoggl/gtoggl/gtclient"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
 	"log"
@@ -18,6 +19,11 @@ const (
 	ActionInsert = "INSERT"
 	ActionUpdate = "UPDATE"
 	ActionDelete = "DELETE"
+
+	ModelTimeEntry = "time_entry"
+	ModelProject   = "project"
+	ModelClient    = "client"
+	ModelTag       = "tag"
 )
 
 var notAuthenticated = errors.New("no session after auth WS message")
@@ -44,6 +50,11 @@ func defaultOnProjectAction(action string, project gtproject.Project) error {
 	return nil
 }
 
+func defaultOnClientAction(action string, client gtclient.Client) error {
+	log.Printf("Client action: %s %+v", action, client)
+	return nil
+}
+
 func closeWs(ws *websocket.Conn) {
 	if err := ws.Close(); err != nil {
 		log.Println("Close Websocket error:", err)
@@ -59,6 +70,7 @@ type TogglWebsocketClient struct {
 	onPing            OnPingCallback
 	onTimeEntryAction OnTimeEntryActionCallback
 	onProjectAction   OnProjectActionCallback
+	onClientAction    OnClientActionCallback
 }
 
 func NewClient(token string) *TogglWebsocketClient {
@@ -68,6 +80,7 @@ func NewClient(token string) *TogglWebsocketClient {
 		onPing:            defaultOnPing,
 		onTimeEntryAction: defaultOnTimeEntryAction,
 		onProjectAction:   defaultOnProjectAction,
+		onClientAction:    defaultOnClientAction,
 	}
 }
 
@@ -81,6 +94,10 @@ func (c *TogglWebsocketClient) OnTimeEntryAction(callback OnTimeEntryActionCallb
 
 func (c *TogglWebsocketClient) OnProjectAction(callback OnProjectActionCallback) {
 	c.onProjectAction = callback
+}
+
+func (c *TogglWebsocketClient) OnClientAction(callback OnClientActionCallback) {
+	c.onClientAction = callback
 }
 
 func (c *TogglWebsocketClient) Dial() error {
@@ -251,19 +268,27 @@ func (c *TogglWebsocketClient) handleActionMessage(msg []byte) error {
 	if err := json.Unmarshal(msg, &actionMsg); err != nil {
 		return err
 	}
-	if actionMsg.Model == "time_entry" {
+	if actionMsg.Model == ModelTimeEntry {
 		var timeEntryActionMsg MsgTimeEntryAction
 		if err := json.Unmarshal(msg, &timeEntryActionMsg); err != nil {
 			return err
 		}
 		return c.onTimeEntryAction(actionMsg.Action, timeEntryActionMsg.Data)
 	}
-	if actionMsg.Model == "project" {
+	if actionMsg.Model == ModelProject {
 		var projectActionMsg MsgProjectAction
 		if err := json.Unmarshal(msg, &projectActionMsg); err != nil {
 			return err
 		}
 		return c.onProjectAction(actionMsg.Action, projectActionMsg.Data)
+
+	}
+	if actionMsg.Model == ModelClient {
+		var clientActionMsg MsgClientAction
+		if err := json.Unmarshal(msg, &clientActionMsg); err != nil {
+			return err
+		}
+		return c.onClientAction(actionMsg.Action, clientActionMsg.Data)
 
 	}
 	return fmt.Errorf("unknown model action: %s", actionMsg.Model)
