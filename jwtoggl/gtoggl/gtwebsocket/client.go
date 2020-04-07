@@ -6,6 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gorilla/websocket"
+	"go-jw-toggl/jwtoggl/gtoggl/gtclient"
+	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
+	"go-jw-toggl/jwtoggl/gtoggl/gttag"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
 	"log"
 	"net/http"
@@ -17,6 +20,11 @@ const (
 	ActionInsert = "INSERT"
 	ActionUpdate = "UPDATE"
 	ActionDelete = "DELETE"
+
+	ModelTimeEntry = "time_entry"
+	ModelProject   = "project"
+	ModelClient    = "client"
+	ModelTag       = "tag"
 )
 
 var notAuthenticated = errors.New("no session after auth WS message")
@@ -34,7 +42,22 @@ func defaultOnPing(msg MsgPing) error {
 }
 
 func defaultOnTimeEntryAction(action string, entry gttimeentry.TimeEntry) error {
-	log.Printf("TimeEntry action: %s %+v", action, entry)
+	log.Printf("TimeEntry action: %s %+v\n", action, entry)
+	return nil
+}
+
+func defaultOnProjectAction(action string, project gtproject.Project) error {
+	log.Printf("Project action: %s %+v\n", action, project)
+	return nil
+}
+
+func defaultOnClientAction(action string, client gtclient.Client) error {
+	log.Printf("Client action: %s %+v\n", action, client)
+	return nil
+}
+
+func defaultOnTagAction(action string, tag gttag.Tag) error {
+	log.Printf("Tag action: %s %+v\n", action, tag)
 	return nil
 }
 
@@ -52,6 +75,9 @@ type TogglWebsocketClient struct {
 	pingTime          time.Time
 	onPing            OnPingCallback
 	onTimeEntryAction OnTimeEntryActionCallback
+	onProjectAction   OnProjectActionCallback
+	onClientAction    OnClientActionCallback
+	onTagAction       OnTagActionCallback
 }
 
 func NewClient(token string) *TogglWebsocketClient {
@@ -60,6 +86,9 @@ func NewClient(token string) *TogglWebsocketClient {
 		token:             token,
 		onPing:            defaultOnPing,
 		onTimeEntryAction: defaultOnTimeEntryAction,
+		onProjectAction:   defaultOnProjectAction,
+		onClientAction:    defaultOnClientAction,
+		onTagAction:       defaultOnTagAction,
 	}
 }
 
@@ -69,6 +98,18 @@ func (c *TogglWebsocketClient) OnPing(callback OnPingCallback) {
 
 func (c *TogglWebsocketClient) OnTimeEntryAction(callback OnTimeEntryActionCallback) {
 	c.onTimeEntryAction = callback
+}
+
+func (c *TogglWebsocketClient) OnProjectAction(callback OnProjectActionCallback) {
+	c.onProjectAction = callback
+}
+
+func (c *TogglWebsocketClient) OnClientAction(callback OnClientActionCallback) {
+	c.onClientAction = callback
+}
+
+func (c *TogglWebsocketClient) OnTagAction(callback OnTagActionCallback) {
+	c.onTagAction = callback
 }
 
 func (c *TogglWebsocketClient) Dial() error {
@@ -239,12 +280,36 @@ func (c *TogglWebsocketClient) handleActionMessage(msg []byte) error {
 	if err := json.Unmarshal(msg, &actionMsg); err != nil {
 		return err
 	}
-	if actionMsg.Model == "time_entry" {
+	if actionMsg.Model == ModelTimeEntry {
 		var timeEntryActionMsg MsgTimeEntryAction
 		if err := json.Unmarshal(msg, &timeEntryActionMsg); err != nil {
 			return err
 		}
 		return c.onTimeEntryAction(actionMsg.Action, timeEntryActionMsg.Data)
+	}
+	if actionMsg.Model == ModelProject {
+		var projectActionMsg MsgProjectAction
+		if err := json.Unmarshal(msg, &projectActionMsg); err != nil {
+			return err
+		}
+		return c.onProjectAction(actionMsg.Action, projectActionMsg.Data)
+
+	}
+	if actionMsg.Model == ModelClient {
+		var clientActionMsg MsgClientAction
+		if err := json.Unmarshal(msg, &clientActionMsg); err != nil {
+			return err
+		}
+		return c.onClientAction(actionMsg.Action, clientActionMsg.Data)
+
+	}
+	if actionMsg.Model == ModelTag {
+		var tagActionMsg MsgTagAction
+		if err := json.Unmarshal(msg, &tagActionMsg); err != nil {
+			return err
+		}
+		return c.onTagAction(actionMsg.Action, tagActionMsg.Data)
+
 	}
 	return fmt.Errorf("unknown model action: %s", actionMsg.Model)
 }

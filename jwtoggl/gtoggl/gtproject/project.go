@@ -14,6 +14,7 @@ type Project struct {
 	Name      string `json:"name"`
 	HexColor  string `json:"hex_color"`
 	IsPrivate *bool  `json:"is_private,omitempty"`
+	Active    bool   `json:"active"`
 }
 
 type Projects []Project
