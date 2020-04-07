@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/websocket"
 	"go-jw-toggl/jwtoggl/gtoggl/gtclient"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
+	"go-jw-toggl/jwtoggl/gtoggl/gttag"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
 	"log"
 	"net/http"
@@ -41,17 +42,22 @@ func defaultOnPing(msg MsgPing) error {
 }
 
 func defaultOnTimeEntryAction(action string, entry gttimeentry.TimeEntry) error {
-	log.Printf("TimeEntry action: %s %+v", action, entry)
+	log.Printf("TimeEntry action: %s %+v\n", action, entry)
 	return nil
 }
 
 func defaultOnProjectAction(action string, project gtproject.Project) error {
-	log.Printf("Project action: %s %+v", action, project)
+	log.Printf("Project action: %s %+v\n", action, project)
 	return nil
 }
 
 func defaultOnClientAction(action string, client gtclient.Client) error {
-	log.Printf("Client action: %s %+v", action, client)
+	log.Printf("Client action: %s %+v\n", action, client)
+	return nil
+}
+
+func defaultOnTagAction(action string, tag gttag.Tag) error {
+	log.Printf("Tag action: %s %+v\n", action, tag)
 	return nil
 }
 
@@ -71,6 +77,7 @@ type TogglWebsocketClient struct {
 	onTimeEntryAction OnTimeEntryActionCallback
 	onProjectAction   OnProjectActionCallback
 	onClientAction    OnClientActionCallback
+	onTagAction       OnTagActionCallback
 }
 
 func NewClient(token string) *TogglWebsocketClient {
@@ -81,6 +88,7 @@ func NewClient(token string) *TogglWebsocketClient {
 		onTimeEntryAction: defaultOnTimeEntryAction,
 		onProjectAction:   defaultOnProjectAction,
 		onClientAction:    defaultOnClientAction,
+		onTagAction:       defaultOnTagAction,
 	}
 }
 
@@ -98,6 +106,10 @@ func (c *TogglWebsocketClient) OnProjectAction(callback OnProjectActionCallback)
 
 func (c *TogglWebsocketClient) OnClientAction(callback OnClientActionCallback) {
 	c.onClientAction = callback
+}
+
+func (c *TogglWebsocketClient) OnTagAction(callback OnTagActionCallback) {
+	c.onTagAction = callback
 }
 
 func (c *TogglWebsocketClient) Dial() error {
@@ -289,6 +301,14 @@ func (c *TogglWebsocketClient) handleActionMessage(msg []byte) error {
 			return err
 		}
 		return c.onClientAction(actionMsg.Action, clientActionMsg.Data)
+
+	}
+	if actionMsg.Model == ModelTag {
+		var tagActionMsg MsgTagAction
+		if err := json.Unmarshal(msg, &tagActionMsg); err != nil {
+			return err
+		}
+		return c.onTagAction(actionMsg.Action, tagActionMsg.Data)
 
 	}
 	return fmt.Errorf("unknown model action: %s", actionMsg.Model)

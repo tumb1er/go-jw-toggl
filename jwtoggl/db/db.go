@@ -272,6 +272,7 @@ func (db *DB) StartListen(ctx context.Context) {
 	db.sub.OnTimeEntryAction(db.onTimeEntryAction)
 	db.sub.OnProjectAction(db.onProjectAction)
 	db.sub.OnClientAction(db.onClientAction)
+	db.sub.OnTagAction(db.onTagAction)
 	go func() {
 		err := db.sub.Listen(ctx)
 		if err != nil {
@@ -287,6 +288,11 @@ func (db *DB) onProjectAction(action string, project gtproject.Project) error {
 
 func (db *DB) onClientAction(action string, client gtclient.Client) error {
 	log.Printf("client %s %s, sync user", client.Name, action)
+	return db.SyncUser()
+}
+
+func (db *DB) onTagAction(action string, tag gttag.Tag) error {
+	log.Printf("tag %s %s, sync user", tag.Name, action)
 	return db.SyncUser()
 }
 
