@@ -13,6 +13,7 @@ import (
 const (
 	menuShow    = "menu_show"
 	menuExit    = "menu_exit"
+	menuSync    = "menu_sync"
 	trayId      = "go-jw-toggl.notification"
 	trayMenuId  = "tray_menu"
 	TogglIconBW = "toggl_bw.png"
@@ -22,6 +23,7 @@ const (
 type Tray struct {
 	menu      *gtk.Menu
 	menuShow  *gtk.MenuItem
+	menuSync  *gtk.MenuItem
 	menuExit  *gtk.MenuItem
 	indicator *appindicator.Indicator
 	popup     *notifier.Notifier
@@ -39,6 +41,9 @@ func New(b *builder.Builder) (*Tray, error) {
 	if t.menuShow, err = b.GetMenuItem(menuShow); err != nil {
 		return nil, err
 	}
+	if t.menuSync, err = b.GetMenuItem(menuSync); err != nil {
+		return nil, err
+	}
 	if t.menuExit, err = b.GetMenuItem(menuExit); err != nil {
 		return nil, err
 	}
@@ -54,12 +59,16 @@ func New(b *builder.Builder) (*Tray, error) {
 
 func (t *Tray) ConnectSignals(
 	onNew func(),
+	onSync func(),
 	onExit func(),
 ) error {
 	if _, err := t.menuShow.Connect("activate", onNew); err != nil {
 		return err
 	}
 	if _, err := t.menuExit.Connect("activate", onExit); err != nil {
+		return err
+	}
+	if _, err := t.menuSync.Connect("activate", onSync); err != nil {
 		return err
 	}
 	return nil

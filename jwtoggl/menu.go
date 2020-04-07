@@ -11,7 +11,7 @@ func (j *jApp) initTray(b *builder.Builder) {
 	if j.tray, err = tray.New(b); err != nil {
 		log.Fatal("tray init error:", err)
 	}
-	if err = j.tray.ConnectSignals(j.onShow, j.onExit); err != nil {
+	if err = j.tray.ConnectSignals(j.onShow, j.onSync, j.onExit); err != nil {
 		log.Fatal("tray signals connect error:", err)
 	}
 }
@@ -19,6 +19,11 @@ func (j *jApp) initTray(b *builder.Builder) {
 func (j *jApp) onShow() {
 	log.Println("onShow")
 	j.window.Show()
+}
+
+func (j *jApp) onSync() {
+	log.Println("onSync")
+	j.syncUser()
 }
 
 func (j *jApp) onExit() {
