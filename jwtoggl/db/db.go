@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/jinzhu/gorm"
 	"go-jw-toggl/jwtoggl/gtoggl"
 	"go-jw-toggl/jwtoggl/gtoggl/gtclient"
 	"go-jw-toggl/jwtoggl/gtoggl/gthttp"
@@ -33,6 +34,7 @@ type DB struct {
 	tags       map[uint64]*gttag.Tag
 	clients    map[uint64]*gtclient.Client
 	defaultWId uint64
+	db         *gorm.DB
 
 	onCurrentEntry    OnCurrentEntryCallback
 	onProjectsChanged OnProjectsChangedCallback
@@ -41,14 +43,15 @@ type DB struct {
 	onClientsChanged  OnClientsChangedCallback
 }
 
-func NewDB(token string) (*DB, error) {
+func NewDB(token string, database *gorm.DB) (*DB, error) {
 	httpClient := &http.Client{Timeout: time.Second}
 	client, err := gtoggl.NewClient(token, gthttp.SetHttpClient(httpClient))
 	if err != nil {
 		return nil, err
 	}
 	sub := gtwebsocket.NewClient(token)
-	return &DB{
+	db := &DB{
+		db: database,
 		store: EntryStore{
 			index: make(map[uint64]int),
 			list:  make(gttimeentry.TimeEntries, 0),
@@ -59,7 +62,9 @@ func NewDB(token string) (*DB, error) {
 		projects:   make(map[uint64]*gtproject.Project),
 		tags:       make(map[uint64]*gttag.Tag),
 		clients:    make(map[uint64]*gtclient.Client),
-	}, nil
+	}
+	db.Migrate()
+	return db, nil
 }
 
 func (db *DB) OnCurrentEntry(cb OnCurrentEntryCallback) {
@@ -212,6 +217,7 @@ func (db *DB) SyncUser() error {
 		return err
 	}
 	db.defaultWId = user.DefaultWId
+	db.saveTags(user.Tags)
 	var changed bool
 	projects := make(gtproject.Projects, 0, len(user.Projects))
 	for _, project := range user.Projects {
@@ -323,4 +329,27 @@ func (db *DB) onTimeEntryAction(action string, entry gttimeentry.TimeEntry) erro
 		return fmt.Errorf("unhandled action: %s", action)
 	}
 	return nil
+}
+
+func (db *DB) Migrate() {
+	// Миграция схем
+	db.db.AutoMigrate(&Tag{})
+}
+
+func (db *DB) saveTags(tags gttag.Tags) {
+	c := len(tags)
+	for i := 0; i < c; {
+		if tags[i].WId != db.defaultWId {
+			tags[i] = tags[c-1]
+			c--
+		} else {
+			i++
+		}
+	}
+	tags = tags[:c]
+
+	queryset := NewTags(tags)
+	if err := queryset.Sync(db.db, time.Now()); err != nil {
+		log.Fatal("Tags sync error: ", err)
+	}
 }

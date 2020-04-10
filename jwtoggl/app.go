@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
+	"github.com/jinzhu/gorm"
 	"go-jw-toggl/jwtoggl/builder"
 	"go-jw-toggl/jwtoggl/db"
 	"go-jw-toggl/jwtoggl/entry_form"
@@ -87,12 +88,12 @@ func (j *jApp) onWindowDelete() bool {
 }
 
 // NewApp подготавливает основное окно приложения с иконкой в трее и меню.
-func NewApp() *jApp {
+func NewApp(database *gorm.DB) *jApp {
 	app, err := gtk.ApplicationNew(appID, glib.APPLICATION_FLAGS_NONE)
 	if err != nil {
 		log.Fatal("Could not create GTK application:", err)
 	}
-	togglDb, err := db.NewDB(os.Getenv("TOGGL_KEY"))
+	togglDb, err := db.NewDB(os.Getenv("TOGGL_KEY"), database)
 	if err != nil {
 		log.Fatal("Could not create DB:", err)
 	}
