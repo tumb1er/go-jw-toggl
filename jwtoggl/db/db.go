@@ -218,6 +218,7 @@ func (db *DB) SyncUser() error {
 	}
 	db.defaultWId = user.DefaultWId
 	db.saveTags(user.Tags)
+	db.saveClients(user.Clients)
 	var changed bool
 	projects := make(gtproject.Projects, 0, len(user.Projects))
 	for _, project := range user.Projects {
@@ -333,10 +334,10 @@ func (db *DB) onTimeEntryAction(action string, entry gttimeentry.TimeEntry) erro
 
 func (db *DB) Migrate() {
 	// Миграция схем
-	db.db.AutoMigrate(&Tag{})
+	db.db.AutoMigrate(&Tag{}, &Client{})
 }
 
-func (db *DB) saveTags(tags gttag.Tags) {
+func (db *DB) saveTags(tags gttag.Tags) bool {
 	c := len(tags)
 	for i := 0; i < c; {
 		if tags[i].WId != db.defaultWId {
@@ -349,7 +350,31 @@ func (db *DB) saveTags(tags gttag.Tags) {
 	tags = tags[:c]
 
 	queryset := NewTags(tags)
-	if err := queryset.Sync(db.db, time.Now()); err != nil {
+	if changed, err := queryset.Sync(db.db, time.Now()); err != nil {
 		log.Fatal("Tags sync error: ", err)
+		return false
+	} else {
+		return changed
+	}
+}
+
+func (db *DB) saveClients(clients gtclient.Clients) bool {
+	c := len(clients)
+	for i := 0; i < c; {
+		if clients[i].WId != db.defaultWId {
+			clients[i] = clients[c-1]
+			c--
+		} else {
+			i++
+		}
+	}
+	clients = clients[:c]
+
+	queryset := NewClients(clients)
+	if changed, err := queryset.Sync(db.db, time.Now()); err != nil {
+		log.Fatal("Clients sync error: ", err)
+		return false
+	} else {
+		return changed
 	}
 }
