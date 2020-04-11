@@ -4,6 +4,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"go-jw-toggl/jwtoggl/gtoggl/gtclient"
+	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
 	"go-jw-toggl/jwtoggl/tools"
 	"time"
@@ -104,6 +105,55 @@ func (clients *Clients) Sync(db *gorm.DB, fetchedAt time.Time) (changed bool, er
 			}
 		}
 		res := tx.Where("fetched_at < ?", fetchedAt).Delete(Client{})
+		if res.Error == nil && res.RowsAffected > 0 {
+			changed = true
+		}
+		return res.Error
+	})
+	return changed, err
+}
+
+type Project struct {
+	Synced
+	gtproject.Project
+	Client Client `gorm:"foreignkey:CId;association_foreignkey:Id"`
+}
+
+type Projects []Project
+
+func NewProjects(projects gtproject.Projects) *Projects {
+	queryset := make(Projects, len(projects))
+	for i, p := range projects {
+		queryset[i] = Project{Project: p}
+	}
+	return &queryset
+}
+
+func (projects *Projects) Sync(db *gorm.DB, fetchedAt time.Time) (changed bool, err error) {
+	err = db.Transaction(func(tx *gorm.DB) error {
+		existing := new(Projects)
+		if res := tx.Find(existing); res.Error != nil {
+			return res.Error
+		}
+		extIdMap := make(map[uint64]Project)
+		for _, p := range *existing {
+			extIdMap[p.Id] = p
+		}
+
+		for _, p := range *projects {
+			p.FetchedAt = fetchedAt
+			if e, ok := extIdMap[p.Id]; ok {
+				p.PK = e.PK
+				if !tools.ProjectsEqual(&p.Project, &e.Project) {
+					changed = true
+				}
+				tx.Save(&p)
+			} else {
+				changed = true
+				tx.Create(&p)
+			}
+		}
+		res := tx.Where("fetched_at < ?", fetchedAt).Delete(Project{})
 		if res.Error == nil && res.RowsAffected > 0 {
 			changed = true
 		}
