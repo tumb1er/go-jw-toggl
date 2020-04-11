@@ -16,7 +16,12 @@ func (j *jApp) StartSync(ctx context.Context) {
 	j.db.OnTagsChanged(j.OnTagsChanged)
 	j.db.OnClientsChanged(j.OnClientsChanged)
 	j.db.OnEntriesChanged(j.entries.SetEntries)
-	j.syncUser()
+	if err := j.db.SyncUser(); err != nil {
+		j.handleError(err, "Sync error")
+		j.OnProjectsChanged(j.db.ListProjects())
+		j.OnTagsChanged(j.db.ListTags())
+		j.OnClientsChanged(j.db.ListClients())
+	}
 	log.Println("Start periodic sync")
 	j.periodicSync(ctx)
 }

@@ -29,7 +29,7 @@ type jApp struct {
 	tray      *tray.Tray
 	window    *window.MainWindow
 	statusBar *status.Status
-	db        DB
+	db        *db.DB
 	ctx       context.Context
 	cancel    context.CancelFunc
 }

@@ -400,3 +400,33 @@ func (db *DB) saveProjects(projects gtproject.Projects) bool {
 		return changed
 	}
 }
+
+func (db *DB) ListProjects() gtproject.Projects {
+	queryset := make(Projects, 0)
+	db.db.Find(&queryset)
+	result := make(gtproject.Projects, len(queryset))
+	for i, p := range queryset {
+		result[i] = p.Project
+	}
+	return result
+}
+
+func (db *DB) ListTags() gttag.Tags {
+	queryset := make(Tags, 0)
+	db.db.Find(&queryset)
+	result := make(gttag.Tags, len(queryset))
+	for i, t := range queryset {
+		result[i] = t.Tag
+	}
+	return result
+}
+
+func (db *DB) ListClients() gtclient.Clients {
+	queryset := make(Clients, 0)
+	db.db.Find(&queryset)
+	result := make(gtclient.Clients, len(queryset))
+	for i, c := range queryset {
+		result[i] = c.Client
+	}
+	return result
+}
