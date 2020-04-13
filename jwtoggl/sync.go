@@ -16,7 +16,7 @@ func (j *jApp) StartSync(ctx context.Context) {
 	j.db.OnTagsChanged(j.OnTagsChanged)
 	j.db.OnClientsChanged(j.OnClientsChanged)
 	j.db.OnEntriesChanged(j.entries.SetEntries)
-	if err := j.db.SyncUser(); err != nil {
+	if err := j.db.SyncUser(true); err != nil {
 		j.handleError(err, "Sync error")
 		j.OnProjectsChanged(j.db.ListProjects())
 		j.OnTagsChanged(j.db.ListTags())
@@ -27,7 +27,7 @@ func (j *jApp) StartSync(ctx context.Context) {
 }
 
 func (j *jApp) syncUser() {
-	j.handleError(j.db.SyncUser(), "Sync error")
+	j.handleError(j.db.SyncUser(false), "Sync error")
 }
 
 func (j *jApp) OnProjectsChanged(projects gtproject.Projects) {

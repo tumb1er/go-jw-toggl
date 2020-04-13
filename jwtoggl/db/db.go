@@ -211,67 +211,20 @@ func (db *DB) SyncLastEntries() error {
 	return nil
 }
 
-func (db *DB) SyncUser() error {
+func (db *DB) SyncUser(force bool) error {
 	user, err := db.client.UserClient.Get(true)
 	if err != nil {
 		return err
 	}
 	db.defaultWId = user.DefaultWId
-	db.saveTags(user.Tags)
-	db.saveClients(user.Clients)
-	db.saveProjects(user.Projects)
-	var changed bool
-	projects := make(gtproject.Projects, 0, len(user.Projects))
-	for _, project := range user.Projects {
-		if project.WId != user.DefaultWId || !project.Active {
-			continue
-		} else {
-			projects = append(projects, project)
-		}
-		existing, ok := db.projects[project.Id]
-		if !ok || !tools.ProjectsEqual(existing, &project) {
-			db.projects[project.Id] = &project
-			changed = true
-		}
+	if db.saveTags(user.Tags) || force {
+		db.onTagsChanged(db.ListTags())
 	}
-	if changed && db.onProjectsChanged != nil {
-		db.onProjectsChanged(projects)
+	if db.saveClients(user.Clients) || force {
+		db.onClientsChanged(db.ListClients())
 	}
-
-	changed = false
-	tags := make(gttag.Tags, 0, len(user.Tags))
-	for _, tag := range user.Tags {
-		if tag.WId != user.DefaultWId {
-			continue
-		} else {
-			tags = append(tags, tag)
-		}
-		existing, ok := db.tags[tag.Id]
-		if !ok || !tools.TagsEqual(existing, &tag) {
-			db.tags[tag.Id] = &tag
-			changed = true
-		}
-	}
-	if changed && db.onTagsChanged != nil {
-		db.onTagsChanged(tags)
-	}
-
-	changed = false
-	clients := make(gtclient.Clients, 0, len(user.Clients))
-	for _, client := range user.Clients {
-		if client.WId != user.DefaultWId {
-			continue
-		} else {
-			clients = append(clients, client)
-		}
-		existing, ok := db.clients[client.Id]
-		if !ok || !tools.ClientsEqual(existing, &client) {
-			db.clients[client.Id] = &client
-			changed = true
-		}
-	}
-	if changed && db.onClientsChanged != nil {
-		db.onClientsChanged(clients)
+	if db.saveProjects(user.Projects) || force {
+		db.onProjectsChanged(db.ListProjects())
 	}
 	return nil
 }
@@ -291,17 +244,17 @@ func (db *DB) StartListen(ctx context.Context) {
 
 func (db *DB) onProjectAction(action string, project gtproject.Project) error {
 	log.Printf("project %s %s, sync user", project.Name, action)
-	return db.SyncUser()
+	return db.SyncUser(false)
 }
 
 func (db *DB) onClientAction(action string, client gtclient.Client) error {
 	log.Printf("client %s %s, sync user", client.Name, action)
-	return db.SyncUser()
+	return db.SyncUser(false)
 }
 
 func (db *DB) onTagAction(action string, tag gttag.Tag) error {
 	log.Printf("tag %s %s, sync user", tag.Name, action)
-	return db.SyncUser()
+	return db.SyncUser(false)
 }
 
 func (db *DB) onTimeEntryAction(action string, entry gttimeentry.TimeEntry) error {
@@ -403,7 +356,7 @@ func (db *DB) saveProjects(projects gtproject.Projects) bool {
 
 func (db *DB) ListProjects() gtproject.Projects {
 	queryset := make(Projects, 0)
-	db.db.Find(&queryset)
+	db.db.Order("name ASC").Find(&queryset)
 	result := make(gtproject.Projects, len(queryset))
 	for i, p := range queryset {
 		result[i] = p.Project
@@ -413,7 +366,7 @@ func (db *DB) ListProjects() gtproject.Projects {
 
 func (db *DB) ListTags() gttag.Tags {
 	queryset := make(Tags, 0)
-	db.db.Find(&queryset)
+	db.db.Order("name ASC").Find(&queryset)
 	result := make(gttag.Tags, len(queryset))
 	for i, t := range queryset {
 		result[i] = t.Tag
