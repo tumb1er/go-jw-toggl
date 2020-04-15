@@ -8,6 +8,7 @@ import (
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
 	gttimeentry "go-jw-toggl/jwtoggl/gtoggl/gttimentry"
 	"go-jw-toggl/jwtoggl/tools"
+	"log"
 	"time"
 )
 
@@ -167,6 +168,12 @@ type Entry struct {
 	Synced
 	gttimeentry.TimeEntry
 	Tags []string `gorm:"-"`
+}
+
+func (e Entry) Delete(db *gorm.DB) {
+	if res := db.Delete(&e); res.Error != nil && !res.RecordNotFound() {
+		log.Fatal(res.Error)
+	}
 }
 
 type Entries []Entry

@@ -95,7 +95,7 @@ func (db *DB) UpdateCurrentEntry(entry *gttimeentry.TimeEntry) error {
 		return err
 	}
 	if db.store.Update(*entry) {
-		db.onCurrentEntry(db.store.Current(), false)
+		db.onCurrentEntry(db.getCurrentEntry(), false)
 	}
 	return nil
 }
@@ -119,13 +119,13 @@ func (db *DB) createNewEntry(entry *gttimeentry.TimeEntry, notify bool) error {
 	if err != nil {
 		return err
 	}
-	old := db.store.Current()
+	old := db.getCurrentEntry()
 	db.store.Update(*entry)
 	if old != nil && old.Id != entry.Id && tools.IsCurrent(*entry) {
 		old.Stop = entry.Start
 		old.Duration = int64(old.Stop.Sub(old.Start).Seconds())
 		db.store.Update(*old)
-		db.onEntriesChanged(db.store.List())
+		db.onEntriesChanged(db.ListEntries())
 	}
 	db.onCurrentEntry(entry, notify)
 	return nil
@@ -135,7 +135,7 @@ func (db *DB) StopEntry(entry *gttimeentry.TimeEntry) error {
 	if entry == nil {
 		return nil
 	}
-	current := db.store.Current()
+	current := db.getCurrentEntry()
 	if current == nil || current.Id != entry.Id {
 		return errors.New("current entry de-sync")
 	}
@@ -145,15 +145,15 @@ func (db *DB) StopEntry(entry *gttimeentry.TimeEntry) error {
 	}
 	db.store.Update(*entry)
 	db.onCurrentEntry(nil, false)
-	db.onEntriesChanged(db.store.List())
+	db.onEntriesChanged(db.ListEntries())
 	return nil
 }
 
 func (db *DB) ContinueEntry(id uint64) error {
 	var entry *gttimeentry.TimeEntry
 	var err error
-	if prev, ok := db.store.Get(id); ok {
-		entry = &prev
+	if prev, ok := db.getEntryById(id); ok {
+		entry = prev
 	} else {
 		entry, err = db.client.TimeentryClient.Get(id)
 		if err != nil {
@@ -171,20 +171,20 @@ func (db *DB) DeleteEntry(id uint64) error {
 	if err := db.client.TimeentryClient.Delete(id); err != nil {
 		return err
 	}
-	entry := gttimeentry.TimeEntry{Id: id}
-	db.store.Delete(entry)
-	db.onEntriesChanged(db.store.List())
+	entry := Entry{TimeEntry: gttimeentry.TimeEntry{Id: id}}
+	entry.Delete(db.db)
+	db.onEntriesChanged(db.ListEntries())
 	return nil
 }
 
 func (db *DB) SyncCurrentEntry() error {
-	old := db.store.Current()
+	old := db.getCurrentEntry()
 	entry, err := db.client.TimeentryClient.Current()
 	if err != nil {
 		return err
 	}
 	if entry != nil && db.store.Update(*entry) {
-		current := db.store.Current()
+		current := db.getCurrentEntry()
 		if !tools.EntriesEqual(old, current) {
 			db.onCurrentEntry(current, true)
 		}
@@ -266,27 +266,27 @@ func (db *DB) onTagAction(action string, tag gttag.Tag) error {
 	return db.SyncUser(false)
 }
 
-func (db *DB) onTimeEntryAction(action string, entry gttimeentry.TimeEntry) error {
-	old := db.store.Current()
+func (db *DB) onTimeEntryAction(action string, timeEntry gttimeentry.TimeEntry) error {
+	old := db.getCurrentEntry()
+	entry := Entry{TimeEntry: timeEntry}
 	if action == gtwebsocket.ActionDelete {
-		if db.store.Delete(entry) {
-			current := db.store.Current()
-			if !tools.EntriesEqual(old, current) {
-				// Обновился текущий
-				db.onCurrentEntry(current, true)
-			} else {
-				db.onEntriesChanged(db.store.List())
-			}
+		entry.Delete(db.db)
+		current := db.getCurrentEntry()
+		if !tools.EntriesEqual(old, current) {
+			// Обновился текущий
+			db.onCurrentEntry(current, true)
+		} else {
+			db.onEntriesChanged(db.ListEntries())
 		}
 
 	} else if action == gtwebsocket.ActionUpdate || action == gtwebsocket.ActionInsert {
-		if db.store.Update(entry) {
-			current := db.store.Current()
+		if db.store.Update(timeEntry) {
+			current := db.getCurrentEntry()
 			if !tools.EntriesEqual(old, current) {
 				// Обновился текущий
 				db.onCurrentEntry(current, true)
 			}
-			db.onEntriesChanged(db.store.List())
+			db.onEntriesChanged(db.ListEntries())
 
 		}
 	} else {
@@ -422,4 +422,14 @@ func (db *DB) ListEntries() gttimeentry.TimeEntries {
 		result[i] = c.TimeEntry
 	}
 	return result
+}
+
+func (db *DB) getEntryById(id uint64) (*gttimeentry.TimeEntry, bool) {
+	var entry Entry
+	if res := db.db.Where("id = ?", id).First(&entry); res.RecordNotFound() {
+		return nil, false
+	} else if res.Error != nil {
+		log.Fatal(res.Error)
+	}
+	return &entry.TimeEntry, true
 }
