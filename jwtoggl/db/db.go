@@ -411,7 +411,7 @@ func (db *DB) ListClients() gtclient.Clients {
 
 func (db *DB) ListEntries() gttimeentry.TimeEntries {
 	queryset := make(Entries, 0)
-	db.db.Find(&queryset)
+	db.db.Order("start desc").Find(&queryset)
 	result := make(gttimeentry.TimeEntries, len(queryset))
 	for i, c := range queryset {
 		result[i] = c.TimeEntry
