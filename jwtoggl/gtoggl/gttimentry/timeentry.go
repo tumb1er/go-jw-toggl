@@ -20,7 +20,7 @@ type TimeEntry struct {
 	Duration    int64                  `json:"duration"`
 	Billable    bool                   `json:"billable"`
 	Workspace   *gtworkspace.Workspace `json:"workspace"`
-	Tags        []string               `json:"tags"`
+	Tags        []string               `json:"tags" gorm:"-"`
 	Pid         uint64                 `json:"pid"`
 	Wid         uint64                 `json:"wid"`
 	Tid         uint64                 `json:"tid"`

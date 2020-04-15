@@ -6,6 +6,7 @@ import (
 	"go-jw-toggl/jwtoggl/gtoggl/gtclient"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
+	gttimeentry "go-jw-toggl/jwtoggl/gtoggl/gttimentry"
 	"go-jw-toggl/jwtoggl/tools"
 	"time"
 )
@@ -116,7 +117,7 @@ func (clients *Clients) Sync(db *gorm.DB, fetchedAt time.Time) (changed bool, er
 type Project struct {
 	Synced
 	gtproject.Project
-	Client Client `gorm:"foreignkey:CId;association_foreignkey:Id"`
+	// Client Client `gorm:"foreignkey:CId;association_foreignkey:Id"`
 }
 
 type Projects []Project
@@ -154,6 +155,55 @@ func (projects *Projects) Sync(db *gorm.DB, fetchedAt time.Time) (changed bool, 
 			}
 		}
 		res := tx.Where("fetched_at < ?", fetchedAt).Delete(Project{})
+		if res.Error == nil && res.RowsAffected > 0 {
+			changed = true
+		}
+		return res.Error
+	})
+	return changed, err
+}
+
+type Entry struct {
+	Synced
+	gttimeentry.TimeEntry
+	Tags []string `gorm:"-"`
+}
+
+type Entries []Entry
+
+func NewEntries(entries gttimeentry.TimeEntries) *Entries {
+	queryset := make(Entries, len(entries))
+	for i, e := range entries {
+		queryset[i] = Entry{TimeEntry: e}
+	}
+	return &queryset
+}
+
+func (entries *Entries) Sync(db *gorm.DB, fetchedAt time.Time) (changed bool, err error) {
+	err = db.Transaction(func(tx *gorm.DB) error {
+		existing := new(Entries)
+		if res := tx.Find(existing); res.Error != nil {
+			return res.Error
+		}
+		extIdMap := make(map[uint64]Entry)
+		for _, e := range *existing {
+			extIdMap[e.Id] = e
+		}
+
+		for _, v := range *entries {
+			v.FetchedAt = fetchedAt
+			if e, ok := extIdMap[v.Id]; ok {
+				v.PK = e.PK
+				if !tools.EntriesEqual(&v.TimeEntry, &e.TimeEntry) {
+					changed = true
+				}
+				tx.Save(&v)
+			} else {
+				changed = true
+				tx.Create(&v)
+			}
+		}
+		res := tx.Where("fetched_at < ?", fetchedAt).Delete(Entry{})
 		if res.Error == nil && res.RowsAffected > 0 {
 			changed = true
 		}

@@ -192,21 +192,30 @@ func (db *DB) SyncCurrentEntry() error {
 	return nil
 }
 
+func (db *DB) getCurrentEntry() *gttimeentry.TimeEntry {
+	var entry Entry
+	if res := db.db.Where("stop = ?", time.Time{}).First(&entry); res.RecordNotFound() {
+		return nil
+	} else if res.Error != nil {
+		log.Fatal(res.Error)
+	}
+	return &entry.TimeEntry
+}
+
 func (db *DB) SyncLastEntries() error {
 	end := time.Now()
 	start := end.Add(-72 * time.Hour)
-	old := db.store.Current()
+	old := db.getCurrentEntry()
 	entries, err := db.client.TimeentryClient.GetRange(start, end)
 	if err != nil {
 		return err
-	} else {
-		if db.store.BulkUpdate(entries) {
-			current := db.store.Current()
-			if !tools.EntriesEqual(current, old) {
-				db.onCurrentEntry(current, true)
-			}
-			db.onEntriesChanged(db.store.List())
+	}
+	if db.saveEntries(entries) {
+		current := db.getCurrentEntry()
+		if !tools.EntriesEqual(current, old) {
+			db.onCurrentEntry(current, true)
 		}
+		db.onEntriesChanged(db.ListEntries())
 	}
 	return nil
 }
@@ -288,7 +297,7 @@ func (db *DB) onTimeEntryAction(action string, entry gttimeentry.TimeEntry) erro
 
 func (db *DB) Migrate() {
 	// Миграция схем
-	db.db.AutoMigrate(&Tag{}, &Client{}, &Project{})
+	db.db.AutoMigrate(&Tag{}, &Client{}, &Project{}, &Entry{})
 }
 
 func (db *DB) saveTags(tags gttag.Tags) bool {
@@ -354,6 +363,27 @@ func (db *DB) saveProjects(projects gtproject.Projects) bool {
 	}
 }
 
+func (db *DB) saveEntries(entries gttimeentry.TimeEntries) bool {
+	c := len(entries)
+	for i := 0; i < c; {
+		if entries[i].Wid != db.defaultWId {
+			entries[i] = entries[c-1]
+			c--
+		} else {
+			i++
+		}
+	}
+	entries = entries[:c]
+
+	queryset := NewEntries(entries)
+	if changed, err := queryset.Sync(db.db, time.Now()); err != nil {
+		log.Fatal("Entries sync error: ", err)
+		return false
+	} else {
+		return changed
+	}
+}
+
 func (db *DB) ListProjects() gtproject.Projects {
 	queryset := make(Projects, 0)
 	db.db.Order("name ASC").Find(&queryset)
@@ -380,6 +410,16 @@ func (db *DB) ListClients() gtclient.Clients {
 	result := make(gtclient.Clients, len(queryset))
 	for i, c := range queryset {
 		result[i] = c.Client
+	}
+	return result
+}
+
+func (db *DB) ListEntries() gttimeentry.TimeEntries {
+	queryset := make(Entries, 0)
+	db.db.Find(&queryset)
+	result := make(gttimeentry.TimeEntries, len(queryset))
+	for i, c := range queryset {
+		result[i] = c.TimeEntry
 	}
 	return result
 }
