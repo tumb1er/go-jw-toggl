@@ -27,7 +27,6 @@ type OnOnlineStatusChangedCallback func(online bool)
 
 type DB struct {
 	client     *gtoggl.TogglClient
-	store      EntryStore
 	httpClient *http.Client
 	sub        *gtwebsocket.TogglWebsocketClient
 	projects   map[uint64]*gtproject.Project
@@ -51,11 +50,7 @@ func NewDB(token string, database *gorm.DB) (*DB, error) {
 	}
 	sub := gtwebsocket.NewClient(token)
 	db := &DB{
-		db: database,
-		store: EntryStore{
-			index: make(map[uint64]int),
-			list:  make(gttimeentry.TimeEntries, 0),
-		},
+		db:         database,
 		client:     client,
 		httpClient: httpClient,
 		sub:        sub,
@@ -94,7 +89,7 @@ func (db *DB) UpdateCurrentEntry(entry *gttimeentry.TimeEntry) error {
 	if err != nil {
 		return err
 	}
-	if db.store.Update(*entry) {
+	if db.update(*entry) {
 		db.onCurrentEntry(db.getCurrentEntry(), false)
 	}
 	return nil
@@ -120,11 +115,11 @@ func (db *DB) createNewEntry(entry *gttimeentry.TimeEntry, notify bool) error {
 		return err
 	}
 	old := db.getCurrentEntry()
-	db.store.Update(*entry)
+	db.update(*entry)
 	if old != nil && old.Id != entry.Id && tools.IsCurrent(*entry) {
 		old.Stop = entry.Start
 		old.Duration = int64(old.Stop.Sub(old.Start).Seconds())
-		db.store.Update(*old)
+		db.update(*old)
 		db.onEntriesChanged(db.ListEntries())
 	}
 	db.onCurrentEntry(entry, notify)
@@ -143,7 +138,7 @@ func (db *DB) StopEntry(entry *gttimeentry.TimeEntry) error {
 	if err != nil {
 		return err
 	}
-	db.store.Update(*entry)
+	db.update(*entry)
 	db.onCurrentEntry(nil, false)
 	db.onEntriesChanged(db.ListEntries())
 	return nil
@@ -183,7 +178,7 @@ func (db *DB) SyncCurrentEntry() error {
 	if err != nil {
 		return err
 	}
-	if entry != nil && db.store.Update(*entry) {
+	if entry != nil && db.update(*entry) {
 		current := db.getCurrentEntry()
 		if !tools.EntriesEqual(old, current) {
 			db.onCurrentEntry(current, true)
@@ -280,7 +275,7 @@ func (db *DB) onTimeEntryAction(action string, timeEntry gttimeentry.TimeEntry) 
 		}
 
 	} else if action == gtwebsocket.ActionUpdate || action == gtwebsocket.ActionInsert {
-		if db.store.Update(timeEntry) {
+		if db.update(timeEntry) {
 			current := db.getCurrentEntry()
 			if !tools.EntriesEqual(old, current) {
 				// Обновился текущий
@@ -424,12 +419,44 @@ func (db *DB) ListEntries() gttimeentry.TimeEntries {
 	return result
 }
 
-func (db *DB) getEntryById(id uint64) (*gttimeentry.TimeEntry, bool) {
+func (db *DB) entryById(id uint64) (Entry, bool) {
 	var entry Entry
 	if res := db.db.Where("id = ?", id).First(&entry); res.RecordNotFound() {
-		return nil, false
+		return entry, false
 	} else if res.Error != nil {
 		log.Fatal(res.Error)
 	}
-	return &entry.TimeEntry, true
+	return entry, true
+}
+
+func (db *DB) getEntryById(id uint64) (*gttimeentry.TimeEntry, bool) {
+	if entry, ok := db.entryById(id); !ok {
+		return nil, false
+	} else {
+		return &entry.TimeEntry, true
+	}
+}
+
+func (db *DB) update(timeEntry gttimeentry.TimeEntry) bool {
+	if timeEntry.Id == 0 {
+		log.Fatal("empty timeEntry id")
+	}
+	existing, ok := db.entryById(timeEntry.Id)
+	if !ok {
+		entry := Entry{TimeEntry: timeEntry}
+		if res := db.db.Create(&entry); res.Error != nil {
+			log.Fatal(res.Error)
+		}
+		return true
+	}
+
+	if tools.EntriesEqual(&existing.TimeEntry, &timeEntry) {
+		// Нет изменений
+		return false
+	}
+
+	if res := db.db.Save(&existing); res.Error != nil {
+		log.Fatal(res.Error)
+	}
+	return true
 }
