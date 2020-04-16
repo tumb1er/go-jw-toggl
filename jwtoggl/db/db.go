@@ -378,7 +378,7 @@ func (db *DB) update(timeEntry gttimeentry.TimeEntry) bool {
 		return false
 	}
 
-	models.UpdateEntry(db.db, *existing)
+	models.UpdateEntry(db.db, timeEntry)
 	return true
 }
 

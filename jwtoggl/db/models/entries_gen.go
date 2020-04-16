@@ -10,6 +10,7 @@ import (
 func (obj *TimeEntry) BeforeCreate() error {
 	return obj.dump(obj.TimeEntry)
 }
+
 func (obj *TimeEntry) BeforeSave() error {
 	return obj.dump(obj.TimeEntry)
 }

@@ -5,13 +5,14 @@ package models
 import (
 	"github.com/jinzhu/gorm"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
+	"log"
 	"time"
 )
 
 type TimeEntry struct {
 	Synced
 	gttimeentry.TimeEntry `gorm:"-"`
-	Current               bool
+	Current               *bool
 	Start                 time.Time
 }
 
@@ -20,7 +21,8 @@ func (obj *TimeEntry) dump(out interface{}) error {
 		return err
 	}
 	dto := out.(gttimeentry.TimeEntry)
-	obj.Current = dto.Stop.IsZero()
+	current := dto.Stop.IsZero()
+	obj.Current = &current
 	obj.Start = dto.Start
 	return nil
 }
@@ -29,7 +31,7 @@ type TimeEntries []TimeEntry
 
 func ListEntries(db *gorm.DB) gttimeentry.TimeEntries {
 	qs := NewTimeEntries()
-	length := Must(db.Debug().Order("start DESC").Find(qs))
+	length := Must(db.Debug().Where("not current").Order("start DESC").Find(qs))
 	result := make(gttimeentry.TimeEntries, length)
 	for i, c := range *qs {
 		result[i] = c.TimeEntry
@@ -47,7 +49,7 @@ func DeleteEntry(db *gorm.DB, extId uint64) bool {
 
 func CurrentEntry(db *gorm.DB) *gttimeentry.TimeEntry {
 	var entry TimeEntry
-	if MustOrNotFound(db.Where("current").First(&entry)) {
+	if MustOrNotFound(db.Debug().Where("current").First(&entry)) {
 		return &entry.TimeEntry
 	}
 	return nil
@@ -60,7 +62,12 @@ func CreateEntry(db *gorm.DB, timeEntry gttimeentry.TimeEntry) {
 
 func UpdateEntry(db *gorm.DB, timeEntry gttimeentry.TimeEntry) {
 	entry := &TimeEntry{TimeEntry: timeEntry}
-	Must(db.Where("ext_id = ?", timeEntry.Id).Updates(entry))
+	if err := entry.dump(entry.TimeEntry); err != nil {
+		log.Fatal(err)
+	}
+	// Используем map т.к. нулевое значение entry.Current не проставляется.
+	Must(db.Debug().Model(entry).Where("ext_id = ?", timeEntry.Id).
+		Updates(entry))
 }
 
 func EntryById(db *gorm.DB, extId uint64) *gttimeentry.TimeEntry {

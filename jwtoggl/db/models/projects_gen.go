@@ -10,6 +10,7 @@ import (
 func (obj *Project) BeforeCreate() error {
 	return obj.dump(obj.Project)
 }
+
 func (obj *Project) BeforeSave() error {
 	return obj.dump(obj.Project)
 }

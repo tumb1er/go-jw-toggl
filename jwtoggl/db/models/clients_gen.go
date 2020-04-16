@@ -10,6 +10,7 @@ import (
 func (obj *Client) BeforeCreate() error {
 	return obj.dump(obj.Client)
 }
+
 func (obj *Client) BeforeSave() error {
 	return obj.dump(obj.Client)
 }

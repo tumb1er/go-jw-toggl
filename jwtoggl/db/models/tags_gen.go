@@ -10,6 +10,7 @@ import (
 func (obj *Tag) BeforeCreate() error {
 	return obj.dump(obj.Tag)
 }
+
 func (obj *Tag) BeforeSave() error {
 	return obj.dump(obj.Tag)
 }
