@@ -22,6 +22,9 @@ func (j *jApp) StartSync(ctx context.Context) {
 		j.OnTagsChanged(j.db.ListTags())
 		j.OnClientsChanged(j.db.ListClients())
 	}
+	if err := j.db.SyncCurrentEntry(true); err != nil {
+		j.OnCurrentEntryChanged(j.db.GetCurrentEntry(), false)
+	}
 	log.Println("Start periodic sync")
 	j.periodicSync(ctx)
 }
@@ -44,7 +47,7 @@ func (j *jApp) OnClientsChanged(clients gtclient.Clients) {
 }
 
 func (j *jApp) periodicSync(ctx context.Context) {
-	t := time.NewTicker(time.Second * 10)
+	t := time.NewTicker(time.Second * 120)
 	t2 := time.NewTicker(time.Second)
 	j.db.StartListen(ctx)
 	j.doSync()
@@ -64,7 +67,7 @@ func (j *jApp) periodicSync(ctx context.Context) {
 func (j *jApp) doSync() {
 	log.Println("start sync")
 	defer log.Println("sync done")
-	j.handleError(j.db.SyncCurrentEntry(), "Sync current entry error")
+	j.handleError(j.db.SyncCurrentEntry(false), "Sync current entry error")
 	j.handleError(j.db.SyncLastEntries(), "Sync last entries error")
 }
 

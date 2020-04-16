@@ -90,7 +90,7 @@ func (db *DB) UpdateCurrentEntry(entry *gttimeentry.TimeEntry) error {
 		return err
 	}
 	if db.update(*entry) {
-		db.onCurrentEntry(db.getCurrentEntry(), false)
+		db.onCurrentEntry(db.GetCurrentEntry(), false)
 	}
 	return nil
 }
@@ -114,7 +114,7 @@ func (db *DB) createNewEntry(entry *gttimeentry.TimeEntry, notify bool) error {
 	if err != nil {
 		return err
 	}
-	old := db.getCurrentEntry()
+	old := db.GetCurrentEntry()
 	db.update(*entry)
 	if old != nil && old.Id != entry.Id && tools.IsCurrent(*entry) {
 		old.Stop = entry.Start
@@ -130,7 +130,7 @@ func (db *DB) StopEntry(entry *gttimeentry.TimeEntry) error {
 	if entry == nil {
 		return nil
 	}
-	current := db.getCurrentEntry()
+	current := db.GetCurrentEntry()
 	if current == nil || current.Id != entry.Id {
 		return errors.New("current entry de-sync")
 	}
@@ -172,27 +172,29 @@ func (db *DB) DeleteEntry(id uint64) error {
 	return nil
 }
 
-func (db *DB) SyncCurrentEntry() error {
-	old := db.getCurrentEntry()
+func (db *DB) SyncCurrentEntry(force bool) error {
+	old := db.GetCurrentEntry()
 	entry, err := db.client.TimeentryClient.Current()
 	if err != nil {
 		return err
 	}
-	if entry != nil && db.update(*entry) {
-		current := db.getCurrentEntry()
-		if !tools.EntriesEqual(old, current) {
+	if entry != nil && db.update(*entry) || force {
+		current := db.GetCurrentEntry()
+		if !tools.EntriesEqual(old, current) || force {
 			db.onCurrentEntry(current, true)
 		}
 	}
 	return nil
 }
 
-func (db *DB) getCurrentEntry() *gttimeentry.TimeEntry {
+func (db *DB) GetCurrentEntry() *gttimeentry.TimeEntry {
 	var entry Entry
 	if res := db.db.Where("stop = ?", time.Time{}).First(&entry); res.RecordNotFound() {
 		return nil
 	} else if res.Error != nil {
 		log.Fatal(res.Error)
+	} else {
+		log.Printf("GetCurrentEntry: %+v\n", entry.TimeEntry)
 	}
 	return &entry.TimeEntry
 }
@@ -200,13 +202,13 @@ func (db *DB) getCurrentEntry() *gttimeentry.TimeEntry {
 func (db *DB) SyncLastEntries() error {
 	end := time.Now()
 	start := end.Add(-72 * time.Hour)
-	old := db.getCurrentEntry()
+	old := db.GetCurrentEntry()
 	entries, err := db.client.TimeentryClient.GetRange(start, end)
 	if err != nil {
 		return err
 	}
 	if db.saveEntries(entries) {
-		current := db.getCurrentEntry()
+		current := db.GetCurrentEntry()
 		if !tools.EntriesEqual(current, old) {
 			db.onCurrentEntry(current, true)
 		}
@@ -262,11 +264,11 @@ func (db *DB) onTagAction(action string, tag gttag.Tag) error {
 }
 
 func (db *DB) onTimeEntryAction(action string, timeEntry gttimeentry.TimeEntry) error {
-	old := db.getCurrentEntry()
+	old := db.GetCurrentEntry()
 	entry := Entry{TimeEntry: timeEntry}
 	if action == gtwebsocket.ActionDelete {
 		entry.Delete(db.db)
-		current := db.getCurrentEntry()
+		current := db.GetCurrentEntry()
 		if !tools.EntriesEqual(old, current) {
 			// Обновился текущий
 			db.onCurrentEntry(current, true)
@@ -276,7 +278,7 @@ func (db *DB) onTimeEntryAction(action string, timeEntry gttimeentry.TimeEntry) 
 
 	} else if action == gtwebsocket.ActionUpdate || action == gtwebsocket.ActionInsert {
 		if db.update(timeEntry) {
-			current := db.getCurrentEntry()
+			current := db.GetCurrentEntry()
 			if !tools.EntriesEqual(old, current) {
 				// Обновился текущий
 				db.onCurrentEntry(current, true)
@@ -411,7 +413,7 @@ func (db *DB) ListClients() gtclient.Clients {
 
 func (db *DB) ListEntries() gttimeentry.TimeEntries {
 	queryset := make(Entries, 0)
-	db.db.Order("start desc").Find(&queryset)
+	db.db.Where("stop <> ?", time.Time{}).Order("start desc").Find(&queryset)
 	result := make(gttimeentry.TimeEntries, len(queryset))
 	for i, c := range queryset {
 		result[i] = c.TimeEntry
