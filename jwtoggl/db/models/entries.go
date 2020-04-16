@@ -29,7 +29,7 @@ type TimeEntries []TimeEntry
 
 func ListEntries(db *gorm.DB) gttimeentry.TimeEntries {
 	qs := NewTimeEntries()
-	length := Must(db.Order("start DESC").Find(qs))
+	length := Must(db.Debug().Order("start DESC").Find(qs))
 	result := make(gttimeentry.TimeEntries, length)
 	for i, c := range *qs {
 		result[i] = c.TimeEntry

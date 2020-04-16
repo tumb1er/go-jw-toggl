@@ -187,7 +187,7 @@ func (db *DB) SyncCurrentEntry(force bool) error {
 	return nil
 }
 
-func (db *DB) SyncLastEntries() error {
+func (db *DB) SyncLastEntries(force bool) error {
 	end := time.Now()
 	start := end.Add(-72 * time.Hour)
 	old := models.CurrentEntry(db.db)
@@ -195,7 +195,7 @@ func (db *DB) SyncLastEntries() error {
 	if err != nil {
 		return err
 	}
-	if db.saveEntries(entries) {
+	if db.saveEntries(entries) || force {
 		current := models.CurrentEntry(db.db)
 		if !tools.TimeEntriesEqual(current, old) {
 			db.onCurrentEntry(current, true)
@@ -396,4 +396,8 @@ func (db *DB) ListClients() gtclient.Clients {
 
 func (db *DB) GetCurrentEntry() *gttimeentry.TimeEntry {
 	return models.CurrentEntry(db.db)
+}
+
+func (db *DB) ListEntries() gttimeentry.TimeEntries {
+	return models.ListEntries(db.db)
 }

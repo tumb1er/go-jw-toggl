@@ -25,6 +25,9 @@ func (j *jApp) StartSync(ctx context.Context) {
 	if err := j.db.SyncCurrentEntry(true); err != nil {
 		j.OnCurrentEntryChanged(j.db.GetCurrentEntry(), false)
 	}
+	if err := j.db.SyncLastEntries(true); err != nil {
+		j.entries.SetEntries(j.db.ListEntries())
+	}
 	log.Println("Start periodic sync")
 	j.periodicSync(ctx)
 }
@@ -68,7 +71,7 @@ func (j *jApp) doSync() {
 	log.Println("start sync")
 	defer log.Println("sync done")
 	j.handleError(j.db.SyncCurrentEntry(false), "Sync current entry error")
-	j.handleError(j.db.SyncLastEntries(), "Sync last entries error")
+	j.handleError(j.db.SyncLastEntries(false), "Sync last entries error")
 }
 
 func (j *jApp) syncDuration() {
