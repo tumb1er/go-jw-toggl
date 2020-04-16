@@ -126,7 +126,6 @@ func (f *EntryForm) SetProjects(projects gtproject.Projects) {
 
 func (f *EntryForm) SetTimeEntry(entry *gttimeentry.TimeEntry) {
 	f.timeEntry = entry
-	log.Printf("SetTimeentry: %+v\n", *entry)
 	f.g.SetTimeEntry(entry)
 }
 
