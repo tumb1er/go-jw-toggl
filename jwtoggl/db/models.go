@@ -167,7 +167,31 @@ func (projects *Projects) Sync(db *gorm.DB, fetchedAt time.Time) (changed bool, 
 type Entry struct {
 	Synced
 	gttimeentry.TimeEntry
-	Tags []string `gorm:"-"`
+	Tags  []string `gorm:"-"`
+	TagId uint64
+	Tag   Tag `gorm:"foreignkey:TagId;association_foreignkey:Id"`
+}
+
+func (e *Entry) BeforeSave(scope *gorm.Scope) error {
+	if len(e.TimeEntry.Tags) > 0 && e.TagId == 0 {
+		tagName := e.TimeEntry.Tags[0]
+		tag := Tag{}
+		if res := scope.DB().Where("name = ?", tagName).First(&tag); res.Error != nil {
+			return res.Error
+		}
+		e.TagId = tag.Id
+
+	}
+	return nil
+}
+
+func (e *Entry) AfterFind() error {
+	if e.Tag.Name != "" {
+		e.TimeEntry.Tags = []string{e.Tag.Name}
+	} else {
+		e.TimeEntry.Tags = []string{}
+	}
+	return nil
 }
 
 func (e Entry) Delete(db *gorm.DB) {
@@ -187,6 +211,16 @@ func NewEntries(entries gttimeentry.TimeEntries) *Entries {
 }
 
 func (entries *Entries) Sync(db *gorm.DB, fetchedAt time.Time) (changed bool, err error) {
+
+	tags := make(Tags, 0)
+	if res := db.Find(&tags); res.Error != nil {
+		log.Fatal(res.Error)
+	}
+	tagsByName := make(map[string]uint64)
+	for _, t := range tags {
+		tagsByName[t.Name] = t.Id
+	}
+
 	err = db.Transaction(func(tx *gorm.DB) error {
 		existing := new(Entries)
 		if res := tx.Find(existing); res.Error != nil {
@@ -199,6 +233,13 @@ func (entries *Entries) Sync(db *gorm.DB, fetchedAt time.Time) (changed bool, er
 
 		for _, v := range *entries {
 			v.FetchedAt = fetchedAt
+			v.TagId = 0
+			if len(v.Tags) > 0 {
+				tag := v.Tags[0]
+				if tid, ok := tagsByName[tag]; ok {
+					v.TagId = tid
+				}
+			}
 			if e, ok := extIdMap[v.Id]; ok {
 				v.PK = e.PK
 				if !tools.EntriesEqual(&v.TimeEntry, &e.TimeEntry) {

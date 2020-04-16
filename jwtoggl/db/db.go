@@ -189,12 +189,10 @@ func (db *DB) SyncCurrentEntry(force bool) error {
 
 func (db *DB) GetCurrentEntry() *gttimeentry.TimeEntry {
 	var entry Entry
-	if res := db.db.Where("stop = ?", time.Time{}).First(&entry); res.RecordNotFound() {
+	if res := db.db.Preload("Tag").Where("stop = ?", time.Time{}).First(&entry); res.RecordNotFound() {
 		return nil
 	} else if res.Error != nil {
 		log.Fatal(res.Error)
-	} else {
-		log.Printf("GetCurrentEntry: %+v\n", entry.TimeEntry)
 	}
 	return &entry.TimeEntry
 }
@@ -413,7 +411,7 @@ func (db *DB) ListClients() gtclient.Clients {
 
 func (db *DB) ListEntries() gttimeentry.TimeEntries {
 	queryset := make(Entries, 0)
-	db.db.Where("stop <> ?", time.Time{}).Order("start desc").Find(&queryset)
+	db.db.Preload("Tag").Where("stop <> ?", time.Time{}).Order("start desc").Find(&queryset)
 	result := make(gttimeentry.TimeEntries, len(queryset))
 	for i, c := range queryset {
 		result[i] = c.TimeEntry
