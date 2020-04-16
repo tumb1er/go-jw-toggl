@@ -5,12 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jinzhu/gorm"
+	"go-jw-toggl/jwtoggl/db/models"
 	"go-jw-toggl/jwtoggl/gtoggl"
 	"go-jw-toggl/jwtoggl/gtoggl/gtclient"
 	"go-jw-toggl/jwtoggl/gtoggl/gthttp"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
-	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
+	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
 	"go-jw-toggl/jwtoggl/gtoggl/gtwebsocket"
 	"go-jw-toggl/jwtoggl/tools"
 	"log"
@@ -58,7 +59,7 @@ func NewDB(token string, database *gorm.DB) (*DB, error) {
 		tags:       make(map[uint64]*gttag.Tag),
 		clients:    make(map[uint64]*gtclient.Client),
 	}
-	db.Migrate()
+	models.Migrate(db.db)
 	return db, nil
 }
 
@@ -90,7 +91,7 @@ func (db *DB) UpdateCurrentEntry(entry *gttimeentry.TimeEntry) error {
 		return err
 	}
 	if db.update(*entry) {
-		db.onCurrentEntry(db.GetCurrentEntry(), false)
+		db.onCurrentEntry(models.CurrentEntry(db.db), false)
 	}
 	return nil
 }
@@ -114,13 +115,13 @@ func (db *DB) createNewEntry(entry *gttimeentry.TimeEntry, notify bool) error {
 	if err != nil {
 		return err
 	}
-	old := db.GetCurrentEntry()
+	old := models.CurrentEntry(db.db)
 	db.update(*entry)
 	if old != nil && old.Id != entry.Id && tools.IsCurrent(*entry) {
 		old.Stop = entry.Start
 		old.Duration = int64(old.Stop.Sub(old.Start).Seconds())
 		db.update(*old)
-		db.onEntriesChanged(db.ListEntries())
+		db.onEntriesChanged(models.ListEntries(db.db))
 	}
 	db.onCurrentEntry(entry, notify)
 	return nil
@@ -130,7 +131,7 @@ func (db *DB) StopEntry(entry *gttimeentry.TimeEntry) error {
 	if entry == nil {
 		return nil
 	}
-	current := db.GetCurrentEntry()
+	current := models.CurrentEntry(db.db)
 	if current == nil || current.Id != entry.Id {
 		return errors.New("current entry de-sync")
 	}
@@ -140,14 +141,14 @@ func (db *DB) StopEntry(entry *gttimeentry.TimeEntry) error {
 	}
 	db.update(*entry)
 	db.onCurrentEntry(nil, false)
-	db.onEntriesChanged(db.ListEntries())
+	db.onEntriesChanged(models.ListEntries(db.db))
 	return nil
 }
 
 func (db *DB) ContinueEntry(id uint64) error {
 	var entry *gttimeentry.TimeEntry
 	var err error
-	if prev, ok := db.getEntryById(id); ok {
+	if prev := models.EntryById(db.db, id); prev != nil {
 		entry = prev
 	} else {
 		entry, err = db.client.TimeentryClient.Get(id)
@@ -166,51 +167,40 @@ func (db *DB) DeleteEntry(id uint64) error {
 	if err := db.client.TimeentryClient.Delete(id); err != nil {
 		return err
 	}
-	entry := Entry{TimeEntry: gttimeentry.TimeEntry{Id: id}}
-	entry.Delete(db.db)
-	db.onEntriesChanged(db.ListEntries())
+	models.DeleteEntry(db.db, id)
+	db.onEntriesChanged(models.ListEntries(db.db))
 	return nil
 }
 
 func (db *DB) SyncCurrentEntry(force bool) error {
-	old := db.GetCurrentEntry()
+	old := models.CurrentEntry(db.db)
 	entry, err := db.client.TimeentryClient.Current()
 	if err != nil {
 		return err
 	}
 	if entry != nil && db.update(*entry) || force {
-		current := db.GetCurrentEntry()
-		if !tools.EntriesEqual(old, current) || force {
+		current := models.CurrentEntry(db.db)
+		if !tools.TimeEntriesEqual(old, current) || force {
 			db.onCurrentEntry(current, true)
 		}
 	}
 	return nil
 }
 
-func (db *DB) GetCurrentEntry() *gttimeentry.TimeEntry {
-	var entry Entry
-	if res := db.db.Preload("Tag").Where("stop = ?", time.Time{}).First(&entry); res.RecordNotFound() {
-		return nil
-	} else if res.Error != nil {
-		log.Fatal(res.Error)
-	}
-	return &entry.TimeEntry
-}
-
 func (db *DB) SyncLastEntries() error {
 	end := time.Now()
 	start := end.Add(-72 * time.Hour)
-	old := db.GetCurrentEntry()
+	old := models.CurrentEntry(db.db)
 	entries, err := db.client.TimeentryClient.GetRange(start, end)
 	if err != nil {
 		return err
 	}
 	if db.saveEntries(entries) {
-		current := db.GetCurrentEntry()
-		if !tools.EntriesEqual(current, old) {
+		current := models.CurrentEntry(db.db)
+		if !tools.TimeEntriesEqual(current, old) {
 			db.onCurrentEntry(current, true)
 		}
-		db.onEntriesChanged(db.ListEntries())
+		db.onEntriesChanged(models.ListEntries(db.db))
 	}
 	return nil
 }
@@ -222,13 +212,13 @@ func (db *DB) SyncUser(force bool) error {
 	}
 	db.defaultWId = user.DefaultWId
 	if db.saveTags(user.Tags) || force {
-		db.onTagsChanged(db.ListTags())
+		db.onTagsChanged(models.ListTags(db.db))
 	}
 	if db.saveClients(user.Clients) || force {
-		db.onClientsChanged(db.ListClients())
+		db.onClientsChanged(models.ListClients(db.db))
 	}
 	if db.saveProjects(user.Projects) || force {
-		db.onProjectsChanged(db.ListProjects())
+		db.onProjectsChanged(models.ListProjects(db.db))
 	}
 	return nil
 }
@@ -262,37 +252,31 @@ func (db *DB) onTagAction(action string, tag gttag.Tag) error {
 }
 
 func (db *DB) onTimeEntryAction(action string, timeEntry gttimeentry.TimeEntry) error {
-	old := db.GetCurrentEntry()
-	entry := Entry{TimeEntry: timeEntry}
+	old := models.CurrentEntry(db.db)
 	if action == gtwebsocket.ActionDelete {
-		entry.Delete(db.db)
-		current := db.GetCurrentEntry()
-		if !tools.EntriesEqual(old, current) {
+		models.DeleteEntry(db.db, timeEntry.Id)
+		current := models.CurrentEntry(db.db)
+		if !tools.TimeEntriesEqual(old, current) {
 			// Обновился текущий
 			db.onCurrentEntry(current, true)
 		} else {
-			db.onEntriesChanged(db.ListEntries())
+			db.onEntriesChanged(models.ListEntries(db.db))
 		}
 
 	} else if action == gtwebsocket.ActionUpdate || action == gtwebsocket.ActionInsert {
 		if db.update(timeEntry) {
-			current := db.GetCurrentEntry()
-			if !tools.EntriesEqual(old, current) {
+			current := models.CurrentEntry(db.db)
+			if !tools.TimeEntriesEqual(old, current) {
 				// Обновился текущий
 				db.onCurrentEntry(current, true)
 			}
-			db.onEntriesChanged(db.ListEntries())
+			db.onEntriesChanged(models.ListEntries(db.db))
 
 		}
 	} else {
 		return fmt.Errorf("unhandled action: %s", action)
 	}
 	return nil
-}
-
-func (db *DB) Migrate() {
-	// Миграция схем
-	db.db.AutoMigrate(&Tag{}, &Client{}, &Project{}, &Entry{})
 }
 
 func (db *DB) saveTags(tags gttag.Tags) bool {
@@ -307,7 +291,7 @@ func (db *DB) saveTags(tags gttag.Tags) bool {
 	}
 	tags = tags[:c]
 
-	queryset := NewTags(tags)
+	queryset := models.NewTags(tags)
 	if changed, err := queryset.Sync(db.db, time.Now()); err != nil {
 		log.Fatal("Tags sync error: ", err)
 		return false
@@ -328,7 +312,7 @@ func (db *DB) saveClients(clients gtclient.Clients) bool {
 	}
 	clients = clients[:c]
 
-	queryset := NewClients(clients)
+	queryset := models.NewClients(clients)
 	if changed, err := queryset.Sync(db.db, time.Now()); err != nil {
 		log.Fatal("Clients sync error: ", err)
 		return false
@@ -349,7 +333,7 @@ func (db *DB) saveProjects(projects gtproject.Projects) bool {
 	}
 	projects = projects[:c]
 
-	queryset := NewProjects(projects)
+	queryset := models.NewProjects(projects)
 	if changed, err := queryset.Sync(db.db, time.Now()); err != nil {
 		log.Fatal("Projects sync error: ", err)
 		return false
@@ -370,7 +354,7 @@ func (db *DB) saveEntries(entries gttimeentry.TimeEntries) bool {
 	}
 	entries = entries[:c]
 
-	queryset := NewEntries(entries)
+	queryset := models.NewTimeEntries(entries)
 	if changed, err := queryset.Sync(db.db, time.Now()); err != nil {
 		log.Fatal("Entries sync error: ", err)
 		return false
@@ -379,84 +363,37 @@ func (db *DB) saveEntries(entries gttimeentry.TimeEntries) bool {
 	}
 }
 
-func (db *DB) ListProjects() gtproject.Projects {
-	queryset := make(Projects, 0)
-	db.db.Order("name ASC").Find(&queryset)
-	result := make(gtproject.Projects, len(queryset))
-	for i, p := range queryset {
-		result[i] = p.Project
-	}
-	return result
-}
-
-func (db *DB) ListTags() gttag.Tags {
-	queryset := make(Tags, 0)
-	db.db.Order("name ASC").Find(&queryset)
-	result := make(gttag.Tags, len(queryset))
-	for i, t := range queryset {
-		result[i] = t.Tag
-	}
-	return result
-}
-
-func (db *DB) ListClients() gtclient.Clients {
-	queryset := make(Clients, 0)
-	db.db.Find(&queryset)
-	result := make(gtclient.Clients, len(queryset))
-	for i, c := range queryset {
-		result[i] = c.Client
-	}
-	return result
-}
-
-func (db *DB) ListEntries() gttimeentry.TimeEntries {
-	queryset := make(Entries, 0)
-	db.db.Preload("Tag").Where("stop <> ?", time.Time{}).Order("start desc").Find(&queryset)
-	result := make(gttimeentry.TimeEntries, len(queryset))
-	for i, c := range queryset {
-		result[i] = c.TimeEntry
-	}
-	return result
-}
-
-func (db *DB) entryById(id uint64) (Entry, bool) {
-	var entry Entry
-	if res := db.db.Where("id = ?", id).First(&entry); res.RecordNotFound() {
-		return entry, false
-	} else if res.Error != nil {
-		log.Fatal(res.Error)
-	}
-	return entry, true
-}
-
-func (db *DB) getEntryById(id uint64) (*gttimeentry.TimeEntry, bool) {
-	if entry, ok := db.entryById(id); !ok {
-		return nil, false
-	} else {
-		return &entry.TimeEntry, true
-	}
-}
-
 func (db *DB) update(timeEntry gttimeentry.TimeEntry) bool {
 	if timeEntry.Id == 0 {
 		log.Fatal("empty timeEntry id")
 	}
-	existing, ok := db.entryById(timeEntry.Id)
-	if !ok {
-		entry := Entry{TimeEntry: timeEntry}
-		if res := db.db.Create(&entry); res.Error != nil {
-			log.Fatal(res.Error)
-		}
+	existing := models.EntryById(db.db, timeEntry.Id)
+	if existing == nil {
+		models.CreateEntry(db.db, timeEntry)
 		return true
 	}
 
-	if tools.EntriesEqual(&existing.TimeEntry, &timeEntry) {
+	if tools.TimeEntriesEqual(existing, &timeEntry) {
 		// Нет изменений
 		return false
 	}
 
-	if res := db.db.Save(&existing); res.Error != nil {
-		log.Fatal(res.Error)
-	}
+	models.UpdateEntry(db.db, *existing)
 	return true
+}
+
+func (db *DB) ListProjects() gtproject.Projects {
+	return models.ListProjects(db.db)
+}
+
+func (db *DB) ListTags() gttag.Tags {
+	return models.ListTags(db.db)
+}
+
+func (db *DB) ListClients() gtclient.Clients {
+	return models.ListClients(db.db)
+}
+
+func (db *DB) GetCurrentEntry() *gttimeentry.TimeEntry {
+	return models.CurrentEntry(db.db)
 }

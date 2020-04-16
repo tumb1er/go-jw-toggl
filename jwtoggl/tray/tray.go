@@ -5,7 +5,7 @@ import (
 	"github.com/gotk3/gotk3/gtk"
 	"github.com/tumb1er/go-notifier/notifier"
 	"go-jw-toggl/jwtoggl/builder"
-	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
+	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
 	"go-jw-toggl/jwtoggl/tools"
 	"log"
 )

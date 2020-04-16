@@ -4,7 +4,7 @@ import (
 	"go-jw-toggl/jwtoggl/gtoggl/gtclient"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
-	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
+	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
 	"strings"
 )
 
@@ -26,7 +26,7 @@ func TagSlicesEqual(t1, t2 []string) bool {
 	return true
 }
 
-func EntriesEqual(e1, e2 *gttimeentry.TimeEntry) bool {
+func TimeEntriesEqual(e1, e2 *gttimeentry.TimeEntry) bool {
 	if (e1 == nil) != (e2 == nil) {
 		return false
 	}

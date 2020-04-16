@@ -6,7 +6,7 @@ import (
 	"go-jw-toggl/jwtoggl/entry_form/gtk_entry_form"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
-	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
+	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
 	"go-jw-toggl/jwtoggl/tools"
 	"log"
 	"time"
@@ -131,7 +131,7 @@ func (f *EntryForm) SetTimeEntry(entry *gttimeentry.TimeEntry) {
 
 func (f *EntryForm) CheckChanged() {
 	f.g.GetTimeEntry(func(entry *gttimeentry.TimeEntry) {
-		if entry != nil && entry.Id != 0 && !tools.EntriesEqual(f.timeEntry, entry) {
+		if entry != nil && entry.Id != 0 && !tools.TimeEntriesEqual(f.timeEntry, entry) {
 			log.Println("UPDATE!!!", entry.Start)
 			if f.onEntryChanged != nil {
 				f.onEntryChanged(entry)

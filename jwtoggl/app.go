@@ -8,7 +8,7 @@ import (
 	"go-jw-toggl/jwtoggl/builder"
 	"go-jw-toggl/jwtoggl/db"
 	"go-jw-toggl/jwtoggl/entry_form"
-	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
+	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
 	"go-jw-toggl/jwtoggl/history"
 	"go-jw-toggl/jwtoggl/status"
 	"go-jw-toggl/jwtoggl/tray"

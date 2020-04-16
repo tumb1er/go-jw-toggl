@@ -2,12 +2,15 @@ package main
 
 import (
 	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"go-jw-toggl/jwtoggl"
 	"go-jw-toggl/jwtoggl/tools"
 	"log"
 	"os"
 	"path"
 )
+
+//go:generate go generate go-jw-toggl/jwtoggl/db/models
 
 func main() {
 	dir := tools.GetAppDir()
