@@ -1,4 +1,4 @@
-package models
+package store
 
 import (
 	"github.com/jinzhu/gorm"
@@ -19,14 +19,23 @@ func (obj *TimeEntry) AfterFind() error {
 	return obj.load(&obj.TimeEntry)
 }
 
+func (m *TimeEntryManager) Sync(items gttimeentry.TimeEntries, ts time.Time) (bool, error) {
+	qs := NewTimeEntries(items)
+	return qs.Sync(m.gorm(), ts)
+}
+
+func (m *TimeEntryManager) gorm() *gorm.DB {
+	return (*gorm.DB)(m)
+}
+
 func NewTimeEntries(items ...gttimeentry.TimeEntries) *TimeEntries {
 	if len(items) == 0 {
 		result := make(TimeEntries, 0)
 		return &result
 	}
 	result := make(TimeEntries, len(items[0]))
-	for i, c := range items[0] {
-		result[i] = TimeEntry{TimeEntry: c}
+	for i, item := range items[0] {
+		result[i] = TimeEntry{TimeEntry: item}
 	}
 	return &result
 }
@@ -34,9 +43,7 @@ func NewTimeEntries(items ...gttimeentry.TimeEntries) *TimeEntries {
 func (qs TimeEntries) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 	err = db.Transaction(func(tx *gorm.DB) error {
 		existing := NewTimeEntries()
-		if res := tx.Find(existing); res.Error != nil {
-			return res.Error
-		}
+		Must(tx.Find(existing))
 		extIdMap := make(map[uint64]TimeEntry)
 		for _, obj := range *existing {
 			extIdMap[obj.Id] = obj
@@ -49,17 +56,24 @@ func (qs TimeEntries) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) 
 				if !tools.TimeEntriesEqual(&obj.TimeEntry, &prev.TimeEntry) {
 					changed = true
 				}
-				tx.Save(&obj)
+				Must(tx.Save(&obj))
 			} else {
 				changed = true
-				tx.Create(&obj)
+				Must(tx.Create(&obj))
 			}
 		}
-		res := tx.Where("saved_at < ?", ts).Delete(TimeEntry{})
-		if res.Error == nil && res.RowsAffected > 0 {
-			changed = true
-		}
-		return res.Error
+		changed = MustOrNotFound(tx.Where("saved_at < ?", ts).Delete(TimeEntry{}))
+		return nil
 	})
 	return changed, err
+}
+
+func listTimeEntries(scope *gorm.DB) gttimeentry.TimeEntries {
+	qs := NewTimeEntries()
+	length := Must(scope.Find(qs))
+	result := make(gttimeentry.TimeEntries, length)
+	for i, obj := range *qs {
+		result[i] = obj.TimeEntry
+	}
+	return result
 }

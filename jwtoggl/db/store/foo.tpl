@@ -1,4 +1,4 @@
-package models
+package store
 
 import (
 	"github.com/jinzhu/gorm"
@@ -19,14 +19,23 @@ func (obj *Foo) AfterFind() error {
 	return obj.load(&obj.Foo)
 }
 
+func (m *FooManager) Sync(items foo.Foos, ts time.Time) (bool, error) {
+    qs := NewFoos(items)
+    return qs.Sync(m.gorm(), ts)
+}
+
+func (m *FooManager) gorm() *gorm.DB {
+	return (*gorm.DB)(m)
+}
+
 func NewFoos(items ...foo.Foos) *Foos {
 	if len(items) == 0 {
 		result := make(Foos, 0)
 		return &result
 	}
 	result := make(Foos, len(items[0]))
-	for i, c := range items[0] {
-		result[i] = Foo{Foo: c}
+	for i, item := range items[0] {
+		result[i] = Foo{Foo: item}
 	}
 	return &result
 }
@@ -34,9 +43,7 @@ func NewFoos(items ...foo.Foos) *Foos {
 func (qs Foos) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 	err = db.Transaction(func(tx *gorm.DB) error {
 		existing := NewFoos()
-		if res := tx.Find(existing); res.Error != nil {
-			return res.Error
-		}
+		Must(tx.Find(existing))
 		extIdMap := make(map[uint64]Foo)
 		for _, obj := range *existing {
 			extIdMap[obj.Id] = obj
@@ -49,17 +56,24 @@ func (qs Foos) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 				if !tools.FoosEqual(&obj.Foo, &prev.Foo) {
 					changed = true
 				}
-				tx.Save(&obj)
+				Must(tx.Save(&obj))
 			} else {
 				changed = true
-				tx.Create(&obj)
+				Must(tx.Create(&obj))
 			}
 		}
-		res := tx.Where("saved_at < ?", ts).Delete(Foo{})
-		if res.Error == nil && res.RowsAffected > 0 {
-			changed = true
-		}
-		return res.Error
+		changed = MustOrNotFound(tx.Where("saved_at < ?", ts).Delete(Foo{}))
+		return nil
 	})
 	return changed, err
+}
+
+func listFoos(scope *gorm.DB) foo.Foos {
+	qs := NewFoos()
+	length := Must(scope.Find(qs))
+	result := make(foo.Foos, length)
+	for i, obj := range *qs {
+		result[i] = obj.Foo
+	}
+	return result
 }

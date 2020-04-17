@@ -1,4 +1,4 @@
-package models
+package store
 
 //go:generate bash -c "sed 's/Foo/Client/g;s/foo/gtclient/g' foo.tpl > clients_gen.go"
 
@@ -14,12 +14,8 @@ type Client struct {
 
 type Clients []Client
 
-func ListClients(db *gorm.DB) gtclient.Clients {
-	qs := NewClients()
-	length := Must(db.Find(qs))
-	result := make(gtclient.Clients, length)
-	for i, c := range *qs {
-		result[i] = c.Client
-	}
-	return result
+type ClientManager gorm.DB
+
+func (m *ClientManager) List() gtclient.Clients {
+	return listClients(m.gorm())
 }

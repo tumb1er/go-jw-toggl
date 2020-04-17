@@ -1,4 +1,4 @@
-package models
+package store
 
 import (
 	"github.com/jinzhu/gorm"
@@ -19,14 +19,23 @@ func (obj *Project) AfterFind() error {
 	return obj.load(&obj.Project)
 }
 
+func (m *ProjectManager) Sync(items gtproject.Projects, ts time.Time) (bool, error) {
+	qs := NewProjects(items)
+	return qs.Sync(m.gorm(), ts)
+}
+
+func (m *ProjectManager) gorm() *gorm.DB {
+	return (*gorm.DB)(m)
+}
+
 func NewProjects(items ...gtproject.Projects) *Projects {
 	if len(items) == 0 {
 		result := make(Projects, 0)
 		return &result
 	}
 	result := make(Projects, len(items[0]))
-	for i, c := range items[0] {
-		result[i] = Project{Project: c}
+	for i, item := range items[0] {
+		result[i] = Project{Project: item}
 	}
 	return &result
 }
@@ -34,9 +43,7 @@ func NewProjects(items ...gtproject.Projects) *Projects {
 func (qs Projects) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 	err = db.Transaction(func(tx *gorm.DB) error {
 		existing := NewProjects()
-		if res := tx.Find(existing); res.Error != nil {
-			return res.Error
-		}
+		Must(tx.Find(existing))
 		extIdMap := make(map[uint64]Project)
 		for _, obj := range *existing {
 			extIdMap[obj.Id] = obj
@@ -49,17 +56,24 @@ func (qs Projects) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 				if !tools.ProjectsEqual(&obj.Project, &prev.Project) {
 					changed = true
 				}
-				tx.Save(&obj)
+				Must(tx.Save(&obj))
 			} else {
 				changed = true
-				tx.Create(&obj)
+				Must(tx.Create(&obj))
 			}
 		}
-		res := tx.Where("saved_at < ?", ts).Delete(Project{})
-		if res.Error == nil && res.RowsAffected > 0 {
-			changed = true
-		}
-		return res.Error
+		changed = MustOrNotFound(tx.Where("saved_at < ?", ts).Delete(Project{}))
+		return nil
 	})
 	return changed, err
+}
+
+func listProjects(scope *gorm.DB) gtproject.Projects {
+	qs := NewProjects()
+	length := Must(scope.Find(qs))
+	result := make(gtproject.Projects, length)
+	for i, obj := range *qs {
+		result[i] = obj.Project
+	}
+	return result
 }

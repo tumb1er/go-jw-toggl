@@ -1,4 +1,4 @@
-package models
+package store
 
 import (
 	"github.com/jinzhu/gorm"
@@ -19,14 +19,23 @@ func (obj *Client) AfterFind() error {
 	return obj.load(&obj.Client)
 }
 
+func (m *ClientManager) Sync(items gtclient.Clients, ts time.Time) (bool, error) {
+	qs := NewClients(items)
+	return qs.Sync(m.gorm(), ts)
+}
+
+func (m *ClientManager) gorm() *gorm.DB {
+	return (*gorm.DB)(m)
+}
+
 func NewClients(items ...gtclient.Clients) *Clients {
 	if len(items) == 0 {
 		result := make(Clients, 0)
 		return &result
 	}
 	result := make(Clients, len(items[0]))
-	for i, c := range items[0] {
-		result[i] = Client{Client: c}
+	for i, item := range items[0] {
+		result[i] = Client{Client: item}
 	}
 	return &result
 }
@@ -34,9 +43,7 @@ func NewClients(items ...gtclient.Clients) *Clients {
 func (qs Clients) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 	err = db.Transaction(func(tx *gorm.DB) error {
 		existing := NewClients()
-		if res := tx.Find(existing); res.Error != nil {
-			return res.Error
-		}
+		Must(tx.Find(existing))
 		extIdMap := make(map[uint64]Client)
 		for _, obj := range *existing {
 			extIdMap[obj.Id] = obj
@@ -49,17 +56,24 @@ func (qs Clients) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 				if !tools.ClientsEqual(&obj.Client, &prev.Client) {
 					changed = true
 				}
-				tx.Save(&obj)
+				Must(tx.Save(&obj))
 			} else {
 				changed = true
-				tx.Create(&obj)
+				Must(tx.Create(&obj))
 			}
 		}
-		res := tx.Where("saved_at < ?", ts).Delete(Client{})
-		if res.Error == nil && res.RowsAffected > 0 {
-			changed = true
-		}
-		return res.Error
+		changed = MustOrNotFound(tx.Where("saved_at < ?", ts).Delete(Client{}))
+		return nil
 	})
 	return changed, err
+}
+
+func listClients(scope *gorm.DB) gtclient.Clients {
+	qs := NewClients()
+	length := Must(scope.Find(qs))
+	result := make(gtclient.Clients, length)
+	for i, obj := range *qs {
+		result[i] = obj.Client
+	}
+	return result
 }

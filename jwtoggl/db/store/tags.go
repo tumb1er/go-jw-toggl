@@ -1,4 +1,4 @@
-package models
+package store
 
 //go:generate bash -c "sed 's/Foo/Tag/g;s/foo/gttag/g' foo.tpl > tags_gen.go"
 
@@ -14,12 +14,8 @@ type Tag struct {
 
 type Tags []Tag
 
-func ListTags(db *gorm.DB) gttag.Tags {
-	qs := NewTags()
-	length := Must(db.Order("name ASC").Find(qs))
-	result := make(gttag.Tags, length)
-	for i, c := range *qs {
-		result[i] = c.Tag
-	}
-	return result
+type TagManager gorm.DB
+
+func (m *TagManager) List() gttag.Tags {
+	return listTags(m.gorm().Order("name ASC"))
 }

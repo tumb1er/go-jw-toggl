@@ -1,4 +1,4 @@
-package models
+package store
 
 //go:generate bash -c "sed 's/Foo/Project/g;s/foo/gtproject/g' foo.tpl > projects_gen.go"
 
@@ -14,12 +14,8 @@ type Project struct {
 
 type Projects []Project
 
-func ListProjects(db *gorm.DB) gtproject.Projects {
-	qs := NewProjects()
-	length := Must(db.Order("name ASC").Find(qs))
-	result := make(gtproject.Projects, length)
-	for i, c := range *qs {
-		result[i] = c.Project
-	}
-	return result
+type ProjectManager gorm.DB
+
+func (m *ProjectManager) List() gtproject.Projects {
+	return listProjects(m.gorm().Order("name ASC"))
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"go-jw-toggl/jwtoggl/builder"
 	"go-jw-toggl/jwtoggl/db"
+	"go-jw-toggl/jwtoggl/db/store"
 	"go-jw-toggl/jwtoggl/entry_form"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
 	"go-jw-toggl/jwtoggl/history"
@@ -93,7 +94,8 @@ func NewApp(database *gorm.DB) *jApp {
 	if err != nil {
 		log.Fatal("Could not create GTK application:", err)
 	}
-	togglDb, err := db.NewDB(os.Getenv("TOGGL_KEY"), database)
+	togglDb, err := db.NewDB(os.Getenv("TOGGL_KEY"),
+		&db.StoreWrapper{Store: (*store.Store)(database)})
 	if err != nil {
 		log.Fatal("Could not create DB:", err)
 	}

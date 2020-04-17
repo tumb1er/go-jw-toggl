@@ -1,4 +1,4 @@
-package models
+package store
 
 import (
 	"github.com/jinzhu/gorm"
@@ -19,14 +19,23 @@ func (obj *Tag) AfterFind() error {
 	return obj.load(&obj.Tag)
 }
 
+func (m *TagManager) Sync(items gttag.Tags, ts time.Time) (bool, error) {
+	qs := NewTags(items)
+	return qs.Sync(m.gorm(), ts)
+}
+
+func (m *TagManager) gorm() *gorm.DB {
+	return (*gorm.DB)(m)
+}
+
 func NewTags(items ...gttag.Tags) *Tags {
 	if len(items) == 0 {
 		result := make(Tags, 0)
 		return &result
 	}
 	result := make(Tags, len(items[0]))
-	for i, c := range items[0] {
-		result[i] = Tag{Tag: c}
+	for i, item := range items[0] {
+		result[i] = Tag{Tag: item}
 	}
 	return &result
 }
@@ -34,9 +43,7 @@ func NewTags(items ...gttag.Tags) *Tags {
 func (qs Tags) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 	err = db.Transaction(func(tx *gorm.DB) error {
 		existing := NewTags()
-		if res := tx.Find(existing); res.Error != nil {
-			return res.Error
-		}
+		Must(tx.Find(existing))
 		extIdMap := make(map[uint64]Tag)
 		for _, obj := range *existing {
 			extIdMap[obj.Id] = obj
@@ -49,17 +56,24 @@ func (qs Tags) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 				if !tools.TagsEqual(&obj.Tag, &prev.Tag) {
 					changed = true
 				}
-				tx.Save(&obj)
+				Must(tx.Save(&obj))
 			} else {
 				changed = true
-				tx.Create(&obj)
+				Must(tx.Create(&obj))
 			}
 		}
-		res := tx.Where("saved_at < ?", ts).Delete(Tag{})
-		if res.Error == nil && res.RowsAffected > 0 {
-			changed = true
-		}
-		return res.Error
+		changed = MustOrNotFound(tx.Where("saved_at < ?", ts).Delete(Tag{}))
+		return nil
 	})
 	return changed, err
+}
+
+func listTags(scope *gorm.DB) gttag.Tags {
+	qs := NewTags()
+	length := Must(scope.Find(qs))
+	result := make(gttag.Tags, length)
+	for i, obj := range *qs {
+		result[i] = obj.Tag
+	}
+	return result
 }
