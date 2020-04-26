@@ -20,8 +20,8 @@ func (obj *Foo) AfterFind() error {
 }
 
 func (m *FooManager) Sync(items foo.Foos, ts time.Time) (bool, error) {
-    qs := NewFoos(items)
-    return qs.Sync(m.gorm(), ts)
+	qs := NewFoos(items)
+	return qs.Sync(m.gorm(), ts)
 }
 
 func (m *FooManager) gorm() *gorm.DB {
@@ -48,7 +48,7 @@ func (qs Foos) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 		for _, obj := range *existing {
 			extIdMap[obj.Id] = obj
 		}
-
+	
 		for _, obj := range qs {
 			obj.SavedAt = ts
 			if prev, ok := extIdMap[obj.Id]; ok {
