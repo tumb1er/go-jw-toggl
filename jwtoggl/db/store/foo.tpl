@@ -48,7 +48,7 @@ func (qs Foos) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 		for _, obj := range *existing {
 			extIdMap[obj.Id] = obj
 		}
-	
+
 		for _, obj := range qs {
 			obj.SavedAt = ts
 			if prev, ok := extIdMap[obj.Id]; ok {
