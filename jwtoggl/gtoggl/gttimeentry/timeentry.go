@@ -20,7 +20,7 @@ type TimeEntry struct {
 	Duration    int64                  `json:"duration"`
 	Billable    bool                   `json:"billable"`
 	Workspace   *gtworkspace.Workspace `json:"workspace"`
-	Tags        []string               `json:"tags"`
+	Tags        []string               `json:"tags" gorm:"-"`
 	Pid         uint64                 `json:"pid"`
 	Wid         uint64                 `json:"wid"`
 	Tid         uint64                 `json:"tid"`
@@ -61,8 +61,8 @@ func (c *TimeEntryClient) Current() (*TimeEntry, error) {
 	return timeEntryResponse(c.thc.GetRequest(c.currentEndpoint))
 }
 
-func (tc *TimeEntryClient) Delete(id uint64) error {
-	_, err := tc.thc.DeleteRequest(fmt.Sprintf("%s/%d", tc.endpoint, id), nil)
+func (c *TimeEntryClient) Delete(id uint64) error {
+	_, err := c.thc.DeleteRequest(fmt.Sprintf("%s/%d", c.endpoint, id), nil)
 	return err
 }
 

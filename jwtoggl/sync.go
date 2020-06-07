@@ -5,7 +5,7 @@ import (
 	"go-jw-toggl/jwtoggl/gtoggl/gtclient"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
-	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
+	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
 	"log"
 	"time"
 )
@@ -16,13 +16,24 @@ func (j *jApp) StartSync(ctx context.Context) {
 	j.db.OnTagsChanged(j.OnTagsChanged)
 	j.db.OnClientsChanged(j.OnClientsChanged)
 	j.db.OnEntriesChanged(j.entries.SetEntries)
-	j.syncUser()
+	if err := j.db.SyncUser(true); err != nil {
+		j.handleError(err, "Sync error")
+		j.OnProjectsChanged(j.db.ListProjects())
+		j.OnTagsChanged(j.db.ListTags())
+		j.OnClientsChanged(j.db.ListClients())
+	}
+	if err := j.db.SyncCurrentEntry(true); err != nil {
+		j.OnCurrentEntryChanged(j.db.GetCurrentEntry(), false)
+	}
+	if err := j.db.SyncLastEntries(true); err != nil {
+		j.entries.SetEntries(j.db.ListEntries())
+	}
 	log.Println("Start periodic sync")
 	j.periodicSync(ctx)
 }
 
 func (j *jApp) syncUser() {
-	j.handleError(j.db.SyncUser(), "Sync error")
+	j.handleError(j.db.SyncUser(false), "Sync error")
 }
 
 func (j *jApp) OnProjectsChanged(projects gtproject.Projects) {
@@ -39,7 +50,7 @@ func (j *jApp) OnClientsChanged(clients gtclient.Clients) {
 }
 
 func (j *jApp) periodicSync(ctx context.Context) {
-	t := time.NewTicker(time.Second * 10)
+	t := time.NewTicker(time.Second * 120)
 	t2 := time.NewTicker(time.Second)
 	j.db.StartListen(ctx)
 	j.doSync()
@@ -59,8 +70,8 @@ func (j *jApp) periodicSync(ctx context.Context) {
 func (j *jApp) doSync() {
 	log.Println("start sync")
 	defer log.Println("sync done")
-	j.handleError(j.db.SyncCurrentEntry(), "Sync current entry error")
-	j.handleError(j.db.SyncLastEntries(), "Sync last entries error")
+	j.handleError(j.db.SyncCurrentEntry(false), "Sync current entry error")
+	j.handleError(j.db.SyncLastEntries(false), "Sync last entries error")
 }
 
 func (j *jApp) syncDuration() {

@@ -9,7 +9,7 @@ import (
 	"go-jw-toggl/jwtoggl/gtoggl/gthttp"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
-	"go-jw-toggl/jwtoggl/gtoggl/gttimentry"
+	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
 	"go-jw-toggl/jwtoggl/gtoggl/gtwebsocket"
 	"go-jw-toggl/jwtoggl/tools"
 	"log"
@@ -26,13 +26,13 @@ type OnOnlineStatusChangedCallback func(online bool)
 
 type DB struct {
 	client     *gtoggl.TogglClient
-	store      EntryStore
 	httpClient *http.Client
 	sub        *gtwebsocket.TogglWebsocketClient
 	projects   map[uint64]*gtproject.Project
 	tags       map[uint64]*gttag.Tag
 	clients    map[uint64]*gtclient.Client
 	defaultWId uint64
+	store      Store
 
 	onCurrentEntry    OnCurrentEntryCallback
 	onProjectsChanged OnProjectsChangedCallback
@@ -41,25 +41,24 @@ type DB struct {
 	onClientsChanged  OnClientsChangedCallback
 }
 
-func NewDB(token string) (*DB, error) {
+func NewDB(token string, store Store) (*DB, error) {
 	httpClient := &http.Client{Timeout: time.Second}
 	client, err := gtoggl.NewClient(token, gthttp.SetHttpClient(httpClient))
 	if err != nil {
 		return nil, err
 	}
 	sub := gtwebsocket.NewClient(token)
-	return &DB{
-		store: EntryStore{
-			index: make(map[uint64]int),
-			list:  make(gttimeentry.TimeEntries, 0),
-		},
+	db := &DB{
+		store:      store,
 		client:     client,
 		httpClient: httpClient,
 		sub:        sub,
 		projects:   make(map[uint64]*gtproject.Project),
 		tags:       make(map[uint64]*gttag.Tag),
 		clients:    make(map[uint64]*gtclient.Client),
-	}, nil
+	}
+	db.store.Migrate()
+	return db, nil
 }
 
 func (db *DB) OnCurrentEntry(cb OnCurrentEntryCallback) {
@@ -89,8 +88,8 @@ func (db *DB) UpdateCurrentEntry(entry *gttimeentry.TimeEntry) error {
 	if err != nil {
 		return err
 	}
-	if db.store.Update(*entry) {
-		db.onCurrentEntry(db.store.Current(), false)
+	if db.update(*entry) {
+		db.onCurrentEntry(db.store.Entries().Current(), false)
 	}
 	return nil
 }
@@ -114,13 +113,13 @@ func (db *DB) createNewEntry(entry *gttimeentry.TimeEntry, notify bool) error {
 	if err != nil {
 		return err
 	}
-	old := db.store.Current()
-	db.store.Update(*entry)
+	old := db.store.Entries().Current()
+	db.update(*entry)
 	if old != nil && old.Id != entry.Id && tools.IsCurrent(*entry) {
 		old.Stop = entry.Start
 		old.Duration = int64(old.Stop.Sub(old.Start).Seconds())
-		db.store.Update(*old)
-		db.onEntriesChanged(db.store.List())
+		db.update(*old)
+		db.onEntriesChanged(db.store.Entries().List())
 	}
 	db.onCurrentEntry(entry, notify)
 	return nil
@@ -130,7 +129,7 @@ func (db *DB) StopEntry(entry *gttimeentry.TimeEntry) error {
 	if entry == nil {
 		return nil
 	}
-	current := db.store.Current()
+	current := db.store.Entries().Current()
 	if current == nil || current.Id != entry.Id {
 		return errors.New("current entry de-sync")
 	}
@@ -138,17 +137,17 @@ func (db *DB) StopEntry(entry *gttimeentry.TimeEntry) error {
 	if err != nil {
 		return err
 	}
-	db.store.Update(*entry)
+	db.update(*entry)
 	db.onCurrentEntry(nil, false)
-	db.onEntriesChanged(db.store.List())
+	db.onEntriesChanged(db.store.Entries().List())
 	return nil
 }
 
 func (db *DB) ContinueEntry(id uint64) error {
 	var entry *gttimeentry.TimeEntry
 	var err error
-	if prev, ok := db.store.Get(id); ok {
-		entry = &prev
+	if prev := db.store.Entries().Get(id); prev != nil {
+		entry = prev
 	} else {
 		entry, err = db.client.TimeentryClient.Get(id)
 		if err != nil {
@@ -166,104 +165,64 @@ func (db *DB) DeleteEntry(id uint64) error {
 	if err := db.client.TimeentryClient.Delete(id); err != nil {
 		return err
 	}
-	entry := gttimeentry.TimeEntry{Id: id}
-	db.store.Delete(entry)
-	db.onEntriesChanged(db.store.List())
+	entries := db.store.Entries()
+	entries.Delete(id)
+	db.onEntriesChanged(entries.List())
 	return nil
 }
 
-func (db *DB) SyncCurrentEntry() error {
-	old := db.store.Current()
+func (db *DB) SyncCurrentEntry(force bool) error {
+	old := db.store.Entries().Current()
 	entry, err := db.client.TimeentryClient.Current()
 	if err != nil {
 		return err
 	}
-	if entry != nil && db.store.Update(*entry) {
-		current := db.store.Current()
-		if !tools.EntriesEqual(old, current) {
+	if entry != nil && db.update(*entry) || force {
+		current := db.store.Entries().Current()
+		if old == nil && current == nil {
+			// prevent notify change nil to nil
+			log.Println("Skip notify change current entry nil to nil")
+			return nil
+		}
+		if !tools.TimeEntriesEqual(old, current) || force {
 			db.onCurrentEntry(current, true)
 		}
 	}
 	return nil
 }
 
-func (db *DB) SyncLastEntries() error {
+func (db *DB) SyncLastEntries(force bool) error {
 	end := time.Now()
 	start := end.Add(-72 * time.Hour)
-	old := db.store.Current()
+	old := db.store.Entries().Current()
 	entries, err := db.client.TimeentryClient.GetRange(start, end)
 	if err != nil {
 		return err
-	} else {
-		if db.store.BulkUpdate(entries) {
-			current := db.store.Current()
-			if !tools.EntriesEqual(current, old) {
-				db.onCurrentEntry(current, true)
-			}
-			db.onEntriesChanged(db.store.List())
+	}
+	if db.saveEntries(entries) || force {
+		current := db.store.Entries().Current()
+		if !tools.TimeEntriesEqual(current, old) {
+			db.onCurrentEntry(current, true)
 		}
+		db.onEntriesChanged(db.store.Entries().List())
 	}
 	return nil
 }
 
-func (db *DB) SyncUser() error {
+func (db *DB) SyncUser(force bool) error {
 	user, err := db.client.UserClient.Get(true)
 	if err != nil {
 		return err
 	}
 	db.defaultWId = user.DefaultWId
-	var changed bool
-	projects := make(gtproject.Projects, 0, len(user.Projects))
-	for _, project := range user.Projects {
-		if project.WId != user.DefaultWId || !project.Active {
-			continue
-		} else {
-			projects = append(projects, project)
-		}
-		existing, ok := db.projects[project.Id]
-		if !ok || !tools.ProjectsEqual(existing, &project) {
-			db.projects[project.Id] = &project
-			changed = true
-		}
+	if db.saveTags(user.Tags) || force {
+		db.onTagsChanged(db.store.Tags().List())
 	}
-	if changed && db.onProjectsChanged != nil {
-		db.onProjectsChanged(projects)
+	if db.saveClients(user.Clients) || force {
+		db.onClientsChanged(db.store.Clients().List())
 	}
-
-	changed = false
-	tags := make(gttag.Tags, 0, len(user.Tags))
-	for _, tag := range user.Tags {
-		if tag.WId != user.DefaultWId {
-			continue
-		} else {
-			tags = append(tags, tag)
-		}
-		existing, ok := db.tags[tag.Id]
-		if !ok || !tools.TagsEqual(existing, &tag) {
-			db.tags[tag.Id] = &tag
-			changed = true
-		}
-	}
-	if changed && db.onTagsChanged != nil {
-		db.onTagsChanged(tags)
-	}
-
-	changed = false
-	clients := make(gtclient.Clients, 0, len(user.Clients))
-	for _, client := range user.Clients {
-		if client.WId != user.DefaultWId {
-			continue
-		} else {
-			clients = append(clients, client)
-		}
-		existing, ok := db.clients[client.Id]
-		if !ok || !tools.ClientsEqual(existing, &client) {
-			db.clients[client.Id] = &client
-			changed = true
-		}
-	}
-	if changed && db.onClientsChanged != nil {
-		db.onClientsChanged(clients)
+	if db.saveProjects(user.Projects) || force {
+		db.onProjectsChanged(db.store.Projects().List())
 	}
 	return nil
 }
@@ -283,44 +242,167 @@ func (db *DB) StartListen(ctx context.Context) {
 
 func (db *DB) onProjectAction(action string, project gtproject.Project) error {
 	log.Printf("project %s %s, sync user", project.Name, action)
-	return db.SyncUser()
+	return db.SyncUser(false)
 }
 
 func (db *DB) onClientAction(action string, client gtclient.Client) error {
 	log.Printf("client %s %s, sync user", client.Name, action)
-	return db.SyncUser()
+	return db.SyncUser(false)
 }
 
 func (db *DB) onTagAction(action string, tag gttag.Tag) error {
 	log.Printf("tag %s %s, sync user", tag.Name, action)
-	return db.SyncUser()
+	return db.SyncUser(false)
 }
 
-func (db *DB) onTimeEntryAction(action string, entry gttimeentry.TimeEntry) error {
-	old := db.store.Current()
+func (db *DB) onTimeEntryAction(action string, timeEntry gttimeentry.TimeEntry) error {
+	entries := db.store.Entries()
+	old := entries.Current()
 	if action == gtwebsocket.ActionDelete {
-		if db.store.Delete(entry) {
-			current := db.store.Current()
-			if !tools.EntriesEqual(old, current) {
-				// Обновился текущий
-				db.onCurrentEntry(current, true)
-			} else {
-				db.onEntriesChanged(db.store.List())
-			}
+		entries.Delete(timeEntry.Id)
+		current := entries.Current()
+		if !tools.TimeEntriesEqual(old, current) {
+			// Обновился текущий
+			db.onCurrentEntry(current, true)
+		} else {
+			db.onEntriesChanged(entries.List())
 		}
 
 	} else if action == gtwebsocket.ActionUpdate || action == gtwebsocket.ActionInsert {
-		if db.store.Update(entry) {
-			current := db.store.Current()
-			if !tools.EntriesEqual(old, current) {
+		if db.update(timeEntry) {
+			current := entries.Current()
+			if !tools.TimeEntriesEqual(old, current) {
 				// Обновился текущий
 				db.onCurrentEntry(current, true)
 			}
-			db.onEntriesChanged(db.store.List())
+			db.onEntriesChanged(entries.List())
 
 		}
 	} else {
 		return fmt.Errorf("unhandled action: %s", action)
 	}
 	return nil
+}
+
+func (db *DB) saveTags(tags gttag.Tags) bool {
+	c := len(tags)
+	for i := 0; i < c; {
+		if tags[i].WId != db.defaultWId {
+			tags[i] = tags[c-1]
+			c--
+		} else {
+			i++
+		}
+	}
+	tags = tags[:c]
+
+	if changed, err := db.store.Tags().Sync(tags, time.Now()); err != nil {
+		log.Fatal("Tags sync error: ", err)
+		return false
+	} else {
+		log.Println("Tags changed: ", changed)
+		return changed
+	}
+}
+
+func (db *DB) saveClients(clients gtclient.Clients) bool {
+	c := len(clients)
+	for i := 0; i < c; {
+		if clients[i].WId != db.defaultWId {
+			clients[i] = clients[c-1]
+			c--
+		} else {
+			i++
+		}
+	}
+	clients = clients[:c]
+
+	if changed, err := db.store.Clients().Sync(clients, time.Now()); err != nil {
+		log.Fatal("Clients sync error: ", err)
+		return false
+	} else {
+		log.Println("Clients changed: ", changed)
+		return changed
+	}
+}
+
+func (db *DB) saveProjects(projects gtproject.Projects) bool {
+	c := len(projects)
+	for i := 0; i < c; {
+		if projects[i].WId != db.defaultWId {
+			projects[i] = projects[c-1]
+			c--
+		} else {
+			i++
+		}
+	}
+	projects = projects[:c]
+
+	if changed, err := db.store.Projects().Sync(projects, time.Now()); err != nil {
+		log.Fatal("Projects sync error: ", err)
+		return false
+	} else {
+		log.Println("Projects changed: ", changed)
+		return changed
+	}
+}
+
+func (db *DB) saveEntries(entries gttimeentry.TimeEntries) bool {
+	c := len(entries)
+	for i := 0; i < c; {
+		if entries[i].Wid != db.defaultWId {
+			entries[i] = entries[c-1]
+			c--
+		} else {
+			i++
+		}
+	}
+	entries = entries[:c]
+
+	if changed, err := db.store.Entries().Sync(entries, time.Now()); err != nil {
+		log.Fatal("Entries sync error: ", err)
+		return false
+	} else {
+		return changed
+	}
+}
+
+func (db *DB) update(timeEntry gttimeentry.TimeEntry) bool {
+	if timeEntry.Id == 0 {
+		log.Fatal("empty timeEntry id")
+	}
+	entries := db.store.Entries()
+	existing := entries.Get(timeEntry.Id)
+	if existing == nil {
+		entries.Create(timeEntry)
+		return true
+	}
+
+	if tools.TimeEntriesEqual(existing, &timeEntry) {
+		// Нет изменений
+		return false
+	}
+
+	entries.Update(timeEntry)
+	return true
+}
+
+func (db *DB) ListProjects() gtproject.Projects {
+	return db.store.Projects().List()
+}
+
+func (db *DB) ListTags() gttag.Tags {
+	return db.store.Tags().List()
+}
+
+func (db *DB) ListClients() gtclient.Clients {
+	return db.store.Clients().List()
+}
+
+func (db *DB) GetCurrentEntry() *gttimeentry.TimeEntry {
+	return db.store.Entries().Current()
+}
+
+func (db *DB) ListEntries() gttimeentry.TimeEntries {
+	return db.store.Entries().List()
 }

@@ -2,7 +2,7 @@ package gtk_history
 
 import (
 	"github.com/gotk3/gotk3/gtk"
-	gttimeentry "go-jw-toggl/jwtoggl/gtoggl/gttimentry"
+	gttimeentry "go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
 	"go-jw-toggl/jwtoggl/tools"
 	"time"
 )
