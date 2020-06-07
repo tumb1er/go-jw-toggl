@@ -62,7 +62,7 @@ func (qs Tags) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 				Must(tx.Create(&obj))
 			}
 		}
-		changed = MustOrNotFound(tx.Where("saved_at < ?", ts).Delete(Tag{}))
+		changed = MustOrNotFound(tx.Where("saved_at < ?", ts).Delete(Tag{})) || changed
 		return nil
 	})
 	return changed, err

@@ -179,6 +179,11 @@ func (db *DB) SyncCurrentEntry(force bool) error {
 	}
 	if entry != nil && db.update(*entry) || force {
 		current := db.store.Entries().Current()
+		if old == nil && current == nil {
+			// prevent notify change nil to nil
+			log.Println("Skip notify change current entry nil to nil")
+			return nil
+		}
 		if !tools.TimeEntriesEqual(old, current) || force {
 			db.onCurrentEntry(current, true)
 		}
@@ -295,6 +300,7 @@ func (db *DB) saveTags(tags gttag.Tags) bool {
 		log.Fatal("Tags sync error: ", err)
 		return false
 	} else {
+		log.Println("Tags changed: ", changed)
 		return changed
 	}
 }
@@ -315,6 +321,7 @@ func (db *DB) saveClients(clients gtclient.Clients) bool {
 		log.Fatal("Clients sync error: ", err)
 		return false
 	} else {
+		log.Println("Clients changed: ", changed)
 		return changed
 	}
 }
@@ -335,6 +342,7 @@ func (db *DB) saveProjects(projects gtproject.Projects) bool {
 		log.Fatal("Projects sync error: ", err)
 		return false
 	} else {
+		log.Println("Projects changed: ", changed)
 		return changed
 	}
 }

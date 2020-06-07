@@ -62,7 +62,7 @@ func (qs Clients) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 				Must(tx.Create(&obj))
 			}
 		}
-		changed = MustOrNotFound(tx.Where("saved_at < ?", ts).Delete(Client{}))
+		changed = MustOrNotFound(tx.Where("saved_at < ?", ts).Delete(Client{})) || changed
 		return nil
 	})
 	return changed, err
