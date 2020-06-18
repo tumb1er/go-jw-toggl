@@ -2,6 +2,7 @@ package gtk_history
 
 import (
 	"bytes"
+	"go-jw-toggl/jwtoggl/tools"
 	"log"
 	"text/template"
 )
@@ -54,6 +55,7 @@ type Ctx struct {
 }
 
 func RenderDescription(c Ctx) string {
+	c.Description = tools.Escape(c.Description)
 	buffer := bytes.Buffer{}
 	if err := descriptionTemplate.Execute(&buffer, c); err != nil {
 		log.Fatal(err)
