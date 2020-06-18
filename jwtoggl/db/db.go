@@ -28,9 +28,6 @@ type DB struct {
 	client     *gtoggl.TogglClient
 	httpClient *http.Client
 	sub        *gtwebsocket.TogglWebsocketClient
-	projects   map[uint64]*gtproject.Project
-	tags       map[uint64]*gttag.Tag
-	clients    map[uint64]*gtclient.Client
 	defaultWId uint64
 	store      Store
 
@@ -53,9 +50,6 @@ func NewDB(token string, store Store) (*DB, error) {
 		client:     client,
 		httpClient: httpClient,
 		sub:        sub,
-		projects:   make(map[uint64]*gtproject.Project),
-		tags:       make(map[uint64]*gttag.Tag),
-		clients:    make(map[uint64]*gtclient.Client),
 	}
 	db.store.Migrate()
 	return db, nil
