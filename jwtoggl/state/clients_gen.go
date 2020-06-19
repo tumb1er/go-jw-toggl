@@ -1,4 +1,4 @@
-package db
+package state
 
 // gtclient.tpl предоставляет общие методы для работы со всеми DTO Toggle.
 

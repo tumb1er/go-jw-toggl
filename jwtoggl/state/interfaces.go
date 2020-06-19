@@ -1,4 +1,4 @@
-package db
+package state
 
 import (
 	"go-jw-toggl/jwtoggl/gtoggl/gtclient"

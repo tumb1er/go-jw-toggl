@@ -1,4 +1,4 @@
-package db
+package state
 
 // gttag.tpl предоставляет общие методы для работы со всеми DTO Toggle.
 

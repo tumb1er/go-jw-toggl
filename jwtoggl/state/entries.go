@@ -1,4 +1,4 @@
-package db
+package state
 
 //go:generate bash -c "sed 's/Foos/TimeEntries/g;s/Foo/TimeEntry/g;s/foo/gttimeentry/g' foo.tpl > entries_gen.go"
 
