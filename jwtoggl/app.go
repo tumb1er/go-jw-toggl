@@ -95,7 +95,7 @@ func NewApp(database *gorm.DB) *jApp {
 		log.Fatal("Could not create GTK application:", err)
 	}
 	togglDb, err := db.NewDB(os.Getenv("TOGGL_KEY"),
-		&db.StoreWrapper{Store: (*store.Store)(database)})
+		&db.StoreAdapter{Store: (*store.Store)(database)})
 	if err != nil {
 		log.Fatal("Could not create DB:", err)
 	}

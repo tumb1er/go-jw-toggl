@@ -42,22 +42,23 @@ type Entries interface {
 	Delete(id uint64) bool
 }
 
-type StoreWrapper struct {
+//StoreAdapter changes signatures of methods returning structs to methods returning interfaces.
+type StoreAdapter struct {
 	*store.Store
 }
 
-func (w *StoreWrapper) Clients() Clients {
+func (w *StoreAdapter) Clients() Clients {
 	return w.Store.Clients()
 }
 
-func (w *StoreWrapper) Entries() Entries {
+func (w *StoreAdapter) Entries() Entries {
 	return w.Store.Entries()
 }
 
-func (w *StoreWrapper) Projects() Projects {
+func (w *StoreAdapter) Projects() Projects {
 	return w.Store.Projects()
 }
 
-func (w *StoreWrapper) Tags() Tags {
+func (w *StoreAdapter) Tags() Tags {
 	return w.Store.Tags()
 }
