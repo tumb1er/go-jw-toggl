@@ -6,21 +6,23 @@ import (
 	"go-jw-toggl/jwtoggl/gtoggl/gthttp"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
+	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
 	"go-jw-toggl/jwtoggl/gtoggl/gtworkspace"
 )
 
 // Toggl User Definition
 type User struct {
-	Id         uint64                 `json:"id"`
-	ApiToken   string                 `json:"api_token"`
-	Email      string                 `json:"email"`
-	FullName   string                 `json:"fullname"`
-	Timezone   string                 `json:"timezone"`
-	DefaultWId uint64                 `json:"default_wid"`
-	Clients    gtclient.Clients       `json:"clients"`
-	Projects   gtproject.Projects     `json:"projects"`
-	Workspaces gtworkspace.Workspaces `json:"workspaces"`
-	Tags       gttag.Tags             `json:"tags"`
+	Id          uint64                  `json:"id"`
+	ApiToken    string                  `json:"api_token"`
+	Email       string                  `json:"email"`
+	FullName    string                  `json:"fullname"`
+	Timezone    string                  `json:"timezone"`
+	DefaultWId  uint64                  `json:"default_wid"`
+	Clients     gtclient.Clients        `json:"clients"`
+	Projects    gtproject.Projects      `json:"projects"`
+	TimeEntries gttimeentry.TimeEntries `json:"time_entries"`
+	Workspaces  gtworkspace.Workspaces  `json:"workspaces"`
+	Tags        gttag.Tags              `json:"tags"`
 }
 type UserUpdate struct {
 	Email    string `json:"email"`

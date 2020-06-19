@@ -10,7 +10,7 @@ import (
 	"path"
 )
 
-//go:generate go generate go-jw-toggl/jwtoggl/db/store
+//go:generate go generate go-jw-toggl/jwtoggl/db/store go-jw-toggl/jwtoggl/db
 
 func main() {
 	dir := tools.GetAppDir()

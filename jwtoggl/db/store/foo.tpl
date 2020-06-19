@@ -1,5 +1,7 @@
 package store
 
+// foo.tpl предоставляет методы для работы с моделями объектов Toggl
+
 import (
 	"github.com/jinzhu/gorm"
 	"go-jw-toggl/jwtoggl/gtoggl/foo"
@@ -19,8 +21,14 @@ func (obj *Foo) AfterFind() error {
 	return obj.load(&obj.Foo)
 }
 
-func (m *FooManager) Sync(items foo.Foos, ts time.Time) (bool, error) {
-	qs := NewFoos(items)
+func (m *FooManager) Sync(items foo.Foos, ts time.Time, wid uint64) (bool, error) {
+    filtered := make(foo.Foos, 0, len(items))
+    for _, item := range items {
+        if item.WId == wid {
+            filtered = append(filtered, item)
+        }
+    }
+    qs := NewFoos(filtered)
 	return qs.Sync(m.gorm(), ts)
 }
 
