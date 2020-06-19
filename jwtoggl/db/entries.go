@@ -14,7 +14,7 @@ type OnCurrentEntryCallback func(entry *gttimeentry.TimeEntry, external bool)
 type OnTimeEntriesChangedCallback func(gttimeentry.TimeEntries)
 
 type TimeEntriesDB struct {
-	CommonDB
+	common
 
 	onCurrentEntry       OnCurrentEntryCallback
 	onTimeEntriesChanged OnTimeEntriesChangedCallback
@@ -25,7 +25,7 @@ func (db *DB) OnCurrentEntry(cb OnCurrentEntryCallback) {
 }
 
 func (db *TimeEntriesDB) onTimeEntryAction(action string, timeEntry gttimeentry.TimeEntry) error {
-	entries := db.Store().TimeEntries()
+	entries := db.store().TimeEntries()
 	old := entries.Current()
 	if action == gtwebsocket.ActionDelete {
 		entries.Delete(timeEntry.Id)

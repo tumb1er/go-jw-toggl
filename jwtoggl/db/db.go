@@ -18,7 +18,7 @@ type DB struct {
 	httpClient *http.Client
 	sub        *gtwebsocket.TogglWebsocketClient
 	defaultWId uint64
-	store      Store
+	s          Store
 
 	ClientsDB
 	ProjectsDB
@@ -34,28 +34,28 @@ func NewDB(token string, store Store) (*DB, error) {
 	}
 	sub := gtwebsocket.NewClient(token)
 	db := &DB{
-		store:      store,
+		s:          store,
 		client:     client,
 		httpClient: httpClient,
 		sub:        sub,
 	}
-	db.ClientsDB = ClientsDB{CommonDB: db}
-	db.ProjectsDB = ProjectsDB{CommonDB: db}
-	db.TagsDB = TagsDB{CommonDB: db}
-	db.TimeEntriesDB = TimeEntriesDB{CommonDB: db}
-	db.store.Migrate()
+	db.ClientsDB = ClientsDB{common: db}
+	db.ProjectsDB = ProjectsDB{common: db}
+	db.TagsDB = TagsDB{common: db}
+	db.TimeEntriesDB = TimeEntriesDB{common: db}
+	db.s.Migrate()
 	return db, nil
 }
 
-func (db *DB) Store() Store {
-	return db.store
+func (db *DB) store() Store {
+	return db.s
 }
 
-func (db *DB) Sub() Subscriber {
+func (db *DB) subscriber() Subscriber {
 	return db.sub
 }
 
-func (db *DB) WId() uint64 {
+func (db *DB) wid() uint64 {
 	return db.defaultWId
 }
 
@@ -67,7 +67,7 @@ func (db *DB) UpdateCurrentEntry(entry *gttimeentry.TimeEntry) error {
 		return err
 	}
 	if db.update(*entry) {
-		db.onCurrentEntry(db.store.TimeEntries().Current(), false)
+		db.onCurrentEntry(db.s.TimeEntries().Current(), false)
 	}
 	return nil
 }
@@ -91,13 +91,13 @@ func (db *DB) createNewEntry(entry *gttimeentry.TimeEntry, notify bool) error {
 	if err != nil {
 		return err
 	}
-	old := db.store.TimeEntries().Current()
+	old := db.s.TimeEntries().Current()
 	db.update(*entry)
 	if old != nil && old.Id != entry.Id && tools.IsCurrent(*entry) {
 		old.Stop = entry.Start
 		old.Duration = int64(old.Stop.Sub(old.Start).Seconds())
 		db.update(*old)
-		db.onTimeEntriesChanged(db.store.TimeEntries().List())
+		db.onTimeEntriesChanged(db.s.TimeEntries().List())
 	}
 	db.onCurrentEntry(entry, notify)
 	return nil
@@ -107,7 +107,7 @@ func (db *DB) StopEntry(entry *gttimeentry.TimeEntry) error {
 	if entry == nil {
 		return nil
 	}
-	current := db.store.TimeEntries().Current()
+	current := db.s.TimeEntries().Current()
 	if current == nil || current.Id != entry.Id {
 		return errors.New("current entry de-sync")
 	}
@@ -117,14 +117,14 @@ func (db *DB) StopEntry(entry *gttimeentry.TimeEntry) error {
 	}
 	db.update(*entry)
 	db.onCurrentEntry(nil, false)
-	db.onTimeEntriesChanged(db.store.TimeEntries().List())
+	db.onTimeEntriesChanged(db.s.TimeEntries().List())
 	return nil
 }
 
 func (db *DB) ContinueEntry(id uint64) error {
 	var entry *gttimeentry.TimeEntry
 	var err error
-	if prev := db.store.TimeEntries().Get(id); prev != nil {
+	if prev := db.s.TimeEntries().Get(id); prev != nil {
 		entry = prev
 	} else {
 		entry, err = db.client.TimeentryClient.Get(id)
@@ -143,20 +143,20 @@ func (db *DB) DeleteEntry(id uint64) error {
 	if err := db.client.TimeentryClient.Delete(id); err != nil {
 		return err
 	}
-	entries := db.store.TimeEntries()
+	entries := db.s.TimeEntries()
 	entries.Delete(id)
 	db.onTimeEntriesChanged(entries.List())
 	return nil
 }
 
 func (db *DB) SyncCurrentEntry(force bool) error {
-	old := db.store.TimeEntries().Current()
+	old := db.s.TimeEntries().Current()
 	entry, err := db.client.TimeentryClient.Current()
 	if err != nil {
 		return err
 	}
 	if entry != nil && db.update(*entry) || force {
-		current := db.store.TimeEntries().Current()
+		current := db.s.TimeEntries().Current()
 		if old == nil && current == nil {
 			// prevent notify change nil to nil
 			log.Println("Skip notify change current entry nil to nil")
@@ -172,17 +172,17 @@ func (db *DB) SyncCurrentEntry(force bool) error {
 func (db *DB) SyncLastEntries(force bool) error {
 	end := time.Now()
 	start := end.Add(-72 * time.Hour)
-	old := db.store.TimeEntries().Current()
+	old := db.s.TimeEntries().Current()
 	entries, err := db.client.TimeentryClient.GetRange(start, end)
 	if err != nil {
 		return err
 	}
 	if db.saveTimeEntries(entries) || force {
-		current := db.store.TimeEntries().Current()
+		current := db.s.TimeEntries().Current()
 		if !tools.TimeEntriesEqual(current, old) {
 			db.onCurrentEntry(current, true)
 		}
-		db.onTimeEntriesChanged(db.store.TimeEntries().List())
+		db.onTimeEntriesChanged(db.s.TimeEntries().List())
 	}
 	return nil
 }
@@ -217,7 +217,7 @@ func (db *DB) update(timeEntry gttimeentry.TimeEntry) bool {
 	if timeEntry.Id == 0 {
 		log.Fatal("empty timeEntry id")
 	}
-	entries := db.store.TimeEntries()
+	entries := db.s.TimeEntries()
 	existing := entries.Get(timeEntry.Id)
 	if existing == nil {
 		entries.Create(timeEntry)
@@ -234,5 +234,5 @@ func (db *DB) update(timeEntry gttimeentry.TimeEntry) bool {
 }
 
 func (db *DB) GetCurrentEntry() *gttimeentry.TimeEntry {
-	return db.store.TimeEntries().Current()
+	return db.s.TimeEntries().Current()
 }

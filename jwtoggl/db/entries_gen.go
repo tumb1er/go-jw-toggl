@@ -1,5 +1,7 @@
 package db
 
+// gttimeentry.tpl предоставляет общие методы для работы со всеми DTO Toggle.
+
 import (
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
 	"go-jw-toggl/jwtoggl/gtoggl/gtuser"
@@ -12,17 +14,17 @@ func (db *TimeEntriesDB) OnTimeEntriesChanged(cb OnTimeEntriesChangedCallback) {
 }
 
 func (db *TimeEntriesDB) Subscribe() {
-	db.Sub().OnTimeEntryAction(db.onTimeEntryAction)
+	db.subscriber().OnTimeEntryAction(db.onTimeEntryAction)
 }
 
 func (db *TimeEntriesDB) saveUserData(user *gtuser.User, force bool) {
 	if db.saveTimeEntries(user.TimeEntries) || force {
-		db.onTimeEntriesChanged(db.Store().TimeEntries().List())
+		db.onTimeEntriesChanged(db.store().TimeEntries().List())
 	}
 }
 
 func (db *TimeEntriesDB) saveTimeEntries(items gttimeentry.TimeEntries) bool {
-	if changed, err := db.Store().TimeEntries().Sync(items, time.Now(), db.WId()); err != nil {
+	if changed, err := db.store().TimeEntries().Sync(items, time.Now(), db.wid()); err != nil {
 		log.Fatal("TimeEntries sync error: ", err)
 		return false
 	} else {
@@ -32,5 +34,5 @@ func (db *TimeEntriesDB) saveTimeEntries(items gttimeentry.TimeEntries) bool {
 }
 
 func (db *TimeEntriesDB) ListTimeEntries() gttimeentry.TimeEntries {
-	return db.Store().TimeEntries().List()
+	return db.store().TimeEntries().List()
 }

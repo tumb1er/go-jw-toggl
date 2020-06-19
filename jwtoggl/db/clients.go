@@ -10,6 +10,6 @@ import (
 type OnClientsChangedCallback func(gtclient.Clients)
 
 type ClientsDB struct {
-	CommonDB
+	common
 	onClientsChanged OnClientsChangedCallback
 }

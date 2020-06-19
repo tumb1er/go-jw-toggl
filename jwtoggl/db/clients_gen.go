@@ -1,5 +1,7 @@
 package db
 
+// gtclient.tpl предоставляет общие методы для работы со всеми DTO Toggle.
+
 import (
 	"go-jw-toggl/jwtoggl/gtoggl/gtclient"
 	"go-jw-toggl/jwtoggl/gtoggl/gtuser"
@@ -12,17 +14,17 @@ func (db *ClientsDB) OnClientsChanged(cb OnClientsChangedCallback) {
 }
 
 func (db *ClientsDB) Subscribe() {
-	db.Sub().OnClientAction(db.onClientAction)
+	db.subscriber().OnClientAction(db.onClientAction)
 }
 
 func (db *ClientsDB) saveUserData(user *gtuser.User, force bool) {
 	if db.saveClients(user.Clients) || force {
-		db.onClientsChanged(db.Store().Clients().List())
+		db.onClientsChanged(db.store().Clients().List())
 	}
 }
 
 func (db *ClientsDB) saveClients(items gtclient.Clients) bool {
-	if changed, err := db.Store().Clients().Sync(items, time.Now(), db.WId()); err != nil {
+	if changed, err := db.store().Clients().Sync(items, time.Now(), db.wid()); err != nil {
 		log.Fatal("Clients sync error: ", err)
 		return false
 	} else {
@@ -32,8 +34,10 @@ func (db *ClientsDB) saveClients(items gtclient.Clients) bool {
 }
 
 func (db *ClientsDB) ListClients() gtclient.Clients {
-	return db.Store().Clients().List()
+	return db.store().Clients().List()
 }
+
+// bar.tpl предоставляет общие методы для справочников (которых нет у TimeEntriesDB)
 
 func (db *ClientsDB) onClientAction(action string, item gtclient.Client) error {
 	log.Printf("Client %s %s, sync user", item.Name, action)

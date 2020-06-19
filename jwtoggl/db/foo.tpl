@@ -14,17 +14,17 @@ func (db *FoosDB) OnFoosChanged(cb OnFoosChangedCallback) {
 }
 
 func (db *FoosDB) Subscribe() {
-    db.Sub().OnFooAction(db.onFooAction)
+    db.subscriber().OnFooAction(db.onFooAction)
 }
 
 func (db *FoosDB) saveUserData(user *gtuser.User, force bool) {
     if db.saveFoos(user.Foos) || force {
-        db.onFoosChanged(db.Store().Foos().List())
+        db.onFoosChanged(db.store().Foos().List())
     }
 }
 
 func (db *FoosDB) saveFoos(items foo.Foos) bool {
-	if changed, err := db.Store().Foos().Sync(items, time.Now(), db.WId()); err != nil {
+	if changed, err := db.store().Foos().Sync(items, time.Now(), db.wid()); err != nil {
 		log.Fatal("Foos sync error: ", err)
 		return false
 	} else {
@@ -34,6 +34,6 @@ func (db *FoosDB) saveFoos(items foo.Foos) bool {
 }
 
 func (db *FoosDB) ListFoos() foo.Foos {
-	return db.Store().Foos().List()
+	return db.store().Foos().List()
 }
 

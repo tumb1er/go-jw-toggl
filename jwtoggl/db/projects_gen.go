@@ -1,5 +1,7 @@
 package db
 
+// gtproject.tpl предоставляет общие методы для работы со всеми DTO Toggle.
+
 import (
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gtuser"
@@ -12,17 +14,17 @@ func (db *ProjectsDB) OnProjectsChanged(cb OnProjectsChangedCallback) {
 }
 
 func (db *ProjectsDB) Subscribe() {
-	db.Sub().OnProjectAction(db.onProjectAction)
+	db.subscriber().OnProjectAction(db.onProjectAction)
 }
 
 func (db *ProjectsDB) saveUserData(user *gtuser.User, force bool) {
 	if db.saveProjects(user.Projects) || force {
-		db.onProjectsChanged(db.Store().Projects().List())
+		db.onProjectsChanged(db.store().Projects().List())
 	}
 }
 
 func (db *ProjectsDB) saveProjects(items gtproject.Projects) bool {
-	if changed, err := db.Store().Projects().Sync(items, time.Now(), db.WId()); err != nil {
+	if changed, err := db.store().Projects().Sync(items, time.Now(), db.wid()); err != nil {
 		log.Fatal("Projects sync error: ", err)
 		return false
 	} else {
@@ -32,8 +34,10 @@ func (db *ProjectsDB) saveProjects(items gtproject.Projects) bool {
 }
 
 func (db *ProjectsDB) ListProjects() gtproject.Projects {
-	return db.Store().Projects().List()
+	return db.store().Projects().List()
 }
+
+// bar.tpl предоставляет общие методы для справочников (которых нет у TimeEntriesDB)
 
 func (db *ProjectsDB) onProjectAction(action string, item gtproject.Project) error {
 	log.Printf("Project %s %s, sync user", item.Name, action)
