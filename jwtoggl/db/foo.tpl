@@ -14,13 +14,13 @@ func (db *FoosDB) OnFoosChanged(cb OnFoosChangedCallback) {
 }
 
 func (db *FoosDB) Subscribe() {
-    db.subscriber().OnFooAction(db.onFooAction)
+	db.subscriber().OnFooAction(db.onFooAction)
 }
 
 func (db *FoosDB) saveUserData(user *gtuser.User, force bool) {
-    if db.saveFoos(user.Foos) || force {
-        db.onFoosChanged(db.store().Foos().List())
-    }
+	if db.saveFoos(user.Foos) || force {
+		db.onFoosChanged(db.store().Foos().List())
+	}
 }
 
 func (db *FoosDB) saveFoos(items foo.Foos) bool {

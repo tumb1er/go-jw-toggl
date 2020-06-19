@@ -22,13 +22,13 @@ func (obj *Foo) AfterFind() error {
 }
 
 func (m *FooManager) Sync(items foo.Foos, ts time.Time, wid uint64) (bool, error) {
-    filtered := make(foo.Foos, 0, len(items))
-    for _, item := range items {
-        if item.WId == wid {
-            filtered = append(filtered, item)
-        }
-    }
-    qs := NewFoos(filtered)
+	filtered := make(foo.Foos, 0, len(items))
+	for _, item := range items {
+		if item.WId == wid {
+			filtered = append(filtered, item)
+		}
+	}
+	qs := NewFoos(filtered)
 	return qs.Sync(m.gorm(), ts)
 }
 
