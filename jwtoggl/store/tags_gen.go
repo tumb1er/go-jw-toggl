@@ -64,12 +64,8 @@ func (qs Tags) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 	return changed, err
 }
 
-func listTags(scope *gorm.DB) gttag.Tags {
+func listTags(scope *gorm.DB) Tags {
 	qs := NewTags()
-	length := Must(scope.Find(qs))
-	result := make(gttag.Tags, length)
-	for i, obj := range *qs {
-		result[i] = obj.Tag
-	}
-	return result
+	Must(scope.Find(qs))
+	return *qs
 }

@@ -5,8 +5,8 @@ import (
 	"go-jw-toggl/jwtoggl/builder"
 	"go-jw-toggl/jwtoggl/entry_form/gtk_entry_form"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
-	"go-jw-toggl/jwtoggl/gtoggl/gttag"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
+	"go-jw-toggl/jwtoggl/store"
 	"go-jw-toggl/jwtoggl/tools"
 	"log"
 	"time"
@@ -116,7 +116,7 @@ func (f *EntryForm) handleStop() {
 	}
 }
 
-func (f *EntryForm) SetTags(tags gttag.Tags) {
+func (f *EntryForm) SetTags(tags store.Tags) {
 	f.g.SetTags(tags)
 }
 

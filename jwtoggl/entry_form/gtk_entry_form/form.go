@@ -5,8 +5,8 @@ import (
 	"github.com/gotk3/gotk3/gtk"
 	"go-jw-toggl/jwtoggl/builder"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
-	"go-jw-toggl/jwtoggl/gtoggl/gttag"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
+	"go-jw-toggl/jwtoggl/store"
 	"go-jw-toggl/jwtoggl/tools"
 	"log"
 	"strconv"
@@ -182,7 +182,7 @@ func (f *GtkEntryForm) setProjects(projects gtproject.Projects) error {
 	return nil
 }
 
-func (f *GtkEntryForm) SetTags(tags gttag.Tags) {
+func (f *GtkEntryForm) SetTags(tags store.Tags) {
 	tools.Schedule(func() {
 		if err := f.setTags(tags); err != nil {
 			log.Fatal(err)
@@ -190,7 +190,7 @@ func (f *GtkEntryForm) SetTags(tags gttag.Tags) {
 	})
 }
 
-func (f *GtkEntryForm) setTags(tags gttag.Tags) error {
+func (f *GtkEntryForm) setTags(tags store.Tags) error {
 	ls := f.tagsListStore
 	ls.Clear()
 	for _, tag := range tags {

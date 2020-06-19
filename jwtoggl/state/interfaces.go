@@ -6,6 +6,7 @@ import (
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
 	"go-jw-toggl/jwtoggl/gtoggl/gtwebsocket"
+	"go-jw-toggl/jwtoggl/store"
 	"time"
 )
 
@@ -32,7 +33,7 @@ type Projects interface {
 
 //Tags предоставляет доступ ко списку тегов в БД
 type Tags interface {
-	List() gttag.Tags
+	List() store.Tags
 	Sync(gttag.Tags, time.Time, uint64) (bool, error)
 }
 

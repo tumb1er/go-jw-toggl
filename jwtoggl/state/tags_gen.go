@@ -5,6 +5,7 @@ package state
 import (
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
 	"go-jw-toggl/jwtoggl/gtoggl/gtuser"
+	"go-jw-toggl/jwtoggl/store"
 	"log"
 	"time"
 )
@@ -33,7 +34,7 @@ func (db *TagsDB) saveTags(items gttag.Tags) bool {
 	}
 }
 
-func (db *TagsDB) ListTags() gttag.Tags {
+func (db *TagsDB) ListTags() store.Tags {
 	return db.store().Tags().List()
 }
 

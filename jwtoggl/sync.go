@@ -4,8 +4,8 @@ import (
 	"context"
 	"go-jw-toggl/jwtoggl/gtoggl/gtclient"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
-	"go-jw-toggl/jwtoggl/gtoggl/gttag"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
+	"go-jw-toggl/jwtoggl/store"
 	"log"
 	"time"
 )
@@ -39,7 +39,7 @@ func (j *jApp) OnProjectsChanged(projects gtproject.Projects) {
 	j.entries.SetProjects(projects)
 }
 
-func (j *jApp) OnTagsChanged(tags gttag.Tags) {
+func (j *jApp) OnTagsChanged(tags store.Tags) {
 	j.form.SetTags(tags)
 }
 
