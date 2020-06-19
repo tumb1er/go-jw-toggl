@@ -36,4 +36,3 @@ func (db *FoosDB) saveFoos(items foo.Foos) bool {
 func (db *FoosDB) ListFoos() foo.Foos {
 	return db.store().Foos().List()
 }
-
