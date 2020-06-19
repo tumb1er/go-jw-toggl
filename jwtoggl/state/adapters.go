@@ -1,6 +1,6 @@
 package state
 
-import "go-jw-toggl/jwtoggl/state/store"
+import "go-jw-toggl/jwtoggl/store"
 
 //StoreAdapter changes signatures of methods returning structs to methods returning interfaces.
 type StoreAdapter struct {
