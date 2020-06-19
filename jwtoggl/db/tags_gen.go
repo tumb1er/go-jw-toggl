@@ -2,17 +2,26 @@ package db
 
 import (
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
+	"go-jw-toggl/jwtoggl/gtoggl/gtuser"
 	"log"
 	"time"
 )
 
-type OnTagsChangedCallback func(gttag.Tags)
-
-func (db *DB) OnTagsChanged(cb OnTagsChangedCallback) {
+func (db *TagsDB) OnTagsChanged(cb OnTagsChangedCallback) {
 	db.onTagsChanged = cb
 }
 
-func (db *DB) saveTags(items gttag.Tags) bool {
+func (db *TagsDB) Subscribe() {
+	db.sub.OnTagAction(db.onTagAction)
+}
+
+func (db *TagsDB) saveUserData(user *gtuser.User, force bool) {
+	if db.saveTags(user.Tags) || force {
+		db.onTagsChanged(db.store.Tags().List())
+	}
+}
+
+func (db *TagsDB) saveTags(items gttag.Tags) bool {
 	if changed, err := db.store.Tags().Sync(items, time.Now(), db.defaultWId); err != nil {
 		log.Fatal("Tags sync error: ", err)
 		return false
@@ -22,6 +31,11 @@ func (db *DB) saveTags(items gttag.Tags) bool {
 	}
 }
 
-func (db *DB) ListTags() gttag.Tags {
+func (db *TagsDB) ListTags() gttag.Tags {
 	return db.store.Tags().List()
+}
+
+func (db *TagsDB) onTagAction(action string, item gttag.Tag) error {
+	log.Printf("Tag %s %s, sync user", item.Name, action)
+	return db.SyncUser(false)
 }

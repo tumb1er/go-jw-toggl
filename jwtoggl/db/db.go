@@ -1,19 +1,10 @@
 package db
 
-//go:generate bash -c "sed 's/Foo/Client/g;s/foo/gtclient/g' foo.tpl > clients_gen.go"
-//go:generate bash -c "sed 's/Foos/TimeEntries/g;s/Foo/TimeEntry/g;s/foo/gttimeentry/g' foo.tpl > entries_gen.go"
-//go:generate bash -c "sed 's/Foo/Project/g;s/foo/gtproject/g' foo.tpl > projects_gen.go"
-//go:generate bash -c "sed 's/Foo/Tag/g;s/foo/gttag/g' foo.tpl > tags_gen.go"
-
 import (
 	"context"
 	"errors"
-	"fmt"
 	"go-jw-toggl/jwtoggl/gtoggl"
-	"go-jw-toggl/jwtoggl/gtoggl/gtclient"
 	"go-jw-toggl/jwtoggl/gtoggl/gthttp"
-	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
-	"go-jw-toggl/jwtoggl/gtoggl/gttag"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
 	"go-jw-toggl/jwtoggl/gtoggl/gtwebsocket"
 	"go-jw-toggl/jwtoggl/tools"
@@ -31,11 +22,12 @@ type DB struct {
 	defaultWId uint64
 	store      Store
 
-	onCurrentEntry       OnCurrentEntryCallback
-	onProjectsChanged    OnProjectsChangedCallback
-	onTagsChanged        OnTagsChangedCallback
-	onTimeEntriesChanged OnTimeEntriesChangedCallback
-	onClientsChanged     OnClientsChangedCallback
+	ClientsDB
+	ProjectsDB
+	TagsDB
+	TimeEntriesDB
+
+	onCurrentEntry OnCurrentEntryCallback
 }
 
 func NewDB(token string, store Store) (*DB, error) {
@@ -51,6 +43,10 @@ func NewDB(token string, store Store) (*DB, error) {
 		httpClient: httpClient,
 		sub:        sub,
 	}
+	db.ClientsDB = ClientsDB{DB: db}
+	db.ProjectsDB = ProjectsDB{DB: db}
+	db.TagsDB = TagsDB{DB: db}
+	db.TimeEntriesDB = TimeEntriesDB{DB: db}
 	db.store.Migrate()
 	return db, nil
 }
@@ -193,23 +189,18 @@ func (db *DB) SyncUser(force bool) error {
 		return err
 	}
 	db.defaultWId = user.DefaultWId
-	if db.saveTags(user.Tags) || force {
-		db.onTagsChanged(db.store.Tags().List())
-	}
-	if db.saveClients(user.Clients) || force {
-		db.onClientsChanged(db.store.Clients().List())
-	}
-	if db.saveProjects(user.Projects) || force {
-		db.onProjectsChanged(db.store.Projects().List())
-	}
+	db.ClientsDB.saveUserData(user, force)
+	db.ProjectsDB.saveUserData(user, force)
+	db.TagsDB.saveUserData(user, force)
+	db.TimeEntriesDB.saveUserData(user, force)
 	return nil
 }
 
 func (db *DB) StartListen(ctx context.Context) {
-	db.sub.OnTimeEntryAction(db.onTimeEntryAction)
-	db.sub.OnProjectAction(db.onProjectAction)
-	db.sub.OnClientAction(db.onClientAction)
-	db.sub.OnTagAction(db.onTagAction)
+	db.ClientsDB.Subscribe()
+	db.ProjectsDB.Subscribe()
+	db.TagsDB.Subscribe()
+	db.TimeEntriesDB.Subscribe()
 	go func() {
 		err := db.sub.Listen(ctx)
 		if err != nil {
@@ -240,48 +231,4 @@ func (db *DB) update(timeEntry gttimeentry.TimeEntry) bool {
 
 func (db *DB) GetCurrentEntry() *gttimeentry.TimeEntry {
 	return db.store.TimeEntries().Current()
-}
-
-func (db *DB) onTimeEntryAction(action string, timeEntry gttimeentry.TimeEntry) error {
-	entries := db.store.TimeEntries()
-	old := entries.Current()
-	if action == gtwebsocket.ActionDelete {
-		entries.Delete(timeEntry.Id)
-		current := entries.Current()
-		if !tools.TimeEntriesEqual(old, current) {
-			// Обновился текущий
-			db.onCurrentEntry(current, true)
-		} else {
-			db.onTimeEntriesChanged(entries.List())
-		}
-
-	} else if action == gtwebsocket.ActionUpdate || action == gtwebsocket.ActionInsert {
-		if db.update(timeEntry) {
-			current := entries.Current()
-			if !tools.TimeEntriesEqual(old, current) {
-				// Обновился текущий
-				db.onCurrentEntry(current, true)
-			}
-			db.onTimeEntriesChanged(entries.List())
-
-		}
-	} else {
-		return fmt.Errorf("unhandled action: %s", action)
-	}
-	return nil
-}
-
-func (db *DB) onClientAction(action string, item gtclient.Client) error {
-	log.Printf("Client %s %s, sync user", item.Name, action)
-	return db.SyncUser(false)
-}
-
-func (db *DB) onProjectAction(action string, item gtproject.Project) error {
-	log.Printf("Project %s %s, sync user", item.Name, action)
-	return db.SyncUser(false)
-}
-
-func (db *DB) onTagAction(action string, item gttag.Tag) error {
-	log.Printf("Tag %s %s, sync user", item.Name, action)
-	return db.SyncUser(false)
 }

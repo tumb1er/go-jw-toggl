@@ -2,17 +2,26 @@ package db
 
 import (
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
+	"go-jw-toggl/jwtoggl/gtoggl/gtuser"
 	"log"
 	"time"
 )
 
-type OnTimeEntriesChangedCallback func(gttimeentry.TimeEntries)
-
-func (db *DB) OnTimeEntriesChanged(cb OnTimeEntriesChangedCallback) {
+func (db *TimeEntriesDB) OnTimeEntriesChanged(cb OnTimeEntriesChangedCallback) {
 	db.onTimeEntriesChanged = cb
 }
 
-func (db *DB) saveTimeEntries(items gttimeentry.TimeEntries) bool {
+func (db *TimeEntriesDB) Subscribe() {
+	db.sub.OnTimeEntryAction(db.onTimeEntryAction)
+}
+
+func (db *TimeEntriesDB) saveUserData(user *gtuser.User, force bool) {
+	if db.saveTimeEntries(user.TimeEntries) || force {
+		db.onTimeEntriesChanged(db.store.TimeEntries().List())
+	}
+}
+
+func (db *TimeEntriesDB) saveTimeEntries(items gttimeentry.TimeEntries) bool {
 	if changed, err := db.store.TimeEntries().Sync(items, time.Now(), db.defaultWId); err != nil {
 		log.Fatal("TimeEntries sync error: ", err)
 		return false
@@ -22,6 +31,6 @@ func (db *DB) saveTimeEntries(items gttimeentry.TimeEntries) bool {
 	}
 }
 
-func (db *DB) ListTimeEntries() gttimeentry.TimeEntries {
+func (db *TimeEntriesDB) ListTimeEntries() gttimeentry.TimeEntries {
 	return db.store.TimeEntries().List()
 }
