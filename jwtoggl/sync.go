@@ -2,10 +2,10 @@ package jwtoggl
 
 import (
 	"context"
+	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/gtoggl/gtclient"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
-	"go-jw-toggl/jwtoggl/store"
 	"log"
 	"time"
 )
@@ -39,8 +39,8 @@ func (j *jApp) OnProjectsChanged(projects gtproject.Projects) {
 	j.entries.SetProjects(projects)
 }
 
-func (j *jApp) OnTagsChanged(tags store.Tags) {
-	j.form.SetTags(tags)
+func (j *jApp) OnTagsChanged(tags dto.Tags) {
+	j.form.SetTags(tags.DTO())
 }
 
 func (j *jApp) OnClientsChanged(clients gtclient.Clients) {
@@ -90,6 +90,5 @@ func (j *jApp) OnCurrentEntryChanged(entry *gttimeentry.TimeEntry, external bool
 		if err := j.tray.ShowNotification("JW Toggl", text); err != nil {
 			log.Fatal(" notification error:", err)
 		}
-
 	}
 }

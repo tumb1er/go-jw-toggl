@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"github.com/gotk3/gotk3/gtk"
 	"go-jw-toggl/jwtoggl/builder"
+	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
-	"go-jw-toggl/jwtoggl/store"
 	"go-jw-toggl/jwtoggl/tools"
 	"log"
 	"strconv"
@@ -182,7 +182,7 @@ func (f *GtkEntryForm) setProjects(projects gtproject.Projects) error {
 	return nil
 }
 
-func (f *GtkEntryForm) SetTags(tags store.Tags) {
+func (f *GtkEntryForm) SetTags(tags []dto.Tag) {
 	tools.Schedule(func() {
 		if err := f.setTags(tags); err != nil {
 			log.Fatal(err)
@@ -190,12 +190,12 @@ func (f *GtkEntryForm) SetTags(tags store.Tags) {
 	})
 }
 
-func (f *GtkEntryForm) setTags(tags store.Tags) error {
+func (f *GtkEntryForm) setTags(tags []dto.Tag) error {
 	ls := f.tagsListStore
 	ls.Clear()
 	for _, tag := range tags {
 		it := ls.Append()
-		if err := ls.SetValue(it, 0, tag.Name); err != nil {
+		if err := ls.SetValue(it, 0, tag.GetName()); err != nil {
 			return err
 		}
 	}
