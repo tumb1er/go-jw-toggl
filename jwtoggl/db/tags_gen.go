@@ -12,17 +12,17 @@ func (db *TagsDB) OnTagsChanged(cb OnTagsChangedCallback) {
 }
 
 func (db *TagsDB) Subscribe() {
-	db.sub.OnTagAction(db.onTagAction)
+	db.Sub().OnTagAction(db.onTagAction)
 }
 
 func (db *TagsDB) saveUserData(user *gtuser.User, force bool) {
 	if db.saveTags(user.Tags) || force {
-		db.onTagsChanged(db.store.Tags().List())
+		db.onTagsChanged(db.Store().Tags().List())
 	}
 }
 
 func (db *TagsDB) saveTags(items gttag.Tags) bool {
-	if changed, err := db.store.Tags().Sync(items, time.Now(), db.defaultWId); err != nil {
+	if changed, err := db.Store().Tags().Sync(items, time.Now(), db.WId()); err != nil {
 		log.Fatal("Tags sync error: ", err)
 		return false
 	} else {
@@ -32,7 +32,7 @@ func (db *TagsDB) saveTags(items gttag.Tags) bool {
 }
 
 func (db *TagsDB) ListTags() gttag.Tags {
-	return db.store.Tags().List()
+	return db.Store().Tags().List()
 }
 
 func (db *TagsDB) onTagAction(action string, item gttag.Tag) error {

@@ -12,17 +12,17 @@ func (db *ProjectsDB) OnProjectsChanged(cb OnProjectsChangedCallback) {
 }
 
 func (db *ProjectsDB) Subscribe() {
-	db.sub.OnProjectAction(db.onProjectAction)
+	db.Sub().OnProjectAction(db.onProjectAction)
 }
 
 func (db *ProjectsDB) saveUserData(user *gtuser.User, force bool) {
 	if db.saveProjects(user.Projects) || force {
-		db.onProjectsChanged(db.store.Projects().List())
+		db.onProjectsChanged(db.Store().Projects().List())
 	}
 }
 
 func (db *ProjectsDB) saveProjects(items gtproject.Projects) bool {
-	if changed, err := db.store.Projects().Sync(items, time.Now(), db.defaultWId); err != nil {
+	if changed, err := db.Store().Projects().Sync(items, time.Now(), db.WId()); err != nil {
 		log.Fatal("Projects sync error: ", err)
 		return false
 	} else {
@@ -32,7 +32,7 @@ func (db *ProjectsDB) saveProjects(items gtproject.Projects) bool {
 }
 
 func (db *ProjectsDB) ListProjects() gtproject.Projects {
-	return db.store.Projects().List()
+	return db.Store().Projects().List()
 }
 
 func (db *ProjectsDB) onProjectAction(action string, item gtproject.Project) error {

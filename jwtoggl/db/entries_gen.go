@@ -12,17 +12,17 @@ func (db *TimeEntriesDB) OnTimeEntriesChanged(cb OnTimeEntriesChangedCallback) {
 }
 
 func (db *TimeEntriesDB) Subscribe() {
-	db.sub.OnTimeEntryAction(db.onTimeEntryAction)
+	db.Sub().OnTimeEntryAction(db.onTimeEntryAction)
 }
 
 func (db *TimeEntriesDB) saveUserData(user *gtuser.User, force bool) {
 	if db.saveTimeEntries(user.TimeEntries) || force {
-		db.onTimeEntriesChanged(db.store.TimeEntries().List())
+		db.onTimeEntriesChanged(db.Store().TimeEntries().List())
 	}
 }
 
 func (db *TimeEntriesDB) saveTimeEntries(items gttimeentry.TimeEntries) bool {
-	if changed, err := db.store.TimeEntries().Sync(items, time.Now(), db.defaultWId); err != nil {
+	if changed, err := db.Store().TimeEntries().Sync(items, time.Now(), db.WId()); err != nil {
 		log.Fatal("TimeEntries sync error: ", err)
 		return false
 	} else {
@@ -32,5 +32,5 @@ func (db *TimeEntriesDB) saveTimeEntries(items gttimeentry.TimeEntries) bool {
 }
 
 func (db *TimeEntriesDB) ListTimeEntries() gttimeentry.TimeEntries {
-	return db.store.TimeEntries().List()
+	return db.Store().TimeEntries().List()
 }

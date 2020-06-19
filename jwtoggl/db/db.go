@@ -13,8 +13,6 @@ import (
 	"time"
 )
 
-type OnCurrentEntryCallback func(entry *gttimeentry.TimeEntry, external bool)
-
 type DB struct {
 	client     *gtoggl.TogglClient
 	httpClient *http.Client
@@ -26,8 +24,6 @@ type DB struct {
 	ProjectsDB
 	TagsDB
 	TimeEntriesDB
-
-	onCurrentEntry OnCurrentEntryCallback
 }
 
 func NewDB(token string, store Store) (*DB, error) {
@@ -43,16 +39,24 @@ func NewDB(token string, store Store) (*DB, error) {
 		httpClient: httpClient,
 		sub:        sub,
 	}
-	db.ClientsDB = ClientsDB{DB: db}
-	db.ProjectsDB = ProjectsDB{DB: db}
-	db.TagsDB = TagsDB{DB: db}
-	db.TimeEntriesDB = TimeEntriesDB{DB: db}
+	db.ClientsDB = ClientsDB{CommonDB: db}
+	db.ProjectsDB = ProjectsDB{CommonDB: db}
+	db.TagsDB = TagsDB{CommonDB: db}
+	db.TimeEntriesDB = TimeEntriesDB{CommonDB: db}
 	db.store.Migrate()
 	return db, nil
 }
 
-func (db *DB) OnCurrentEntry(cb OnCurrentEntryCallback) {
-	db.onCurrentEntry = cb
+func (db *DB) Store() Store {
+	return db.store
+}
+
+func (db *DB) Sub() *gtwebsocket.TogglWebsocketClient {
+	return db.sub
+}
+
+func (db *DB) WId() uint64 {
+	return db.defaultWId
 }
 
 func (db *DB) UpdateCurrentEntry(entry *gttimeentry.TimeEntry) error {

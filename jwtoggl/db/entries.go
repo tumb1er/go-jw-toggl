@@ -9,15 +9,23 @@ import (
 	"go-jw-toggl/jwtoggl/tools"
 )
 
+type OnCurrentEntryCallback func(entry *gttimeentry.TimeEntry, external bool)
+
 type OnTimeEntriesChangedCallback func(gttimeentry.TimeEntries)
 
 type TimeEntriesDB struct {
-	*DB
+	CommonDB
+
+	onCurrentEntry       OnCurrentEntryCallback
 	onTimeEntriesChanged OnTimeEntriesChangedCallback
 }
 
+func (db *DB) OnCurrentEntry(cb OnCurrentEntryCallback) {
+	db.onCurrentEntry = cb
+}
+
 func (db *TimeEntriesDB) onTimeEntryAction(action string, timeEntry gttimeentry.TimeEntry) error {
-	entries := db.store.TimeEntries()
+	entries := db.Store().TimeEntries()
 	old := entries.Current()
 	if action == gtwebsocket.ActionDelete {
 		entries.Delete(timeEntry.Id)

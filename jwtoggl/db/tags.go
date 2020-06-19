@@ -10,6 +10,6 @@ import (
 type OnTagsChangedCallback func(gttag.Tags)
 
 type TagsDB struct {
-	*DB
+	CommonDB
 	onTagsChanged OnTagsChangedCallback
 }

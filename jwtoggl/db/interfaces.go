@@ -6,6 +6,7 @@ import (
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
+	"go-jw-toggl/jwtoggl/gtoggl/gtwebsocket"
 	"time"
 )
 
@@ -61,4 +62,13 @@ func (w *StoreAdapter) Projects() Projects {
 
 func (w *StoreAdapter) Tags() Tags {
 	return w.Store.Tags()
+}
+
+//CommonDB дает миксинам TagsDB, ClientsDB и прочим доступ к необходимым им полям из общего класса.
+type CommonDB interface {
+	Store() Store
+	Sub() *gtwebsocket.TogglWebsocketClient
+	SyncUser(bool) error
+	WId() uint64
+	update(gttimeentry.TimeEntry) bool
 }

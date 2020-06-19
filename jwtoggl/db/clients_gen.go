@@ -12,17 +12,17 @@ func (db *ClientsDB) OnClientsChanged(cb OnClientsChangedCallback) {
 }
 
 func (db *ClientsDB) Subscribe() {
-	db.sub.OnClientAction(db.onClientAction)
+	db.Sub().OnClientAction(db.onClientAction)
 }
 
 func (db *ClientsDB) saveUserData(user *gtuser.User, force bool) {
 	if db.saveClients(user.Clients) || force {
-		db.onClientsChanged(db.store.Clients().List())
+		db.onClientsChanged(db.Store().Clients().List())
 	}
 }
 
 func (db *ClientsDB) saveClients(items gtclient.Clients) bool {
-	if changed, err := db.store.Clients().Sync(items, time.Now(), db.defaultWId); err != nil {
+	if changed, err := db.Store().Clients().Sync(items, time.Now(), db.WId()); err != nil {
 		log.Fatal("Clients sync error: ", err)
 		return false
 	} else {
@@ -32,7 +32,7 @@ func (db *ClientsDB) saveClients(items gtclient.Clients) bool {
 }
 
 func (db *ClientsDB) ListClients() gtclient.Clients {
-	return db.store.Clients().List()
+	return db.Store().Clients().List()
 }
 
 func (db *ClientsDB) onClientAction(action string, item gtclient.Client) error {

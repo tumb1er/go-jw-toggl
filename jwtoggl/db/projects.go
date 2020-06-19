@@ -10,6 +10,6 @@ import (
 type OnProjectsChangedCallback func(gtproject.Projects)
 
 type ProjectsDB struct {
-	*DB
+	CommonDB
 	onProjectsChanged OnProjectsChangedCallback
 }
