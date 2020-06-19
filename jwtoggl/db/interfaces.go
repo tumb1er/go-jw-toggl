@@ -67,8 +67,16 @@ func (w *StoreAdapter) Tags() Tags {
 //CommonDB дает миксинам TagsDB, ClientsDB и прочим доступ к необходимым им полям из общего класса.
 type CommonDB interface {
 	Store() Store
-	Sub() *gtwebsocket.TogglWebsocketClient
+	Sub() Subscriber
 	SyncUser(bool) error
 	WId() uint64
 	update(gttimeentry.TimeEntry) bool
+}
+
+// Subscriber предоставляет доступ к подписке на события WS-клиента Toggl
+type Subscriber interface {
+	OnTimeEntryAction(callback gtwebsocket.OnTimeEntryActionCallback)
+	OnProjectAction(callback gtwebsocket.OnProjectActionCallback)
+	OnClientAction(callback gtwebsocket.OnClientActionCallback)
+	OnTagAction(callback gtwebsocket.OnTagActionCallback)
 }

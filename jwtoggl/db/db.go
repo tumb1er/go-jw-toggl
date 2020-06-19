@@ -51,7 +51,7 @@ func (db *DB) Store() Store {
 	return db.store
 }
 
-func (db *DB) Sub() *gtwebsocket.TogglWebsocketClient {
+func (db *DB) Sub() Subscriber {
 	return db.sub
 }
 
