@@ -177,7 +177,7 @@ func (db *DB) SyncLastEntries(force bool) error {
 	if err != nil {
 		return err
 	}
-	if db.saveEntries(entries) || force {
+	if db.saveTimeEntries(entries) || force {
 		current := db.store.TimeEntries().Current()
 		if !tools.TimeEntriesEqual(current, old) {
 			db.onCurrentEntry(current, true)
@@ -218,6 +218,30 @@ func (db *DB) StartListen(ctx context.Context) {
 	}()
 }
 
+func (db *DB) update(timeEntry gttimeentry.TimeEntry) bool {
+	if timeEntry.Id == 0 {
+		log.Fatal("empty timeEntry id")
+	}
+	entries := db.store.TimeEntries()
+	existing := entries.Get(timeEntry.Id)
+	if existing == nil {
+		entries.Create(timeEntry)
+		return true
+	}
+
+	if tools.TimeEntriesEqual(existing, &timeEntry) {
+		// Нет изменений
+		return false
+	}
+
+	entries.Update(timeEntry)
+	return true
+}
+
+func (db *DB) GetCurrentEntry() *gttimeentry.TimeEntry {
+	return db.store.TimeEntries().Current()
+}
+
 func (db *DB) onTimeEntryAction(action string, timeEntry gttimeentry.TimeEntry) error {
 	entries := db.store.TimeEntries()
 	old := entries.Current()
@@ -245,39 +269,6 @@ func (db *DB) onTimeEntryAction(action string, timeEntry gttimeentry.TimeEntry) 
 		return fmt.Errorf("unhandled action: %s", action)
 	}
 	return nil
-}
-
-func (db *DB) saveEntries(entries gttimeentry.TimeEntries) bool {
-	if changed, err := db.store.TimeEntries().Sync(entries, time.Now(), db.defaultWId); err != nil {
-		log.Fatal("TimeEntries sync error: ", err)
-		return false
-	} else {
-		return changed
-	}
-}
-
-func (db *DB) update(timeEntry gttimeentry.TimeEntry) bool {
-	if timeEntry.Id == 0 {
-		log.Fatal("empty timeEntry id")
-	}
-	entries := db.store.TimeEntries()
-	existing := entries.Get(timeEntry.Id)
-	if existing == nil {
-		entries.Create(timeEntry)
-		return true
-	}
-
-	if tools.TimeEntriesEqual(existing, &timeEntry) {
-		// Нет изменений
-		return false
-	}
-
-	entries.Update(timeEntry)
-	return true
-}
-
-func (db *DB) GetCurrentEntry() *gttimeentry.TimeEntry {
-	return db.store.TimeEntries().Current()
 }
 
 func (db *DB) onClientAction(action string, item gtclient.Client) error {
