@@ -1,5 +1,7 @@
 package db
 
+// foo.tpl предоставляет общие методы для работы со всеми DTO Toggle.
+
 import (
 	"go-jw-toggl/jwtoggl/gtoggl/foo"
 	"go-jw-toggl/jwtoggl/gtoggl/gtuser"

@@ -1,5 +1,7 @@
 package store
 
+// foo.tpl предоставляет методы для работы с моделями объектов Toggl
+
 import (
 	"github.com/jinzhu/gorm"
 	"go-jw-toggl/jwtoggl/gtoggl/foo"
