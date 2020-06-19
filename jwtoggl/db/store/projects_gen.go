@@ -19,8 +19,14 @@ func (obj *Project) AfterFind() error {
 	return obj.load(&obj.Project)
 }
 
-func (m *ProjectManager) Sync(items gtproject.Projects, ts time.Time) (bool, error) {
-	qs := NewProjects(items)
+func (m *ProjectManager) Sync(items gtproject.Projects, ts time.Time, wid uint64) (bool, error) {
+	filtered := make(gtproject.Projects, 0, len(items))
+	for _, item := range items {
+		if item.WId == wid {
+			filtered = append(filtered, item)
+		}
+	}
+	qs := NewProjects(filtered)
 	return qs.Sync(m.gorm(), ts)
 }
 

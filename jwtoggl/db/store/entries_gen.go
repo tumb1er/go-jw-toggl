@@ -19,8 +19,14 @@ func (obj *TimeEntry) AfterFind() error {
 	return obj.load(&obj.TimeEntry)
 }
 
-func (m *TimeEntryManager) Sync(items gttimeentry.TimeEntries, ts time.Time) (bool, error) {
-	qs := NewTimeEntries(items)
+func (m *TimeEntryManager) Sync(items gttimeentry.TimeEntries, ts time.Time, wid uint64) (bool, error) {
+	filtered := make(gttimeentry.TimeEntries, 0, len(items))
+	for _, item := range items {
+		if item.WId == wid {
+			filtered = append(filtered, item)
+		}
+	}
+	qs := NewTimeEntries(filtered)
 	return qs.Sync(m.gorm(), ts)
 }
 

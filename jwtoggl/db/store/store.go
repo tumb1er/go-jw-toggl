@@ -15,7 +15,7 @@ func (s *Store) Migrate() {
 	s.gorm().AutoMigrate(&Tag{}, &Client{}, &Project{}, &TimeEntry{})
 }
 
-// Entries возвращает менеджер TimeEntry
+// TimeEntries возвращает менеджер TimeEntry
 func (s *Store) Entries() *TimeEntryManager {
 	return (*TimeEntryManager)(s.gorm())
 }

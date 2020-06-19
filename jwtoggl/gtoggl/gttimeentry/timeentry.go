@@ -22,7 +22,7 @@ type TimeEntry struct {
 	Workspace   *gtworkspace.Workspace `json:"workspace"`
 	Tags        []string               `json:"tags" gorm:"-"`
 	Pid         uint64                 `json:"pid"`
-	Wid         uint64                 `json:"wid"`
+	WId         uint64                 `json:"wid"`
 	Tid         uint64                 `json:"tid"`
 	CreatedWith string                 `json:"created_with,omitempty" `
 }

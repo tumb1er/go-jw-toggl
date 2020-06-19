@@ -11,7 +11,7 @@ import (
 
 type Store interface {
 	Migrate()
-	Entries() Entries
+	TimeEntries() Entries
 	Tags() Tags
 	Projects() Projects
 	Clients() Clients
@@ -19,17 +19,17 @@ type Store interface {
 
 type Clients interface {
 	List() gtclient.Clients
-	Sync(gtclient.Clients, time.Time) (bool, error)
+	Sync(gtclient.Clients, time.Time, uint64) (bool, error)
 }
 
 type Projects interface {
 	List() gtproject.Projects
-	Sync(gtproject.Projects, time.Time) (bool, error)
+	Sync(gtproject.Projects, time.Time, uint64) (bool, error)
 }
 
 type Tags interface {
 	List() gttag.Tags
-	Sync(gttag.Tags, time.Time) (bool, error)
+	Sync(gttag.Tags, time.Time, uint64) (bool, error)
 }
 
 type Entries interface {
@@ -37,7 +37,7 @@ type Entries interface {
 	Create(entry gttimeentry.TimeEntry)
 	Current() *gttimeentry.TimeEntry
 	Update(entry gttimeentry.TimeEntry)
-	Sync(gttimeentry.TimeEntries, time.Time) (bool, error)
+	Sync(gttimeentry.TimeEntries, time.Time, uint64) (bool, error)
 	List() gttimeentry.TimeEntries
 	Delete(id uint64) bool
 }
@@ -51,7 +51,7 @@ func (w *StoreAdapter) Clients() Clients {
 	return w.Store.Clients()
 }
 
-func (w *StoreAdapter) Entries() Entries {
+func (w *StoreAdapter) TimeEntries() Entries {
 	return w.Store.Entries()
 }
 

@@ -19,8 +19,14 @@ func (obj *Client) AfterFind() error {
 	return obj.load(&obj.Client)
 }
 
-func (m *ClientManager) Sync(items gtclient.Clients, ts time.Time) (bool, error) {
-	qs := NewClients(items)
+func (m *ClientManager) Sync(items gtclient.Clients, ts time.Time, wid uint64) (bool, error) {
+	filtered := make(gtclient.Clients, 0, len(items))
+	for _, item := range items {
+		if item.WId == wid {
+			filtered = append(filtered, item)
+		}
+	}
+	qs := NewClients(filtered)
 	return qs.Sync(m.gorm(), ts)
 }
 

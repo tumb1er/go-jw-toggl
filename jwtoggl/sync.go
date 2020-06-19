@@ -26,7 +26,7 @@ func (j *jApp) StartSync(ctx context.Context) {
 		j.OnCurrentEntryChanged(j.db.GetCurrentEntry(), false)
 	}
 	if err := j.db.SyncLastEntries(true); err != nil {
-		j.entries.SetEntries(j.db.ListEntries())
+		j.entries.SetEntries(j.db.ListTimeEntries())
 	}
 	log.Println("Start periodic sync")
 	j.periodicSync(ctx)

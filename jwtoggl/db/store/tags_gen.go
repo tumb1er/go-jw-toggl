@@ -19,8 +19,14 @@ func (obj *Tag) AfterFind() error {
 	return obj.load(&obj.Tag)
 }
 
-func (m *TagManager) Sync(items gttag.Tags, ts time.Time) (bool, error) {
-	qs := NewTags(items)
+func (m *TagManager) Sync(items gttag.Tags, ts time.Time, wid uint64) (bool, error) {
+	filtered := make(gttag.Tags, 0, len(items))
+	for _, item := range items {
+		if item.WId == wid {
+			filtered = append(filtered, item)
+		}
+	}
+	qs := NewTags(filtered)
 	return qs.Sync(m.gorm(), ts)
 }
 
