@@ -8,8 +8,8 @@ import (
 )
 
 type Project struct {
-	Named
-	gtproject.Project `gorm:"-"`
+	Synced
+	gtproject.Project
 }
 
 type Projects []Project

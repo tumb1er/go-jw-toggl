@@ -9,7 +9,7 @@ import (
 
 type Client struct {
 	Synced
-	gtclient.Client `gorm:"-"`
+	gtclient.Client
 }
 
 type Clients []Client

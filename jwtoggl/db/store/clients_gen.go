@@ -9,18 +9,6 @@ import (
 	"time"
 )
 
-func (obj *Client) BeforeCreate() error {
-	return obj.dump(obj.Client)
-}
-
-func (obj *Client) BeforeSave() error {
-	return obj.dump(obj.Client)
-}
-
-func (obj *Client) AfterFind() error {
-	return obj.load(&obj.Client)
-}
-
 func (m *ClientManager) Sync(items gtclient.Clients, ts time.Time, wid uint64) (bool, error) {
 	filtered := make(gtclient.Clients, 0, len(items))
 	for _, item := range items {

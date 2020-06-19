@@ -5,43 +5,56 @@ package store
 import (
 	"github.com/jinzhu/gorm"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
-	"log"
 	"time"
 )
 
 type TimeEntry struct {
 	Synced
-	gttimeentry.TimeEntry `gorm:"-"`
-	Current               *bool
-	Start                 time.Time
-}
-
-func (obj *TimeEntry) dump(out interface{}) error {
-	if err := obj.Synced.dump(out); err != nil {
-		return err
-	}
-	dto := out.(gttimeentry.TimeEntry)
-	current := dto.Stop.IsZero()
-	obj.Current = &current
-	obj.Start = dto.Start
-	return nil
+	gttimeentry.TimeEntry
+	Tag string
 }
 
 type TimeEntries []TimeEntry
 
 type TimeEntryManager gorm.DB
 
+func (e *TimeEntry) BeforeCreate() error {
+	e.loadTagFromTags()
+	return nil
+}
+
+func (e *TimeEntry) loadTagFromTags() {
+	e.Tag = ""
+	if len(e.Tags) > 0 {
+		e.Tag = e.Tags[0]
+	}
+}
+
+func (e *TimeEntry) BeforeSave() error {
+	e.loadTagFromTags()
+	return nil
+}
+
+func (e *TimeEntry) AfterFind() error {
+	if e.Tag != "" {
+		e.Tags = []string{e.Tag}
+	} else {
+		e.Tags = []string{}
+	}
+	return nil
+}
+
 func (m *TimeEntryManager) List() gttimeentry.TimeEntries {
-	return listTimeEntries(m.gorm().Where("not current").Order("start DESC"))
+	return listTimeEntries(m.gorm().Where("stop <> ?", time.Time{}).Order("start DESC"))
 }
 
 func (m *TimeEntryManager) Delete(extId uint64) bool {
-	return MustOrNotFound(m.gorm().Where("ext_id = ?", extId).Delete(&TimeEntry{}))
+	return MustOrNotFound(m.gorm().Where("id = ?", extId).Delete(&TimeEntry{}))
 }
 
 func (m *TimeEntryManager) Current() *gttimeentry.TimeEntry {
 	var entry TimeEntry
-	if MustOrNotFound(m.gorm().Where("current").First(&entry)) {
+	if MustOrNotFound(m.gorm().Debug().Where("stop = ?", time.Time{}).First(&entry)) {
 		return &entry.TimeEntry
 	}
 	return nil
@@ -54,17 +67,14 @@ func (m *TimeEntryManager) Create(timeEntry gttimeentry.TimeEntry) {
 
 func (m *TimeEntryManager) Update(timeEntry gttimeentry.TimeEntry) {
 	entry := &TimeEntry{TimeEntry: timeEntry}
-	if err := entry.dump(entry.TimeEntry); err != nil {
-		log.Fatal(err)
-	}
 	// Используем map т.к. нулевое значение entry.Current не проставляется.
-	Must(m.gorm().Debug().Model(entry).Where("ext_id = ?", timeEntry.Id).
+	Must(m.gorm().Debug().Model(entry).Where("id = ?", timeEntry.Id).
 		Updates(entry))
 }
 
 func (m *TimeEntryManager) Get(extId uint64) *gttimeentry.TimeEntry {
 	var entry TimeEntry
-	if MustOrNotFound(m.gorm().Where("ext_id = ?", extId).First(&entry)) {
+	if MustOrNotFound(m.gorm().Where("id = ?", extId).First(&entry)) {
 		return &entry.TimeEntry
 	}
 	return nil

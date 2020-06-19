@@ -9,18 +9,6 @@ import (
 	"time"
 )
 
-func (obj *Foo) BeforeCreate() error {
-	return obj.dump(obj.Foo)
-}
-
-func (obj *Foo) BeforeSave() error {
-	return obj.dump(obj.Foo)
-}
-
-func (obj *Foo) AfterFind() error {
-	return obj.load(&obj.Foo)
-}
-
 func (m *FooManager) Sync(items foo.Foos, ts time.Time, wid uint64) (bool, error) {
 	filtered := make(foo.Foos, 0, len(items))
 	for _, item := range items {

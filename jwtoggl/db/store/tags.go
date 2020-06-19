@@ -8,8 +8,8 @@ import (
 )
 
 type Tag struct {
-	Named
-	gttag.Tag `gorm:"-"`
+	Synced
+	gttag.Tag
 }
 
 type Tags []Tag

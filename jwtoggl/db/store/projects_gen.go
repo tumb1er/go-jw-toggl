@@ -9,18 +9,6 @@ import (
 	"time"
 )
 
-func (obj *Project) BeforeCreate() error {
-	return obj.dump(obj.Project)
-}
-
-func (obj *Project) BeforeSave() error {
-	return obj.dump(obj.Project)
-}
-
-func (obj *Project) AfterFind() error {
-	return obj.load(&obj.Project)
-}
-
 func (m *ProjectManager) Sync(items gtproject.Projects, ts time.Time, wid uint64) (bool, error) {
 	filtered := make(gtproject.Projects, 0, len(items))
 	for _, item := range items {
