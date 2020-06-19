@@ -59,10 +59,6 @@ func (db *DB) OnCurrentEntry(cb OnCurrentEntryCallback) {
 	db.onCurrentEntry = cb
 }
 
-func (db *DB) OnEntriesChanged(cb OnTimeEntriesChangedCallback) {
-	db.onTimeEntriesChanged = cb
-}
-
 func (db *DB) UpdateCurrentEntry(entry *gttimeentry.TimeEntry) error {
 	entry.WId = db.defaultWId
 	entry.CreatedWith = "go-jw-toggl"
