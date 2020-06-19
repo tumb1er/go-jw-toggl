@@ -5,6 +5,7 @@ package state
 import (
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gtuser"
+	"go-jw-toggl/jwtoggl/store"
 	"log"
 	"time"
 )
@@ -33,7 +34,7 @@ func (db *ProjectsDB) saveProjects(items gtproject.Projects) bool {
 	}
 }
 
-func (db *ProjectsDB) ListProjects() gtproject.Projects {
+func (db *ProjectsDB) ListProjects() store.Projects {
 	return db.store().Projects().List()
 }
 

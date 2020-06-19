@@ -4,7 +4,6 @@ import (
 	"context"
 	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/gtoggl/gtclient"
-	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
 	"log"
 	"time"
@@ -34,9 +33,9 @@ func (j *jApp) syncUser() {
 	j.handleError(j.db.SyncUser(false), "Sync error")
 }
 
-func (j *jApp) OnProjectsChanged(projects gtproject.Projects) {
-	j.form.SetProjects(projects)
-	j.entries.SetProjects(projects)
+func (j *jApp) OnProjectsChanged(projects dto.Projects) {
+	j.form.SetProjects(projects.DTO())
+	j.entries.SetProjects(projects.DTO())
 }
 
 func (j *jApp) OnTagsChanged(tags dto.Tags) {

@@ -5,7 +5,6 @@ import (
 	"github.com/gotk3/gotk3/gtk"
 	"go-jw-toggl/jwtoggl/builder"
 	"go-jw-toggl/jwtoggl/dto"
-	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
 	"go-jw-toggl/jwtoggl/tools"
 	"log"
@@ -155,7 +154,7 @@ func (f *GtkEntryForm) ConnectSignals(
 	return nil
 }
 
-func (f *GtkEntryForm) SetProjects(projects gtproject.Projects) {
+func (f *GtkEntryForm) SetProjects(projects []dto.Project) {
 	tools.Schedule(func() {
 		if err := f.setProjects(projects); err != nil {
 			log.Fatal(err)
@@ -163,16 +162,17 @@ func (f *GtkEntryForm) SetProjects(projects gtproject.Projects) {
 	})
 }
 
-func (f *GtkEntryForm) setProjects(projects gtproject.Projects) error {
+func (f *GtkEntryForm) setProjects(projects []dto.Project) error {
 	ls := f.projectsListStore
 	ls.Clear()
 	for _, project := range projects {
 		it := ls.Append()
-		html := fmt.Sprintf("<span foreground=\"%s\">%s</span>", project.HexColor, project.Name)
-		if err := ls.SetValue(it, 0, project.Id); err != nil {
+		html := fmt.Sprintf("<span foreground=\"%s\">%s</span>",
+			project.GetHexColor(), project.GetName())
+		if err := ls.SetValue(it, 0, project.GetTogglID()); err != nil {
 			return err
 		}
-		if err := ls.SetValue(it, 1, project.Name); err != nil {
+		if err := ls.SetValue(it, 1, project.GetName()); err != nil {
 			return err
 		}
 		if err := ls.SetValue(it, 2, html); err != nil {

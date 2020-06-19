@@ -5,7 +5,6 @@ import (
 	"go-jw-toggl/jwtoggl/builder"
 	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/entry_form/gtk_entry_form"
-	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
 	"go-jw-toggl/jwtoggl/tools"
 	"log"
@@ -120,7 +119,7 @@ func (f *EntryForm) SetTags(tags []dto.Tag) {
 	f.g.SetTags(tags)
 }
 
-func (f *EntryForm) SetProjects(projects gtproject.Projects) {
+func (f *EntryForm) SetProjects(projects []dto.Project) {
 	f.g.SetProjects(projects)
 }
 

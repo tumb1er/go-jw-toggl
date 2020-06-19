@@ -64,12 +64,8 @@ func (qs Projects) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 	return changed, err
 }
 
-func listProjects(scope *gorm.DB) gtproject.Projects {
+func listProjects(scope *gorm.DB) Projects {
 	qs := NewProjects()
-	length := Must(scope.Find(qs))
-	result := make(gtproject.Projects, length)
-	for i, obj := range *qs {
-		result[i] = obj.Project
-	}
-	return result
+	Must(scope.Find(qs))
+	return *qs
 }

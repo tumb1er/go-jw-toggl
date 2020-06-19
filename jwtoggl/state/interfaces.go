@@ -27,7 +27,7 @@ type Clients interface {
 
 //Projects предоставляет доступ ко списку проектов в БД
 type Projects interface {
-	List() gtproject.Projects
+	List() store.Projects
 	Sync(gtproject.Projects, time.Time, uint64) (bool, error)
 }
 
