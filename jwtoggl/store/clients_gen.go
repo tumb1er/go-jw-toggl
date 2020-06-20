@@ -64,12 +64,8 @@ func (qs Clients) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 	return changed, err
 }
 
-func listClients(scope *gorm.DB) gtclient.Clients {
+func listClients(scope *gorm.DB) Clients {
 	qs := NewClients()
-	length := Must(scope.Find(qs))
-	result := make(gtclient.Clients, length)
-	for i, obj := range *qs {
-		result[i] = obj.Client
-	}
-	return result
+	Must(scope.Find(qs))
+	return *qs
 }

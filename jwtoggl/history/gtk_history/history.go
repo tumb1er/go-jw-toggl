@@ -7,7 +7,6 @@ import (
 	"github.com/gotk3/gotk3/pango"
 	"go-jw-toggl/jwtoggl/builder"
 	"go-jw-toggl/jwtoggl/dto"
-	"go-jw-toggl/jwtoggl/gtoggl/gtclient"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
 	"go-jw-toggl/jwtoggl/tools"
 	"log"
@@ -45,7 +44,7 @@ type Callback func(entryId uint64)
 type entriesContext struct {
 	Entries  gttimeentry.TimeEntries
 	Projects map[uint64]dto.Project
-	Clients  map[uint64]gtclient.Client
+	Clients  map[uint64]dto.Client
 }
 
 type GtkHistory struct {
@@ -77,7 +76,7 @@ func (h *GtkHistory) OnButtonClick(_ *gtk.TreeView, e *gdk.Event) {
 func (h *GtkHistory) SetEntries(
 	entries gttimeentry.TimeEntries,
 	projects map[uint64]dto.Project,
-	clients map[uint64]gtclient.Client) {
+	clients map[uint64]dto.Client) {
 	tools.Schedule(h.setEntries, entriesContext{
 		Entries:  entries,
 		Projects: projects,
@@ -160,7 +159,7 @@ func (h *GtkHistory) insertEntry(entries entriesContext, it *gtk.TreeIter,
 		ctx.Project = project.GetName()
 		ctx.Color = project.GetHexColor()
 		if client, ok := entries.Clients[project.GetClientTogglID()]; ok {
-			ctx.Client = client.Name
+			ctx.Client = client.GetName()
 		}
 	}
 	if len(entry.Tags) >= 1 {

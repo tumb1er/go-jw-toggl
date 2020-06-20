@@ -3,6 +3,7 @@ package state
 // gtclient.tpl предоставляет общие методы для работы со всеми DTO Toggle.
 
 import (
+	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/gtoggl/gtclient"
 	"go-jw-toggl/jwtoggl/gtoggl/gtuser"
 	"log"
@@ -33,7 +34,7 @@ func (db *ClientsDB) saveClients(items gtclient.Clients) bool {
 	}
 }
 
-func (db *ClientsDB) ListClients() gtclient.Clients {
+func (db *ClientsDB) ListClients() dto.Clients {
 	return db.store().Clients().List()
 }
 

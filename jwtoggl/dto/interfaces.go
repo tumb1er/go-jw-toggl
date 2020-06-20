@@ -21,3 +21,12 @@ type Project interface {
 type Projects interface {
 	DTO() []Project // store.Projects -> []Project
 }
+
+type Client interface {
+	GetTogglID() uint64
+	GetName() string
+}
+
+type Clients interface {
+	DTO() []Client // store.Clients -> []Client
+}

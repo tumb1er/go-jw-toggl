@@ -3,7 +3,6 @@ package jwtoggl
 import (
 	"context"
 	"go-jw-toggl/jwtoggl/dto"
-	"go-jw-toggl/jwtoggl/gtoggl/gtclient"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
 	"log"
 	"time"
@@ -42,8 +41,8 @@ func (j *jApp) OnTagsChanged(tags dto.Tags) {
 	j.form.SetTags(tags.DTO())
 }
 
-func (j *jApp) OnClientsChanged(clients gtclient.Clients) {
-	j.entries.SetClients(clients)
+func (j *jApp) OnClientsChanged(clients dto.Clients) {
+	j.entries.SetClients(clients.DTO())
 }
 
 func (j *jApp) periodicSync(ctx context.Context) {

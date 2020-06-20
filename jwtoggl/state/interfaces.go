@@ -21,7 +21,7 @@ type Store interface {
 
 //Clients предоставляет доступ ко списку клиентов в БД
 type Clients interface {
-	List() gtclient.Clients
+	List() store.Clients
 	Sync(gtclient.Clients, time.Time, uint64) (bool, error)
 }
 

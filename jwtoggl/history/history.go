@@ -3,7 +3,6 @@ package history
 import (
 	"go-jw-toggl/jwtoggl/builder"
 	"go-jw-toggl/jwtoggl/dto"
-	"go-jw-toggl/jwtoggl/gtoggl/gtclient"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
 	"go-jw-toggl/jwtoggl/history/gtk_history"
 )
@@ -11,7 +10,7 @@ import (
 type History struct {
 	history  *gtk_history.GtkHistory
 	projects map[uint64]dto.Project
-	clients  map[uint64]gtclient.Client
+	clients  map[uint64]dto.Client
 	entries  gttimeentry.TimeEntries
 }
 
@@ -23,10 +22,10 @@ func (h *History) SetProjects(projects []dto.Project) {
 	h.setEntries()
 }
 
-func (h *History) SetClients(clients gtclient.Clients) {
-	h.clients = make(map[uint64]gtclient.Client)
+func (h *History) SetClients(clients []dto.Client) {
+	h.clients = make(map[uint64]dto.Client)
 	for _, client := range clients {
-		h.clients[client.Id] = client
+		h.clients[client.GetTogglID()] = client
 	}
 	h.setEntries()
 }
@@ -53,7 +52,7 @@ func New(b *builder.Builder) (*History, error) {
 	h := &History{
 		history:  history,
 		projects: make(map[uint64]dto.Project),
-		clients:  make(map[uint64]gtclient.Client),
+		clients:  make(map[uint64]dto.Client),
 	}
 	return h, nil
 }
