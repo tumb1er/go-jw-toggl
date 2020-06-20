@@ -2,6 +2,8 @@ package gtk_entry_form
 
 import (
 	"fmt"
+	"github.com/gotk3/gotk3/gdk"
+	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 	"go-jw-toggl/jwtoggl/builder"
 	"go-jw-toggl/jwtoggl/dto"
@@ -9,7 +11,6 @@ import (
 	"go-jw-toggl/jwtoggl/tools"
 	"log"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -46,6 +47,17 @@ type GtkEntryForm struct {
 	tagsListStore     *gtk.ListStore
 
 	entryId uint64
+
+	handler UIHandler
+}
+
+type UIHandler interface {
+	OnButtonClicked()
+	OnStartTimeChanged(*time.Time) bool
+	OnProjectChanged(uint64) bool
+	OnTagChanged(string) bool
+	OnDescriptionChanged(string) bool
+	OnEditCompleted()
 }
 
 func MarkValid(entry *gtk.Entry, valid bool) bool {
@@ -64,8 +76,8 @@ func MarkValid(entry *gtk.Entry, valid bool) bool {
 	return valid
 }
 
-func New(b *builder.Builder) (f *GtkEntryForm, err error) {
-	f = &GtkEntryForm{}
+func New(b *builder.Builder, handler UIHandler) (f *GtkEntryForm, err error) {
+	f = &GtkEntryForm{handler: handler}
 	if f.description, err = b.GetEntry(textDescription); err != nil {
 		return f, err
 	}
@@ -117,41 +129,86 @@ func New(b *builder.Builder) (f *GtkEntryForm, err error) {
 	return f, nil
 }
 
-func (f *GtkEntryForm) ConnectSignals(
-	onButtonClicked interface{},
-	onProjectEntryChanged interface{},
-	onTagEntryChanged interface{},
-	onEditDone interface{},
-) (err error) {
+type sender interface {
+	Connect(string, interface{}, ...interface{}) (glib.SignalHandle, error)
+}
 
-	if _, err = f.button.Connect("clicked", onButtonClicked); err != nil {
+func connectSignals(obj sender, handler interface{}) error {
+	for i, signal := range []string{"changed", "focus-out-event"} {
+		if _, err := obj.Connect(signal, handler, i == 1); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (f *GtkEntryForm) ConnectSignals() error {
+	if err := connectSignals(f.description, f.notifyDescription); err != nil {
 		return err
 	}
-	if _, err = f.start.Connect("changed", onEditDone); err != nil {
+	if err := connectSignals(f.projectEntry, f.notifyProject); err != nil {
 		return err
 	}
-	if _, err = f.description.Connect("changed", onEditDone); err != nil {
+	if err := connectSignals(f.project, f.notifyProject); err != nil {
 		return err
 	}
-	if _, err = f.projectEntry.Connect("changed", onProjectEntryChanged); err != nil {
+	if err := connectSignals(f.tagEntry, f.notifyTag); err != nil {
 		return err
 	}
-	if _, err = f.tagEntry.Connect("changed", onTagEntryChanged); err != nil {
+	if err := connectSignals(f.tag, f.notifyTag); err != nil {
 		return err
 	}
-	if _, err = f.start.Connect("focus-out-event", onEditDone); err != nil {
+	if err := connectSignals(f.start, f.notifyStart); err != nil {
 		return err
 	}
-	if _, err = f.description.Connect("focus-out-event", onEditDone); err != nil {
-		return err
-	}
-	if _, err = f.projectEntry.Connect("focus-out-event", onEditDone); err != nil {
-		return err
-	}
-	if _, err = f.tagEntry.Connect("focus-out-event", onEditDone); err != nil {
+	if _, err := f.button.Connect("clicked", f.notifyClicked); err != nil {
 		return err
 	}
 	return nil
+}
+
+func (f *GtkEntryForm) notifyDescription(_ *gtk.Entry, event interface{}) {
+	if text, err := f.description.GetText(); err != nil {
+		log.Fatal(err)
+	} else {
+		MarkValid(f.description, f.handler.OnDescriptionChanged(text))
+		if _, ok := event.(*gdk.Event); ok {
+			f.handler.OnEditCompleted()
+		}
+	}
+}
+
+func (f *GtkEntryForm) notifyProject() {
+	f.SetActiveProject()
+	projectId := f.project.GetActiveID()
+	if projectId == "" {
+		MarkValid(f.projectEntry, f.handler.OnProjectChanged(0))
+		return
+	}
+	if pid, err := strconv.ParseUint(projectId, 10, 64); err != nil {
+		log.Fatal("projectId parse error:", err)
+	} else {
+
+		MarkValid(f.projectEntry, f.handler.OnProjectChanged(pid))
+	}
+}
+
+func (f *GtkEntryForm) notifyTag() {
+	f.SetActiveTag()
+	tag := f.tag.GetActiveID()
+	MarkValid(f.projectEntry, f.handler.OnTagChanged(tag))
+}
+
+func (f *GtkEntryForm) notifyStart() {
+	if startTime, err := f.parseStart(); err != nil {
+		MarkValid(f.start, f.handler.OnStartTimeChanged(nil))
+	} else {
+		MarkValid(f.start, f.handler.OnStartTimeChanged(&startTime))
+	}
+}
+
+func (f *GtkEntryForm) notifyClicked() {
+	f.handler.OnButtonClicked()
 }
 
 func (f *GtkEntryForm) SetProjects(projects []dto.Project) {
@@ -200,54 +257,6 @@ func (f *GtkEntryForm) setTags(tags []dto.Tag) error {
 		}
 	}
 	return nil
-}
-
-func (f *GtkEntryForm) getUITimeEntry() *gttimeentry.TimeEntry {
-	var err error
-	entry := &gttimeentry.TimeEntry{Id: f.entryId}
-
-	if entry.Description, err = f.description.GetText(); err != nil {
-		log.Fatal(err)
-	}
-	valid := true
-	valid = MarkValid(f.description, strings.HasPrefix(entry.Description, "#")) && valid
-
-	projectId := f.project.GetActiveID()
-	if projectId != "" {
-		if entry.Pid, err = strconv.ParseUint(projectId, 10, 64); err != nil {
-			log.Fatal("projectId parse error:", err)
-		}
-	}
-
-	valid = MarkValid(f.projectEntry, entry.Pid != 0) && valid
-
-	var tag string
-	if tag = f.tag.GetActiveID(); tag != "" {
-		entry.Tags = []string{tag}
-	}
-
-	valid = MarkValid(f.tagEntry, len(entry.Tags) != 0) && valid
-
-	startTime, err := f.parseStart()
-	if err == nil && startTime.IsZero() {
-		startTime = time.Now().Local()
-	}
-	if err != nil {
-		startTime = time.Time{}
-	}
-	valid = MarkValid(f.start, !startTime.IsZero()) && valid
-	entry.Start = startTime
-
-	if !startTime.IsZero() {
-		entry.Duration = -entry.Start.Unix()
-	} else {
-		entry.Duration = 0
-	}
-	if valid {
-		return entry
-	} else {
-		return nil
-	}
 }
 
 func (f *GtkEntryForm) parseStart() (time.Time, error) {
@@ -324,12 +333,6 @@ func (f *GtkEntryForm) uiSetTimeEntry(entry *gttimeentry.TimeEntry) {
 
 func (f *GtkEntryForm) SetTimeEntry(entry *gttimeentry.TimeEntry) {
 	tools.Schedule(f.uiSetTimeEntry, entry)
-}
-
-func (f *GtkEntryForm) GetTimeEntry(cb func(entry *gttimeentry.TimeEntry)) {
-	tools.Schedule(func() {
-		cb(f.getUITimeEntry())
-	})
 }
 
 func (f *GtkEntryForm) SetButtonSensitive(s bool) {

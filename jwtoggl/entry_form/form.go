@@ -18,38 +18,84 @@ type EntryForm struct {
 	onEntryStopped    EntryCallback
 	onEntryChanged    EntryCallback
 	waiter            *time.Timer
+	uiEntry           entry
 }
 
 type EntryCallback func(entry *gttimeentry.TimeEntry)
 
 func NewEntryForm(b *builder.Builder) (*EntryForm, error) {
-	g, err := gtk_entry_form.New(b)
+	f := &EntryForm{uiEntry: entry{Start: &time.Time{}}}
+	g, err := gtk_entry_form.New(b, f)
 	if err != nil {
 		return nil, err
 	}
-	f := &EntryForm{g: g}
+	f.g = g
 
-	err = g.ConnectSignals(
-		f.onButtonClicked,
-		f.onActiveProjectChanged,
-		f.onActiveTagChanged,
-		f.onEditDone)
+	err = g.ConnectSignals()
 	if err != nil {
 		return nil, err
 	}
 	return f, nil
 }
 
-func (f *EntryForm) Validate() {
-	tools.Schedule(f.validate)
+func (f *EntryForm) OnEditCompleted() {
+	log.Println("OnEditCompleted")
+	entry := f.uiEntry.TimeEntry()
+	if entry != nil && entry.Id != 0 && !tools.TimeEntriesEqual(f.timeEntry, entry) {
+		log.Println("UPDATE!!!", entry.Start)
+		if f.onEntryChanged != nil {
+			f.onEntryChanged(entry)
+		}
+		f.timeEntry = entry
+	} else {
+		log.Println("No update")
+	}
+}
+
+func (f *EntryForm) OnButtonClicked() {
+	if f.timeEntry != nil {
+		f.handleStop()
+	} else {
+		if f.uiEntry.Start == nil || f.uiEntry.Start.IsZero() {
+			start := time.Now()
+			f.uiEntry.Start = &start
+		}
+		f.handleStart()
+	}
+}
+
+func (f *EntryForm) OnStartTimeChanged(start *time.Time) bool {
+	defer f.validate()
+	log.Printf("OnStartTimeChanged: %s\n", start)
+	f.uiEntry.Start = start
+	return f.uiEntry.ValidateStart()
+}
+
+func (f *EntryForm) OnProjectChanged(pid uint64) bool {
+	defer f.validate()
+	log.Printf("OnProjectChanged: %d\n", pid)
+	f.uiEntry.PId = pid
+	return f.uiEntry.ValidateProject()
+}
+
+func (f *EntryForm) OnTagChanged(tag string) bool {
+	defer f.validate()
+	log.Printf("OnTagChanged: %s\n", tag)
+	f.uiEntry.Tag = tag
+	return f.uiEntry.ValidateTag()
+}
+
+func (f *EntryForm) OnDescriptionChanged(text string) bool {
+	defer f.validate()
+	log.Printf("OnDescriptionChanged: %s\n", text)
+	f.uiEntry.Description = text
+	return f.uiEntry.ValidateDescription()
 }
 
 func (f *EntryForm) validate() {
-	f.g.GetTimeEntry(func(entry *gttimeentry.TimeEntry) {
-		valid := entry != nil
-		log.Println("validate:", valid)
-		f.g.SetButtonSensitive(valid)
-	})
+	valid := f.uiEntry.Validate()
+	log.Println("validate:", valid)
+	f.g.SetButtonSensitive(valid)
 }
 
 func (f *EntryForm) OnNewEntryCreated(cb EntryCallback) {
@@ -62,49 +108,15 @@ func (f *EntryForm) OnEntryChanged(cb EntryCallback) {
 	f.onEntryChanged = cb
 }
 
-func (f *EntryForm) onActiveProjectChanged() {
-	f.g.SetActiveProject()
-	f.onEditDone()
-}
-
-func (f *EntryForm) onActiveTagChanged() {
-	f.g.SetActiveTag()
-	f.onEditDone()
-}
-
-func (f *EntryForm) onEditDone() {
-	log.Println("EditDone")
-	f.Validate()
-	if f.waiter != nil {
-		f.waiter.Stop()
-	}
-	f.waiter = time.AfterFunc(5*time.Second, f.onEditCompleted)
-}
-
-func (f *EntryForm) onEditCompleted() {
-	log.Println("EditCompleted")
-	f.waiter = nil
-	f.CheckChanged()
-}
-
-func (f *EntryForm) onButtonClicked() {
-	if f.timeEntry != nil {
-		f.handleStop()
-	} else {
-		f.handleStart()
-	}
-}
-
 func (f *EntryForm) handleStart() {
 	log.Println("handleStart")
 	if f.onNewEntryCreated == nil {
 		return
 	}
-	f.g.GetTimeEntry(func(entry *gttimeentry.TimeEntry) {
-		if entry != nil {
-			f.onNewEntryCreated(entry)
-		}
-	})
+	entry := f.uiEntry.TimeEntry()
+	if entry != nil {
+		f.onNewEntryCreated(entry)
+	}
 }
 
 func (f *EntryForm) handleStop() {
@@ -126,20 +138,6 @@ func (f *EntryForm) SetProjects(projects []dto.Project) {
 func (f *EntryForm) SetTimeEntry(entry *gttimeentry.TimeEntry) {
 	f.timeEntry = entry
 	f.g.SetTimeEntry(entry)
-}
-
-func (f *EntryForm) CheckChanged() {
-	f.g.GetTimeEntry(func(entry *gttimeentry.TimeEntry) {
-		if entry != nil && entry.Id != 0 && !tools.TimeEntriesEqual(f.timeEntry, entry) {
-			log.Println("UPDATE!!!", entry.Start)
-			if f.onEntryChanged != nil {
-				f.onEntryChanged(entry)
-			}
-			f.timeEntry = entry
-		} else {
-			log.Println("No update")
-		}
-	})
 }
 
 func (f *EntryForm) UpdateDuration() {

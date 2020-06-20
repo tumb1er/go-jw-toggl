@@ -54,7 +54,7 @@ func (m *TimeEntryManager) Delete(extId uint64) bool {
 
 func (m *TimeEntryManager) Current() *gttimeentry.TimeEntry {
 	var entry TimeEntry
-	if MustOrNotFound(m.gorm().Debug().Where("stop = ?", time.Time{}).First(&entry)) {
+	if MustOrNotFound(m.gorm().Where("stop = ?", time.Time{}).First(&entry)) {
 		return &entry.TimeEntry
 	}
 	return nil
@@ -67,9 +67,7 @@ func (m *TimeEntryManager) Create(timeEntry gttimeentry.TimeEntry) {
 
 func (m *TimeEntryManager) Update(timeEntry gttimeentry.TimeEntry) {
 	entry := &TimeEntry{TimeEntry: timeEntry}
-	// Используем map т.к. нулевое значение entry.Current не проставляется.
-	Must(m.gorm().Debug().Model(entry).Where("id = ?", timeEntry.Id).
-		Updates(entry))
+	Must(m.gorm().Model(entry).Where("id = ?", timeEntry.Id).Updates(entry))
 }
 
 func (m *TimeEntryManager) Get(extId uint64) *gttimeentry.TimeEntry {
