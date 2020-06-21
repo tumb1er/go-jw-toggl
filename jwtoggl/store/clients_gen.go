@@ -4,6 +4,7 @@ package store
 
 import (
 	"github.com/jinzhu/gorm"
+	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/gtoggl/gtclient"
 	"go-jw-toggl/jwtoggl/tools"
 	"time"
@@ -34,6 +35,14 @@ func NewClients(items ...gtclient.Clients) *Clients {
 		result[i] = Client{Client: item}
 	}
 	return &result
+}
+
+func (qs Clients) DTO() []dto.Client {
+	result := make([]dto.Client, len(qs))
+	for i, c := range qs {
+		result[i] = c
+	}
+	return result
 }
 
 func (qs Clients) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {

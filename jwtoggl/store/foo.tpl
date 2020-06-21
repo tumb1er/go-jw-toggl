@@ -4,6 +4,7 @@ package store
 
 import (
 	"github.com/jinzhu/gorm"
+	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/gtoggl/foo"
 	"go-jw-toggl/jwtoggl/tools"
 	"time"
@@ -34,6 +35,14 @@ func NewFoos(items ...foo.Foos) *Foos {
 		result[i] = Foo{Foo: item}
 	}
 	return &result
+}
+
+func (qs Foos) DTO() []dto.Foo {
+	result := make([]dto.Foo, len(qs))
+	for i, c := range qs {
+		result[i] = c
+	}
+	return result
 }
 
 func (qs Foos) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {

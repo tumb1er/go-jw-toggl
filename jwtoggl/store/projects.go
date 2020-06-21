@@ -4,7 +4,6 @@ package store
 
 import (
 	"github.com/jinzhu/gorm"
-	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 )
 
@@ -30,14 +29,6 @@ func (p Project) GetHexColor() string {
 }
 
 type Projects []Project
-
-func (qs Projects) DTO() []dto.Project {
-	result := make([]dto.Project, len(qs))
-	for i, t := range qs {
-		result[i] = t
-	}
-	return result
-}
 
 type ProjectManager gorm.DB
 

@@ -131,14 +131,6 @@ func (e TimeEntry) Equals(other dto.TimeEntry) bool {
 		e.GetStop() == other.GetStop()
 }
 
-func (qs TimeEntries) DTO() []dto.TimeEntry {
-	result := make([]dto.TimeEntry, len(qs))
-	for i, t := range qs {
-		result[i] = t
-	}
-	return result
-}
-
 func (m *TimeEntryManager) List() TimeEntries {
 	return listTimeEntries(m.gorm().Where("stop <> ?", time.Time{}).Order("start DESC"))
 }

@@ -4,7 +4,6 @@ package store
 
 import (
 	"github.com/jinzhu/gorm"
-	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
 )
 
@@ -14,14 +13,6 @@ type Tag struct {
 }
 
 type Tags []Tag
-
-func (qs Tags) DTO() []dto.Tag {
-	result := make([]dto.Tag, len(qs))
-	for i, t := range qs {
-		result[i] = t
-	}
-	return result
-}
 
 type TagManager gorm.DB
 

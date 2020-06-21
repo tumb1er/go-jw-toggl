@@ -4,7 +4,6 @@ package store
 
 import (
 	"github.com/jinzhu/gorm"
-	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/gtoggl/gtclient"
 )
 
@@ -23,14 +22,6 @@ func (c Client) GetTogglID() uint64 {
 
 func (c Client) GetName() string {
 	return c.Name
-}
-
-func (qs Clients) DTO() []dto.Client {
-	result := make([]dto.Client, len(qs))
-	for i, c := range qs {
-		result[i] = c
-	}
-	return result
 }
 
 func (m *ClientManager) List() Clients {
