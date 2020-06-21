@@ -22,7 +22,7 @@ func (m *ProjectManager) Sync(items gtproject.Projects, ts time.Time, wid uint64
 }
 
 func (m *ProjectManager) gorm() *gorm.DB {
-	return (*gorm.DB)(m)
+	return (*gorm.DB)(m).Set("gorm:auto_preload", true)
 }
 
 func NewProjects(items ...gtproject.Projects) *Projects {
@@ -48,7 +48,7 @@ func (qs Projects) DTO() []dto.Project {
 func (qs Projects) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 	err = db.Transaction(func(tx *gorm.DB) error {
 		existing := NewProjects()
-		Must(tx.Find(existing).Set("gorm:auto_preload", true))
+		Must(tx.Find(existing))
 		extIdMap := make(map[uint64]Project)
 		for _, obj := range *existing {
 			extIdMap[obj.Id] = obj

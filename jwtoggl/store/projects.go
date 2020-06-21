@@ -58,5 +58,14 @@ type Projects []Project
 type ProjectManager gorm.DB
 
 func (m *ProjectManager) List() Projects {
-	return listProjects(m.gorm().Order("name ASC").Set("gorm:auto_preload", true))
+	return listProjects(m.gorm().Order("name ASC"))
+}
+
+func (m *ProjectManager) Get(extId uint64) *Project {
+	var project Project
+	if MustOrNotFound(m.gorm().
+		Where("id = ?", extId).First(&project)) {
+		return &project
+	}
+	return nil
 }

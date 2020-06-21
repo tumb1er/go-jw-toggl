@@ -13,14 +13,9 @@ import (
 type TimeEntry struct {
 	Synced
 	gttimeentry.TimeEntry
-	Tag string
-}
-
-func (obj TimeEntry) GetTags() []string {
-	if obj.Tag == "" {
-		return []string{}
-	}
-	return []string{obj.Tag}
+	Tag       string
+	Project   Project `gorm:"foreignkey:ProjectPK"`
+	ProjectPK uint
 }
 
 type TimeEntries []TimeEntry
@@ -39,6 +34,44 @@ func NewTimeEntry(entry *gttimeentry.TimeEntry) TimeEntry {
 		timeEntry.Tag = entry.Tags[0]
 	}
 	return timeEntry
+}
+
+func (obj *TimeEntry) BeforeCreate(db *gorm.DB) error {
+	obj.loadProjectFromToggl(db)
+	obj.loadTagFromTags()
+	return nil
+}
+
+func (obj *TimeEntry) BeforeSave(db *gorm.DB) error {
+	obj.loadProjectFromToggl(db)
+	obj.loadTagFromTags()
+	return nil
+}
+
+func (obj *TimeEntry) loadProjectFromToggl(db *gorm.DB) {
+	qs := db.Set("gorm:auto_preload", true)
+	if obj.Project.PK == 0 {
+		// Загружаем проект из БД по внутреннему ключу
+		if obj.ProjectPK != 0 {
+			if !MustOrNotFound(qs.Where("pk = ?", obj.ProjectPK).First(&obj.Project)) {
+				obj.ProjectPK = 0
+			}
+		}
+	}
+	if obj.Project.PK == 0 {
+		// По внутреннему ключу проект не найден, ищем через внешний ключ
+		if MustOrNotFound(qs.Where("id = ?", obj.Pid).First(&obj.Project)) {
+			// Нашли по внешнему ключу, проставляем внутренний
+			obj.ProjectPK = obj.Project.PK
+		}
+	}
+}
+
+func (obj TimeEntry) GetTags() []string {
+	if obj.Tag == "" {
+		return []string{}
+	}
+	return []string{obj.Tag}
 }
 
 func (obj TimeEntry) Nil() bool {
@@ -68,8 +101,11 @@ func (obj TimeEntry) TaskKey() string {
 	return key
 }
 
-func (obj TimeEntry) GetProjectTogglID() uint64 {
-	return obj.Pid
+func (obj TimeEntry) GetProject() dto.Project {
+	if obj.Project.PK == 0 {
+		panic("project not preloaded")
+	}
+	return obj.Project
 }
 
 func (obj TimeEntry) GetTag() string {
@@ -83,21 +119,11 @@ func (obj TimeEntry) GetStop() time.Time {
 	return obj.Stop
 }
 
-func (obj *TimeEntry) BeforeCreate() error {
-	obj.loadTagFromTags()
-	return nil
-}
-
 func (obj *TimeEntry) loadTagFromTags() {
 	obj.Tag = ""
 	if len(obj.Tags) > 0 {
 		obj.Tag = obj.Tags[0]
 	}
-}
-
-func (obj *TimeEntry) BeforeSave() error {
-	obj.loadTagFromTags()
-	return nil
 }
 
 func (obj *TimeEntry) AfterFind() error {
@@ -117,14 +143,17 @@ func (obj TimeEntry) Equals(other dto.TimeEntry) bool {
 		return true
 	}
 	return obj.GetName() == other.GetName() &&
-		obj.GetProjectTogglID() == other.GetProjectTogglID() &&
+		obj.GetProject().GetTogglID() == other.GetProject().GetTogglID() &&
 		obj.GetTag() == other.GetTag() &&
 		obj.GetStart() == other.GetStart() &&
 		obj.GetStop() == other.GetStop()
 }
 
 func (m *TimeEntryManager) List() TimeEntries {
-	return listTimeEntries(m.gorm().Where("stop <> ?", time.Time{}).Order("start DESC"))
+	return listTimeEntries(
+		m.gorm().
+			Where("stop <> ?", time.Time{}).
+			Order("start DESC"))
 }
 
 func (m *TimeEntryManager) Delete(extId uint64) bool {
@@ -133,7 +162,9 @@ func (m *TimeEntryManager) Delete(extId uint64) bool {
 
 func (m *TimeEntryManager) Current() TimeEntry {
 	var entry TimeEntry
-	MustOrNotFound(m.gorm().Where("stop = ?", time.Time{}).First(&entry))
+	MustOrNotFound(m.gorm().
+		Where("stop = ?", time.Time{}).
+		First(&entry))
 	return entry
 }
 
@@ -142,12 +173,15 @@ func (m *TimeEntryManager) Create(timeEntry *TimeEntry) {
 }
 
 func (m *TimeEntryManager) Update(timeEntry *TimeEntry) {
-	Must(m.gorm().Model(timeEntry).Where("id = ?", timeEntry.Id).Updates(timeEntry))
+	Must(m.gorm().Model(timeEntry).
+		Where("id = ?", timeEntry.Id).
+		Updates(timeEntry))
 }
 
 func (m *TimeEntryManager) Get(extId uint64) *TimeEntry {
 	var entry TimeEntry
-	if MustOrNotFound(m.gorm().Where("id = ?", extId).First(&entry)) {
+	if MustOrNotFound(m.gorm().
+		Where("id = ?", extId).First(&entry)) {
 		return &entry
 	}
 	return nil

@@ -40,11 +40,6 @@ const (
 
 type Callback func(entryId uint64)
 
-type entriesContext struct {
-	Entries  []dto.TimeEntry
-	Projects map[uint64]dto.Project
-}
-
 type GtkHistory struct {
 	store           *gtk.TreeStore
 	treeView        *gtk.TreeView
@@ -71,42 +66,36 @@ func (h *GtkHistory) OnButtonClick(_ *gtk.TreeView, e *gdk.Event) {
 	}
 }
 
-func (h *GtkHistory) SetEntries(
-	entries []dto.TimeEntry,
-	projects map[uint64]dto.Project) {
-	tools.Schedule(h.setEntries, entriesContext{
-		Entries:  entries,
-		Projects: projects,
-	})
-}
+func (h *GtkHistory) SetEntries(entries []dto.TimeEntry) {
+	tools.Schedule(
+		func() {
+			h.store.Clear()
 
-func (h *GtkHistory) setEntries(c entriesContext) {
-	h.store.Clear()
+			cache := make(dayGroup)
 
-	cache := make(dayGroup)
-
-	for _, entry := range c.Entries {
-		duration := entry.GetDuration() // entry.Stop.Sub(entry.Start)
-		ds := cache.add(h.store, entry)
-		ds.duration += duration
-		ts := ds.add(h.store, entry)
-		if ts.count == 0 {
-			h.insertEntry(c, ts.it, entry, false)
-		} else {
-			it := h.store.Append(ts.it)
-			h.insertEntry(c, it, entry, true)
-		}
-		ts.count += 1
-	}
-
-	for day, ds := range cache {
-		h.insertDayEntry(day.Format("2006-01-02"), ds.it, ds.duration)
-		for _, ts := range ds.tasks {
-			if ts.count > 1 {
-				h.insertTaskSummary(ts.it, ts.count)
+			for _, entry := range entries {
+				duration := entry.GetDuration() // entry.Stop.Sub(entry.Start)
+				ds := cache.add(h.store, entry)
+				ds.duration += duration
+				ts := ds.add(h.store, entry)
+				if ts.count == 0 {
+					h.insertEntry(ts.it, entry, false)
+				} else {
+					it := h.store.Append(ts.it)
+					h.insertEntry(it, entry, true)
+				}
+				ts.count += 1
 			}
-		}
-	}
+
+			for day, ds := range cache {
+				h.insertDayEntry(day.Format("2006-01-02"), ds.it, ds.duration)
+				for _, ts := range ds.tasks {
+					if ts.count > 1 {
+						h.insertTaskSummary(ts.it, ts.count)
+					}
+				}
+			}
+		})
 }
 
 func (h *GtkHistory) insertTaskSummary(it *gtk.TreeIter, count int) {
@@ -147,15 +136,13 @@ func (h *GtkHistory) insertDayEntry(day string, it *gtk.TreeIter, duration time.
 	}
 }
 
-func (h *GtkHistory) insertEntry(entries entriesContext, it *gtk.TreeIter,
-	entry dto.TimeEntry, grouped bool) {
+func (h *GtkHistory) insertEntry(it *gtk.TreeIter, entry dto.TimeEntry, grouped bool) {
 	var ctx Ctx
 	ctx.Description = entry.GetName()
-	if project, ok := entries.Projects[entry.GetProjectTogglID()]; ok {
-		ctx.Project = project.GetName()
-		ctx.Color = project.GetHexColor()
-		ctx.Client = project.GetClient().GetName()
-	}
+	project := entry.GetProject()
+	ctx.Project = project.GetName()
+	ctx.Color = project.GetHexColor()
+	ctx.Client = project.GetClient().GetName()
 	ctx.Tag = entry.GetTag()
 
 	start := entry.GetStart()

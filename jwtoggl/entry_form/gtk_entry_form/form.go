@@ -283,53 +283,51 @@ func (f *GtkEntryForm) parseStart() (time.Time, error) {
 	}
 }
 
-func (f *GtkEntryForm) setTimeEntry(entry dto.TimeEntry) {
-	log.Println("SetTimeEntry:", entry)
-	if entry.Nil() {
-		f.description.SetText("")
-		MarkValid(f.description, true)
-		f.project.SetActive(-1)
-		f.tag.SetActive(-1)
-		f.button.SetImage(f.imageStart)
-		f.start.SetText("")
-		f.stop.SetText("")
-		f.projectEntry.SetText("")
-		MarkValid(f.projectEntry, true)
-		f.tagEntry.SetText("")
-		MarkValid(f.tagEntry, true)
-		f.button.SetSensitive(false)
-		f.duration.SetText("")
-		f.stop.SetText("")
-	} else {
-		f.description.SetText(entry.GetName())
-		tag := entry.GetTag()
-		if tag != "" {
-			f.tag.SetActiveID(tag)
-		} else {
-			f.tag.SetActive(-1)
-		}
-		f.project.SetActiveID(strconv.FormatUint(entry.GetProjectTogglID(), 10))
-		f.button.SetImage(f.imageStop)
-		if entry.GetStart().IsZero() {
-			f.start.SetText("")
-		} else {
-			f.start.SetText(entry.GetStart().Local().Format("15:04:05"))
-		}
-		if entry.GetStop().IsZero() {
-			f.stop.SetText("")
-			d := time.Now().Sub(entry.GetStart())
-			f.duration.SetText(d.Truncate(time.Second).String())
-		} else {
-			f.stop.SetText(entry.GetStop().Format("15:04:05"))
-			d := entry.GetStop().Sub(entry.GetStart())
-			f.duration.SetText(d.Truncate(time.Second).String())
-		}
-	}
-}
-
 func (f *GtkEntryForm) SetTimeEntry(entry dto.TimeEntry) {
 	log.Printf("Schedule setTimeEntry %+v\n", entry)
-	tools.Schedule(f.setTimeEntry, entry)
+	tools.Schedule(func() {
+		log.Println("SetTimeEntry:", entry)
+		if entry.Nil() {
+			f.description.SetText("")
+			MarkValid(f.description, true)
+			f.project.SetActive(-1)
+			f.tag.SetActive(-1)
+			f.button.SetImage(f.imageStart)
+			f.start.SetText("")
+			f.stop.SetText("")
+			f.projectEntry.SetText("")
+			MarkValid(f.projectEntry, true)
+			f.tagEntry.SetText("")
+			MarkValid(f.tagEntry, true)
+			f.button.SetSensitive(false)
+			f.duration.SetText("")
+			f.stop.SetText("")
+		} else {
+			f.description.SetText(entry.GetName())
+			tag := entry.GetTag()
+			if tag != "" {
+				f.tag.SetActiveID(tag)
+			} else {
+				f.tag.SetActive(-1)
+			}
+			f.project.SetActiveID(strconv.FormatUint(entry.GetProject().GetTogglID(), 10))
+			f.button.SetImage(f.imageStop)
+			if entry.GetStart().IsZero() {
+				f.start.SetText("")
+			} else {
+				f.start.SetText(entry.GetStart().Local().Format("15:04:05"))
+			}
+			if entry.GetStop().IsZero() {
+				f.stop.SetText("")
+				d := time.Now().Sub(entry.GetStart())
+				f.duration.SetText(d.Truncate(time.Second).String())
+			} else {
+				f.stop.SetText(entry.GetStop().Format("15:04:05"))
+				d := entry.GetStop().Sub(entry.GetStart())
+				f.duration.SetText(d.Truncate(time.Second).String())
+			}
+		}
+	})
 }
 
 func (f *GtkEntryForm) SetButtonSensitive(s bool) {

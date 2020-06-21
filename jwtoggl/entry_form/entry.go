@@ -14,6 +14,30 @@ type entry struct {
 	Id          uint64
 }
 
+type project struct {
+	Id uint64
+}
+
+func (p project) GetName() string {
+	panic("implement me")
+}
+
+func (p project) GetHexColor() string {
+	panic("implement me")
+}
+
+func (p project) GetTogglID() uint64 {
+	return p.Id
+}
+
+func (p project) GetClient() dto.Client {
+	panic("implement me")
+}
+
+func (e entry) GetProject() dto.Project {
+	return project{e.PId}
+}
+
 func (e entry) GetTags() []string {
 	if e.Tag == "" {
 		return []string{}
@@ -60,7 +84,7 @@ func (e entry) Nil() bool {
 	return true
 }
 
-func (e entry) Equals(entry dto.TimeEntry) bool {
+func (e entry) Equals(_ dto.TimeEntry) bool {
 	panic("implement me")
 }
 

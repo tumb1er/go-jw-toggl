@@ -22,7 +22,10 @@ type EntryForm struct {
 type EntryCallback func(dto.TimeEntry)
 
 func NewEntryForm(b *builder.Builder) (*EntryForm, error) {
-	f := &EntryForm{uiEntry: entry{Start: &time.Time{}}}
+	f := &EntryForm{
+		uiEntry:   entry{Start: &time.Time{}},
+		timeEntry: entry{Start: &time.Time{}},
+	}
 	g, err := gtk_entry_form.New(b, f)
 	if err != nil {
 		return nil, err
@@ -50,7 +53,7 @@ func (f *EntryForm) OnEditCompleted() {
 }
 
 func (f *EntryForm) OnButtonClicked() {
-	if f.timeEntry != nil {
+	if !f.timeEntry.Nil() {
 		f.handleStop()
 	} else {
 		if f.uiEntry.Start == nil || f.uiEntry.Start.IsZero() {

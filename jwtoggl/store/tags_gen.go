@@ -22,7 +22,7 @@ func (m *TagManager) Sync(items gttag.Tags, ts time.Time, wid uint64) (bool, err
 }
 
 func (m *TagManager) gorm() *gorm.DB {
-	return (*gorm.DB)(m)
+	return (*gorm.DB)(m).Set("gorm:auto_preload", true)
 }
 
 func NewTags(items ...gttag.Tags) *Tags {
@@ -48,7 +48,7 @@ func (qs Tags) DTO() []dto.Tag {
 func (qs Tags) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 	err = db.Transaction(func(tx *gorm.DB) error {
 		existing := NewTags()
-		Must(tx.Find(existing).Set("gorm:auto_preload", true))
+		Must(tx.Find(existing))
 		extIdMap := make(map[uint64]Tag)
 		for _, obj := range *existing {
 			extIdMap[obj.Id] = obj

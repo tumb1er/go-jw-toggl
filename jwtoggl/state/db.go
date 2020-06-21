@@ -67,7 +67,7 @@ func (db *DB) UpdateCurrentEntry(entry dto.TimeEntry) error {
 		Start:       entry.GetStart(),
 		Stop:        entry.GetStop(),
 		Tags:        entry.GetTags(),
-		Pid:         entry.GetProjectTogglID(),
+		Pid:         entry.GetProject().GetTogglID(),
 		WId:         db.defaultWId,
 		CreatedWith: "go-jw-toggl",
 	}
@@ -96,7 +96,7 @@ func (db *DB) createNewEntry(entry dto.TimeEntry, notify bool) error {
 		Stop:        entry.GetStop(),
 		Duration:    -entry.GetStart().Unix(),
 		Tags:        entry.GetTags(),
-		Pid:         entry.GetProjectTogglID(),
+		Pid:         entry.GetProject().GetTogglID(),
 		WId:         db.defaultWId,
 		CreatedWith: "go-jw-toggl",
 	}
@@ -158,7 +158,10 @@ func (db *DB) ContinueEntry(id uint64) error {
 	entry.Start = time.Now().Local()
 	entry.Stop = time.Time{}
 	entry.Duration = 0
-	return db.createNewEntry(store.NewTimeEntry(entry), true)
+	storeEntry := store.NewTimeEntry(entry)
+	storeEntry.Project = *db.store().Projects().Get(entry.Pid)
+	storeEntry.ProjectPK = storeEntry.Project.PK
+	return db.createNewEntry(storeEntry, true)
 }
 
 func (db *DB) DeleteEntry(id uint64) error {

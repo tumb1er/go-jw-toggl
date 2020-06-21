@@ -32,7 +32,9 @@ func (j *jApp) syncUser() {
 
 func (j *jApp) OnProjectsChanged(projects dto.Projects) {
 	j.form.SetProjects(projects.DTO())
-	j.entries.SetProjects(projects.DTO())
+	// В истории проекты берутся из TimeEntry.Project, форсируем
+	// синхронизацию записей.
+	j.entries.SetEntries(j.db.ListTimeEntries().DTO())
 }
 
 func (j *jApp) OnTagsChanged(tags dto.Tags) {
@@ -40,9 +42,9 @@ func (j *jApp) OnTagsChanged(tags dto.Tags) {
 }
 
 func (j *jApp) OnClientsChanged(_ dto.Clients) {
-	// Клиенты отображаются только в истории, а там они берутся из Project.Client,
-	// поэтому форсируем синхронизацию проектов.
-	j.entries.SetProjects(j.db.ListProjects().DTO())
+	// Клиенты отображаются только в истории, а там они берутся из TimeEntry.Project.Client,
+	// поэтому форсируем синхронизацию записей.
+	j.entries.SetEntries(j.db.ListTimeEntries().DTO())
 }
 
 func (j *jApp) OnTimeEntriesChanged(entries dto.TimeEntries) {

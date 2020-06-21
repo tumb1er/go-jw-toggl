@@ -22,7 +22,7 @@ func (m *FooManager) Sync(items foo.Foos, ts time.Time, wid uint64) (bool, error
 }
 
 func (m *FooManager) gorm() *gorm.DB {
-	return (*gorm.DB)(m)
+	return (*gorm.DB)(m).Set("gorm:auto_preload", true)
 }
 
 func NewFoos(items ...foo.Foos) *Foos {
@@ -48,7 +48,7 @@ func (qs Foos) DTO() []dto.Foo {
 func (qs Foos) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 	err = db.Transaction(func(tx *gorm.DB) error {
 		existing := NewFoos()
-		Must(tx.Find(existing).Set("gorm:auto_preload", true))
+		Must(tx.Find(existing))
 		extIdMap := make(map[uint64]Foo)
 		for _, obj := range *existing {
 			extIdMap[obj.Id] = obj

@@ -29,6 +29,7 @@ type Clients interface {
 type Projects interface {
 	List() store.Projects
 	Sync(gtproject.Projects, time.Time, uint64) (bool, error)
+	Get(id uint64) *store.Project
 }
 
 //Tags предоставляет доступ ко списку тегов в БД

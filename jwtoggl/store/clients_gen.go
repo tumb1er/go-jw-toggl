@@ -22,7 +22,7 @@ func (m *ClientManager) Sync(items gtclient.Clients, ts time.Time, wid uint64) (
 }
 
 func (m *ClientManager) gorm() *gorm.DB {
-	return (*gorm.DB)(m)
+	return (*gorm.DB)(m).Set("gorm:auto_preload", true)
 }
 
 func NewClients(items ...gtclient.Clients) *Clients {
@@ -48,7 +48,7 @@ func (qs Clients) DTO() []dto.Client {
 func (qs Clients) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 	err = db.Transaction(func(tx *gorm.DB) error {
 		existing := NewClients()
-		Must(tx.Find(existing).Set("gorm:auto_preload", true))
+		Must(tx.Find(existing))
 		extIdMap := make(map[uint64]Client)
 		for _, obj := range *existing {
 			extIdMap[obj.Id] = obj

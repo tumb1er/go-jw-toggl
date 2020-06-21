@@ -8,6 +8,7 @@ import (
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
 	"go-jw-toggl/jwtoggl/gtoggl/gtwebsocket"
 	"go-jw-toggl/jwtoggl/store"
+	"go-jw-toggl/jwtoggl/tools"
 )
 
 type OnCurrentEntryCallback func(entry dto.TimeEntry, external bool)
@@ -31,7 +32,7 @@ func (db *TimeEntriesDB) onTimeEntryAction(action string, timeEntry gttimeentry.
 	if action == gtwebsocket.ActionDelete {
 		entries.Delete(timeEntry.Id)
 		current := entries.Current()
-		if !current.Equals(old) {
+		if !tools.TimeEntriesEqual(&old.TimeEntry, &current.TimeEntry) {
 			// Обновился текущий
 			db.onCurrentEntry(current, true)
 		} else {
@@ -42,7 +43,7 @@ func (db *TimeEntriesDB) onTimeEntryAction(action string, timeEntry gttimeentry.
 		storeEntry := store.NewTimeEntry(&timeEntry)
 		if db.update(&storeEntry) {
 			current := entries.Current()
-			if !current.Equals(old) {
+			if !tools.TimeEntriesEqual(&old.TimeEntry, &current.TimeEntry) {
 				// Обновился текущий
 				db.onCurrentEntry(current, true)
 			}

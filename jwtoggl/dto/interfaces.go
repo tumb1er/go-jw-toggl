@@ -37,7 +37,7 @@ type TimeEntry interface {
 	GetStart() time.Time
 	TaskKey() string
 	GetName() string
-	GetProjectTogglID() uint64
+	GetProject() Project
 	GetTag() string
 	GetStop() time.Time
 	GetTogglID() uint64

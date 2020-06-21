@@ -7,21 +7,12 @@ import (
 )
 
 type History struct {
-	history  *gtk_history.GtkHistory
-	projects map[uint64]dto.Project
-	entries  []dto.TimeEntry
-}
-
-func (h *History) SetProjects(projects []dto.Project) {
-	h.projects = make(map[uint64]dto.Project)
-	for _, project := range projects {
-		h.projects[project.GetTogglID()] = project
-	}
-	h.setEntries()
+	history *gtk_history.GtkHistory
+	entries []dto.TimeEntry
 }
 
 func (h *History) setEntries() {
-	h.history.SetEntries(h.entries, h.projects)
+	h.history.SetEntries(h.entries)
 }
 
 func (h *History) SetEntries(entries []dto.TimeEntry) {
@@ -40,8 +31,7 @@ func New(b *builder.Builder) (*History, error) {
 		return nil, err
 	}
 	h := &History{
-		history:  history,
-		projects: make(map[uint64]dto.Project),
+		history: history,
 	}
 	return h, nil
 }
