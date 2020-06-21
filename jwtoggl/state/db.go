@@ -71,6 +71,9 @@ func (db *DB) UpdateCurrentEntry(entry dto.TimeEntry) error {
 		WId:         db.defaultWId,
 		CreatedWith: "go-jw-toggl",
 	}
+	if timeEntry.Stop.IsZero() {
+		timeEntry.Duration = -timeEntry.Start.Unix()
+	}
 	timeEntry, err := db.client.TimeentryClient.Update(timeEntry)
 	if err != nil {
 		return err
