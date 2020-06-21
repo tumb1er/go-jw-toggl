@@ -158,7 +158,7 @@ func (m *TimeEntryManager) Create(timeEntry *TimeEntry) {
 }
 
 func (m *TimeEntryManager) Update(timeEntry *TimeEntry) {
-	Must(m.gorm().Debug().Save(timeEntry))
+	Must(m.gorm().Model(timeEntry).Where("id = ?", timeEntry.Id).Updates(timeEntry))
 }
 
 func (m *TimeEntryManager) Get(extId uint64) *TimeEntry {
