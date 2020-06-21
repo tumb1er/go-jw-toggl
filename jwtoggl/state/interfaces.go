@@ -47,6 +47,7 @@ type Entries interface {
 	Sync(gttimeentry.TimeEntries, time.Time, uint64) (bool, error)
 	List() store.TimeEntries
 	Delete(id uint64) bool
+	FromTimeEntry(entry gttimeentry.TimeEntry) *store.TimeEntry
 }
 
 //common дает миксинам TagsDB, ClientsDB и прочим доступ к необходимым им полям из общего класса.

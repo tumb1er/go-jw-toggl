@@ -78,8 +78,8 @@ func (db *DB) UpdateCurrentEntry(entry dto.TimeEntry) error {
 	if err != nil {
 		return err
 	}
-	storeEntry := store.NewTimeEntry(timeEntry)
-	if db.update(&storeEntry) {
+	storeEntry := db.s.TimeEntries().FromTimeEntry(*timeEntry)
+	if db.update(storeEntry) {
 		db.onCurrentEntry(db.s.TimeEntries().Current(), false)
 	}
 	return nil
@@ -131,36 +131,34 @@ func (db *DB) StopEntry(entry dto.TimeEntry) error {
 	if current.Nil() || current.Id != entry.GetTogglID() {
 		return errors.New("current entry de-sync")
 	}
-	timeEntry := &gttimeentry.TimeEntry{Id: entry.GetTogglID()}
+	timeEntry := &gttimeentry.TimeEntry{Id: current.Id}
 	timeEntry, err := db.client.TimeentryClient.Stop(timeEntry)
 	if err != nil {
 		return err
 	}
-	storeEntry := store.NewTimeEntry(timeEntry)
-	db.update(&storeEntry)
+	current.TimeEntry = *timeEntry
+	db.update(&current)
 	db.onCurrentEntry(store.TimeEntry{}, false)
 	db.onTimeEntriesChanged(db.s.TimeEntries().List())
 	return nil
 }
 
 func (db *DB) ContinueEntry(id uint64) error {
-	var entry *gttimeentry.TimeEntry
-	var err error
-	if prev := db.s.TimeEntries().Get(id); prev != nil {
-		entry = &prev.TimeEntry
-	} else {
-		entry, err = db.client.TimeentryClient.Get(id)
-		if err != nil {
+	var storeEntry *store.TimeEntry
+	if storeEntry = db.s.TimeEntries().Get(id); storeEntry == nil {
+		if entry, err := db.client.TimeentryClient.Get(id); err != nil {
 			return err
+		} else {
+			storeEntry = db.s.TimeEntries().FromTimeEntry(*entry)
 		}
 	}
-	entry.Id = 0
-	entry.Start = time.Now().Local()
-	entry.Stop = time.Time{}
-	entry.Duration = 0
-	storeEntry := store.NewTimeEntry(entry)
-	storeEntry.Project = *db.store().Projects().Get(entry.Pid)
-	storeEntry.ProjectPK = storeEntry.Project.PK
+
+	storeEntry.Id = 0
+	storeEntry.Start = time.Now().Local()
+	storeEntry.Stop = time.Time{}
+	storeEntry.Duration = 0
+	//storeEntry.Project = *db.store().Projects().Get(entry.Pid)
+	//storeEntry.ProjectPK = storeEntry.Project.PK
 	return db.createNewEntry(storeEntry, true)
 }
 
@@ -180,8 +178,11 @@ func (db *DB) SyncCurrentEntry(force bool) error {
 	if err != nil {
 		return err
 	}
-	storeEntry := store.NewTimeEntry(entry)
-	if entry != nil && db.update(&storeEntry) || force {
+	if entry == nil {
+		return nil
+	}
+	storeEntry := db.s.TimeEntries().FromTimeEntry(*entry)
+	if storeEntry != nil && db.update(storeEntry) || force {
 		current := db.s.TimeEntries().Current()
 		if old.Nil() && current.Nil() {
 			// prevent notify change nil to nil

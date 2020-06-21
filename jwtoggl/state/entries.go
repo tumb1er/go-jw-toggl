@@ -7,8 +7,8 @@ import (
 	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
 	"go-jw-toggl/jwtoggl/gtoggl/gtwebsocket"
-	"go-jw-toggl/jwtoggl/store"
 	"go-jw-toggl/jwtoggl/tools"
+	"log"
 )
 
 type OnCurrentEntryCallback func(entry dto.TimeEntry, external bool)
@@ -40,9 +40,13 @@ func (db *TimeEntriesDB) onTimeEntryAction(action string, timeEntry gttimeentry.
 		}
 
 	} else if action == gtwebsocket.ActionUpdate || action == gtwebsocket.ActionInsert {
-		storeEntry := store.NewTimeEntry(&timeEntry)
-		if db.update(&storeEntry) {
+		log.Printf("onTimeEntryAction: %d\n", timeEntry.Pid)
+		storeEntry := db.store().TimeEntries().FromTimeEntry(timeEntry)
+		log.Printf("onTimeEntryAction: %s %d\n", storeEntry.Project.Name, storeEntry.Project.Id)
+		if db.update(storeEntry) {
+			log.Printf("onTimeEntryAction update: %s %d\n", storeEntry.Project.Name, storeEntry.Project.Id)
 			current := entries.Current()
+			log.Printf("onTimeEntryAction current: %s %d\n", current.Project.Name, current.Project.Id)
 			if !tools.TimeEntriesEqual(&old.TimeEntry, &current.TimeEntry) {
 				// Обновился текущий
 				db.onCurrentEntry(current, true)

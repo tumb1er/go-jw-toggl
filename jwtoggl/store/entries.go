@@ -22,16 +22,16 @@ type TimeEntries []TimeEntry
 
 type TimeEntryManager gorm.DB
 
-func NewTimeEntry(entry *gttimeentry.TimeEntry) TimeEntry {
-	if entry == nil {
-		return TimeEntry{}
+func (m *TimeEntryManager) FromTimeEntry(entry gttimeentry.TimeEntry) *TimeEntry {
+	timeEntry := m.Get(entry.Id)
+	if timeEntry == nil {
+		timeEntry = &TimeEntry{}
 	}
-	timeEntry := TimeEntry{
-		TimeEntry: *entry,
-		Tag:       "",
-	}
-	if len(entry.Tags) > 0 {
-		timeEntry.Tag = entry.Tags[0]
+	timeEntry.TimeEntry = entry
+	if timeEntry.Project.Id != entry.Pid {
+		timeEntry.Project.PK = 0
+		Must(m.gorm().Debug().Where("id = ?", entry.Pid).Find(&timeEntry.Project))
+		timeEntry.ProjectPK = timeEntry.Project.PK
 	}
 	return timeEntry
 }
