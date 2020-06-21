@@ -26,7 +26,7 @@ func (ds *daySummary) add(s *gtk.TreeStore, entry dto.TimeEntry) *taskSummary {
 	}
 	ds.tasks[key] = &taskSummary{
 		it:    s.Append(ds.it),
-		title: entry.GetDescription(),
+		title: entry.GetName(),
 	}
 	return ds.tasks[key]
 }

@@ -153,7 +153,7 @@ func (h *GtkHistory) insertDayEntry(day string, it *gtk.TreeIter, duration time.
 func (h *GtkHistory) insertEntry(entries entriesContext, it *gtk.TreeIter,
 	entry dto.TimeEntry, grouped bool) {
 	var ctx Ctx
-	ctx.Description = entry.GetDescription()
+	ctx.Description = entry.GetName()
 	if project, ok := entries.Projects[entry.GetProjectTogglID()]; ok {
 		ctx.Project = project.GetName()
 		ctx.Color = project.GetHexColor()

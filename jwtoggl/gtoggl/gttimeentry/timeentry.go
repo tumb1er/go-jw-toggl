@@ -13,7 +13,7 @@ import (
 
 type TimeEntry struct {
 	Id          uint64                 `json:"id,omitempty"`
-	Description string                 `json:"description"`
+	Name        string                 `json:"description"`
 	Project     *gtproject.Project     `json:"project"`
 	Start       time.Time              `json:"start"`
 	Stop        time.Time              `json:"stop"`

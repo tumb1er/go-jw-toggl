@@ -63,7 +63,7 @@ func (db *DB) wid() uint64 {
 func (db *DB) UpdateCurrentEntry(entry dto.TimeEntry) error {
 	timeEntry := &gttimeentry.TimeEntry{
 		Id:          entry.GetTogglID(),
-		Description: entry.GetDescription(),
+		Name:        entry.GetName(),
 		Start:       entry.GetStart(),
 		Stop:        entry.GetStop(),
 		Tags:        entry.GetTags(),
@@ -91,7 +91,7 @@ func (db *DB) CreateNewEntry(entry dto.TimeEntry) error {
 
 func (db *DB) createNewEntry(entry dto.TimeEntry, notify bool) error {
 	timeEntry := &gttimeentry.TimeEntry{
-		Description: entry.GetDescription(),
+		Name:        entry.GetName(),
 		Start:       entry.GetStart(),
 		Stop:        entry.GetStop(),
 		Duration:    -entry.GetStart().Unix(),

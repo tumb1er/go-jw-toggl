@@ -36,7 +36,7 @@ func (e entry) TaskKey() string {
 	panic("implement me")
 }
 
-func (e entry) GetDescription() string {
+func (e entry) GetName() string {
 	return e.Description
 }
 

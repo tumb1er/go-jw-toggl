@@ -78,10 +78,10 @@ func (t *Tray) SetCurrentEntry(entry dto.TimeEntry) {
 	if entry.Nil() {
 		t.ClearCurrentEntry()
 	} else {
-		t.indicator.SetLabel(tools.Shorten(entry.GetDescription()), "")
+		t.indicator.SetLabel(tools.Shorten(entry.GetName()), "")
 		icon := tools.GetIconPath(TogglIcon)
 		t.indicator.SetIcon(icon)
-		t.menuShow.SetLabel(entry.GetDescription())
+		t.menuShow.SetLabel(entry.GetName())
 		if err := t.popup.SetIcon(icon); err != nil {
 			log.Fatal("Popup error:", err)
 		}

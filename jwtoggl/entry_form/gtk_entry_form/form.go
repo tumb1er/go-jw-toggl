@@ -301,7 +301,7 @@ func (f *GtkEntryForm) setTimeEntry(entry dto.TimeEntry) {
 		f.duration.SetText("")
 		f.stop.SetText("")
 	} else {
-		f.description.SetText(entry.GetDescription())
+		f.description.SetText(entry.GetName())
 		tag := entry.GetTag()
 		if tag != "" {
 			f.tag.SetActiveID(tag)

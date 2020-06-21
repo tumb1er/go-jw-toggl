@@ -84,7 +84,7 @@ func (j *jApp) OnCurrentEntryChanged(entry dto.TimeEntry, external bool) {
 	if external {
 		var text string
 		if !entry.Nil() {
-			text = entry.GetDescription()
+			text = entry.GetName()
 		} else {
 			text = "Timer stopped"
 		}

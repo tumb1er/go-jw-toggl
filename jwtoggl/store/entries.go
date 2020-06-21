@@ -58,9 +58,9 @@ func (e TimeEntry) GetStart() time.Time {
 }
 
 func (e TimeEntry) TaskKey() string {
-	key := e.Description
-	if strings.HasPrefix(e.Description, "#") {
-		key = strings.SplitN(e.Description, " ", 2)[0]
+	key := e.Name
+	if strings.HasPrefix(e.Name, "#") {
+		key = strings.SplitN(e.Name, " ", 2)[0]
 	}
 	if len(e.Tags) > 0 {
 		key += e.Tags[0]
@@ -68,8 +68,8 @@ func (e TimeEntry) TaskKey() string {
 	return key
 }
 
-func (e TimeEntry) GetDescription() string {
-	return e.Description
+func (e TimeEntry) GetName() string {
+	return e.Name
 }
 
 func (e TimeEntry) GetProjectTogglID() uint64 {
@@ -124,7 +124,7 @@ func (e TimeEntry) Equals(other dto.TimeEntry) bool {
 	if e.Nil() && other.Nil() {
 		return true
 	}
-	return e.GetDescription() == other.GetDescription() &&
+	return e.GetName() == other.GetName() &&
 		e.GetProjectTogglID() == other.GetProjectTogglID() &&
 		e.GetTag() == other.GetTag() &&
 		e.GetStart() == other.GetStart() &&
