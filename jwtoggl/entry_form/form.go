@@ -41,14 +41,40 @@ func NewEntryForm(b *builder.Builder) (*EntryForm, error) {
 
 func (f *EntryForm) OnEditCompleted() {
 	log.Println("OnEditCompleted")
-	if f.uiEntry.Validate() && f.timeEntry.GetTogglID() != 0 && !f.timeEntry.Equals(f.uiEntry) {
-		log.Println("UPDATE!!!", f.uiEntry.GetStart())
-		f.timeEntry = f.uiEntry // копирование структуры
-		if f.onEntryChanged != nil {
-			f.onEntryChanged(f.timeEntry)
-		}
-	} else {
-		log.Println("No update")
+	if !f.uiEntry.Validate() {
+		log.Println("uiEntry validate failed")
+		return
+	}
+	if f.timeEntry.Nil() {
+		log.Println("state nil")
+		return
+	}
+	changed := false
+	if f.timeEntry.GetName() != f.uiEntry.GetName() {
+		log.Println("name changed")
+		changed = true
+	}
+	if f.timeEntry.GetProject().GetTogglID() != f.uiEntry.GetProject().GetTogglID() {
+		log.Println("project changed")
+		changed = true
+	}
+	if f.timeEntry.GetTag() != f.uiEntry.GetTag() {
+		log.Println("tag changed")
+		changed = true
+	}
+	if f.timeEntry.GetStart() != f.uiEntry.GetStart() {
+		log.Println("start changed")
+		changed = true
+	}
+	if !changed {
+		log.Println("Nothing changed")
+		return
+	}
+
+	log.Println("UPDATE!!!", f.uiEntry, f.timeEntry)
+	f.timeEntry = f.uiEntry // копирование структуры
+	if f.onEntryChanged != nil {
+		f.onEntryChanged(f.timeEntry)
 	}
 }
 
