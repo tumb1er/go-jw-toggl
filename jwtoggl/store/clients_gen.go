@@ -78,3 +78,11 @@ func listClients(scope *gorm.DB) Clients {
 	Must(scope.Find(qs))
 	return *qs
 }
+
+func (obj Client) GetTogglID() uint64 {
+	return obj.Id
+}
+
+func (obj Client) GetName() string {
+	return obj.Name
+}

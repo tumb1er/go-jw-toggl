@@ -16,14 +16,6 @@ type Clients []Client
 
 type ClientManager gorm.DB
 
-func (c Client) GetTogglID() uint64 {
-	return c.Id
-}
-
-func (c Client) GetName() string {
-	return c.Name
-}
-
 func (m *ClientManager) List() Clients {
 	return listClients(m.gorm())
 }

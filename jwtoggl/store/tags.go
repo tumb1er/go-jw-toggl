@@ -16,10 +16,6 @@ type Tags []Tag
 
 type TagManager gorm.DB
 
-func (t Tag) GetName() string {
-	return t.Name
-}
-
 func (m *TagManager) List() Tags {
 	return listTags(m.gorm().Order("name ASC"))
 }

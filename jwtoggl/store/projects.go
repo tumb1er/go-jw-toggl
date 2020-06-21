@@ -12,20 +12,12 @@ type Project struct {
 	gtproject.Project
 }
 
-func (p Project) GetClientTogglID() uint64 {
-	return p.CId
+func (obj Project) GetClientTogglID() uint64 {
+	return obj.CId
 }
 
-func (p Project) GetTogglID() uint64 {
-	return p.Id
-}
-
-func (p Project) GetName() string {
-	return p.Name
-}
-
-func (p Project) GetHexColor() string {
-	return p.HexColor
+func (obj Project) GetHexColor() string {
+	return obj.HexColor
 }
 
 type Projects []Project

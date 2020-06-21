@@ -78,3 +78,11 @@ func listFoos(scope *gorm.DB) Foos {
 	Must(scope.Find(qs))
 	return *qs
 }
+
+func (obj Foo) GetTogglID() uint64 {
+	return obj.Id
+}
+
+func (obj Foo) GetName() string {
+	return obj.Name
+}

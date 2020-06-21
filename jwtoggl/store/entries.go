@@ -16,11 +16,11 @@ type TimeEntry struct {
 	Tag string
 }
 
-func (e TimeEntry) GetTags() []string {
-	if e.Tag == "" {
+func (obj TimeEntry) GetTags() []string {
+	if obj.Tag == "" {
 		return []string{}
 	}
-	return []string{e.Tag}
+	return []string{obj.Tag}
 }
 
 type TimeEntries []TimeEntry
@@ -41,94 +41,86 @@ func NewTimeEntry(entry *gttimeentry.TimeEntry) TimeEntry {
 	return timeEntry
 }
 
-func (e TimeEntry) Nil() bool {
-	return e.PK == 0
+func (obj TimeEntry) Nil() bool {
+	return obj.PK == 0
 }
 
-func (e TimeEntry) IsCurrent() bool {
-	return e.Stop.IsZero()
+func (obj TimeEntry) IsCurrent() bool {
+	return obj.Stop.IsZero()
 }
 
-func (e TimeEntry) GetDuration() time.Duration {
-	return e.Stop.Sub(e.Start)
+func (obj TimeEntry) GetDuration() time.Duration {
+	return obj.Stop.Sub(obj.Start)
 }
 
-func (e TimeEntry) GetStart() time.Time {
-	return e.Start
+func (obj TimeEntry) GetStart() time.Time {
+	return obj.Start
 }
 
-func (e TimeEntry) TaskKey() string {
-	key := e.Name
-	if strings.HasPrefix(e.Name, "#") {
-		key = strings.SplitN(e.Name, " ", 2)[0]
+func (obj TimeEntry) TaskKey() string {
+	key := obj.Name
+	if strings.HasPrefix(obj.Name, "#") {
+		key = strings.SplitN(obj.Name, " ", 2)[0]
 	}
-	if len(e.Tags) > 0 {
-		key += e.Tags[0]
+	if len(obj.Tags) > 0 {
+		key += obj.Tags[0]
 	}
 	return key
 }
 
-func (e TimeEntry) GetName() string {
-	return e.Name
+func (obj TimeEntry) GetProjectTogglID() uint64 {
+	return obj.Pid
 }
 
-func (e TimeEntry) GetProjectTogglID() uint64 {
-	return e.Pid
-}
-
-func (e TimeEntry) GetTag() string {
-	if len(e.Tags) > 0 {
-		return e.Tags[0]
+func (obj TimeEntry) GetTag() string {
+	if len(obj.Tags) > 0 {
+		return obj.Tags[0]
 	}
 	return ""
 }
 
-func (e TimeEntry) GetStop() time.Time {
-	return e.Stop
+func (obj TimeEntry) GetStop() time.Time {
+	return obj.Stop
 }
 
-func (e TimeEntry) GetTogglID() uint64 {
-	return e.Id
-}
-
-func (e *TimeEntry) BeforeCreate() error {
-	e.loadTagFromTags()
+func (obj *TimeEntry) BeforeCreate() error {
+	obj.loadTagFromTags()
 	return nil
 }
 
-func (e *TimeEntry) loadTagFromTags() {
-	e.Tag = ""
-	if len(e.Tags) > 0 {
-		e.Tag = e.Tags[0]
+func (obj *TimeEntry) loadTagFromTags() {
+	obj.Tag = ""
+	if len(obj.Tags) > 0 {
+		obj.Tag = obj.Tags[0]
 	}
 }
 
-func (e *TimeEntry) BeforeSave() error {
-	e.loadTagFromTags()
+func (obj *TimeEntry) BeforeSave() error {
+	obj.loadTagFromTags()
 	return nil
 }
 
-func (e *TimeEntry) AfterFind() error {
-	if e.Tag != "" {
-		e.Tags = []string{e.Tag}
+func (obj *TimeEntry) AfterFind() error {
+	if obj.Tag != "" {
+		obj.Tags = []string{obj.Tag}
 	} else {
-		e.Tags = []string{}
+		obj.Tags = []string{}
 	}
 	return nil
 }
 
-func (e TimeEntry) Equals(other dto.TimeEntry) bool {
-	if e.Nil() != other.Nil() {
+func (obj TimeEntry) Equals(other dto.TimeEntry) bool {
+	if obj.Nil() != other.Nil() {
 		return false
 	}
-	if e.Nil() && other.Nil() {
+	if obj.Nil() && other.Nil() {
 		return true
 	}
-	return e.GetName() == other.GetName() &&
-		e.GetProjectTogglID() == other.GetProjectTogglID() &&
-		e.GetTag() == other.GetTag() &&
-		e.GetStart() == other.GetStart() &&
-		e.GetStop() == other.GetStop()
+	return obj.GetName() == other.GetName() &&
+		obj.GetProjectTogglID() == other.GetProjectTogglID() &&
+		obj.GetTag() == other.GetTag() &&
+		obj.GetStart() == other.GetStart() &&
+		obj.GetStop() == other.GetStop()
 }
 
 func (m *TimeEntryManager) List() TimeEntries {

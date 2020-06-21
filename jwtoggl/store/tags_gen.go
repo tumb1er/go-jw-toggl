@@ -78,3 +78,11 @@ func listTags(scope *gorm.DB) Tags {
 	Must(scope.Find(qs))
 	return *qs
 }
+
+func (obj Tag) GetTogglID() uint64 {
+	return obj.Id
+}
+
+func (obj Tag) GetName() string {
+	return obj.Name
+}
