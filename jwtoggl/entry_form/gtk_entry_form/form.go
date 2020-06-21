@@ -2,7 +2,6 @@ package gtk_entry_form
 
 import (
 	"fmt"
-	"github.com/gotk3/gotk3/gdk"
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 	"go-jw-toggl/jwtoggl/builder"
@@ -130,32 +129,31 @@ type sender interface {
 	Connect(string, interface{}, ...interface{}) (glib.SignalHandle, error)
 }
 
-func connectSignals(obj sender, handler interface{}) error {
-	for i, signal := range []string{"changed", "focus-out-event"} {
-		if _, err := obj.Connect(signal, handler, i == 1); err != nil {
-			return err
-		}
+func (f *GtkEntryForm) connect(obj sender, handler interface{}) error {
+	if _, err := obj.Connect("changed", handler); err != nil {
+		return err
 	}
-	return nil
+	_, err := obj.Connect("focus-out-event", f.notifyEditCompleted)
+	return err
 }
 
 func (f *GtkEntryForm) ConnectSignals() error {
-	if err := connectSignals(f.description, f.notifyDescription); err != nil {
+	if err := f.connect(f.description, f.notifyDescription); err != nil {
 		return err
 	}
-	if err := connectSignals(f.projectEntry, f.notifyProject); err != nil {
+	if err := f.connect(f.projectEntry, f.notifyProject); err != nil {
 		return err
 	}
-	if err := connectSignals(f.project, f.notifyProject); err != nil {
+	if err := f.connect(f.project, f.notifyProject); err != nil {
 		return err
 	}
-	if err := connectSignals(f.tagEntry, f.notifyTag); err != nil {
+	if err := f.connect(f.tagEntry, f.notifyTag); err != nil {
 		return err
 	}
-	if err := connectSignals(f.tag, f.notifyTag); err != nil {
+	if err := f.connect(f.tag, f.notifyTag); err != nil {
 		return err
 	}
-	if err := connectSignals(f.start, f.notifyStart); err != nil {
+	if err := f.connect(f.start, f.notifyStart); err != nil {
 		return err
 	}
 	if _, err := f.button.Connect("clicked", f.notifyClicked); err != nil {
@@ -164,14 +162,15 @@ func (f *GtkEntryForm) ConnectSignals() error {
 	return nil
 }
 
-func (f *GtkEntryForm) notifyDescription(_ *gtk.Entry, event interface{}) {
+func (f *GtkEntryForm) notifyEditCompleted() {
+	f.handler.OnEditCompleted()
+}
+
+func (f *GtkEntryForm) notifyDescription() {
 	if text, err := f.description.GetText(); err != nil {
 		log.Fatal(err)
 	} else {
 		MarkValid(f.description, f.handler.OnDescriptionChanged(text))
-		if _, ok := event.(*gdk.Event); ok {
-			f.handler.OnEditCompleted()
-		}
 	}
 }
 
