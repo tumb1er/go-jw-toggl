@@ -7,7 +7,6 @@ import (
 	"github.com/gotk3/gotk3/pango"
 	"go-jw-toggl/jwtoggl/builder"
 	"go-jw-toggl/jwtoggl/dto"
-	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
 	"go-jw-toggl/jwtoggl/tools"
 	"log"
 	"strconv"
@@ -42,7 +41,7 @@ const (
 type Callback func(entryId uint64)
 
 type entriesContext struct {
-	Entries  gttimeentry.TimeEntries
+	Entries  []dto.TimeEntry
 	Projects map[uint64]dto.Project
 	Clients  map[uint64]dto.Client
 }
@@ -74,7 +73,7 @@ func (h *GtkHistory) OnButtonClick(_ *gtk.TreeView, e *gdk.Event) {
 }
 
 func (h *GtkHistory) SetEntries(
-	entries gttimeentry.TimeEntries,
+	entries []dto.TimeEntry,
 	projects map[uint64]dto.Project,
 	clients map[uint64]dto.Client) {
 	tools.Schedule(h.setEntries, entriesContext{
@@ -90,7 +89,7 @@ func (h *GtkHistory) setEntries(c entriesContext) {
 	cache := make(dayGroup)
 
 	for _, entry := range c.Entries {
-		duration := entry.Stop.Sub(entry.Start)
+		duration := entry.GetDuration() // entry.Stop.Sub(entry.Start)
 		ds := cache.add(h.store, entry)
 		ds.duration += duration
 		ts := ds.add(h.store, entry)
@@ -152,31 +151,32 @@ func (h *GtkHistory) insertDayEntry(day string, it *gtk.TreeIter, duration time.
 }
 
 func (h *GtkHistory) insertEntry(entries entriesContext, it *gtk.TreeIter,
-	entry gttimeentry.TimeEntry, grouped bool) {
+	entry dto.TimeEntry, grouped bool) {
 	var ctx Ctx
-	ctx.Description = entry.Description
-	if project, ok := entries.Projects[entry.Pid]; ok {
+	ctx.Description = entry.GetDescription()
+	if project, ok := entries.Projects[entry.GetProjectTogglID()]; ok {
 		ctx.Project = project.GetName()
 		ctx.Color = project.GetHexColor()
 		if client, ok := entries.Clients[project.GetClientTogglID()]; ok {
 			ctx.Client = client.GetName()
 		}
 	}
-	if len(entry.Tags) >= 1 {
-		ctx.Tag = entry.Tags[0]
+	ctx.Tag = entry.GetTag()
+
+	start := entry.GetStart()
+	if !start.IsZero() {
+		ctx.Start = start.Local().Format("15:04")
 	}
-	if !entry.Start.IsZero() {
-		ctx.Start = entry.Start.Local().Format("15:04")
+	stop := entry.GetStop()
+	if !stop.IsZero() {
+		ctx.Stop = stop.Local().Format("15:04")
 	}
-	if !entry.Stop.IsZero() {
-		ctx.Stop = entry.Stop.Local().Format("15:04")
-	}
-	if entry.Duration > 0 {
-		duration := time.Duration(entry.Duration) * time.Second
+	duration := entry.GetDuration()
+	if duration > 0 {
 		ctx.Duration = duration.Truncate(time.Second).String()
 	}
 
-	if err := h.store.SetValue(it, columnId, fmt.Sprintf("%d", entry.Id)); err != nil {
+	if err := h.store.SetValue(it, columnId, fmt.Sprintf("%d", entry.GetTogglID())); err != nil {
 		log.Fatal(err)
 	}
 	if err := h.store.SetValue(it, columnDescription, RenderDescription(ctx)); err != nil {
@@ -236,21 +236,17 @@ func (h *GtkHistory) onRowActivated(_ *gtk.TreeView, path *gtk.TreePath) {
 
 func (h *GtkHistory) onMenuContinue() {
 	if h.onEntryContinue != nil {
-		entry, err := h.getSelectedEntryId()
-		if err != nil {
-			log.Fatal(err)
+		if entry, err := h.getSelectedEntryId(); err == nil {
+			h.onEntryContinue(entry)
 		}
-		h.onEntryContinue(entry)
 	}
 }
 
 func (h *GtkHistory) onMenuDelete() {
 	if h.onEntryDelete != nil {
-		entry, err := h.getSelectedEntryId()
-		if err != nil {
-			log.Fatal(err)
+		if entry, err := h.getSelectedEntryId(); err == nil {
+			h.onEntryDelete(entry)
 		}
-		h.onEntryDelete(entry)
 	}
 }
 

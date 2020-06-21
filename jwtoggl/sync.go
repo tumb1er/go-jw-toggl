@@ -3,7 +3,6 @@ package jwtoggl
 import (
 	"context"
 	"go-jw-toggl/jwtoggl/dto"
-	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
 	"log"
 	"time"
 )
@@ -13,13 +12,13 @@ func (j *jApp) StartSync(ctx context.Context) {
 	j.db.OnProjectsChanged(j.OnProjectsChanged)
 	j.db.OnTagsChanged(j.OnTagsChanged)
 	j.db.OnClientsChanged(j.OnClientsChanged)
-	j.db.OnTimeEntriesChanged(j.entries.SetEntries)
+	j.db.OnTimeEntriesChanged(j.OnTimeEntriesChanged)
 	if err := j.db.SyncUser(true); err != nil {
 		j.handleError(err, "Sync error")
 		j.OnProjectsChanged(j.db.ListProjects())
 		j.OnTagsChanged(j.db.ListTags())
 		j.OnClientsChanged(j.db.ListClients())
-		j.entries.SetEntries(j.db.ListTimeEntries())
+		j.OnTimeEntriesChanged(j.db.ListTimeEntries())
 	}
 	if err := j.db.SyncCurrentEntry(true); err != nil {
 		j.OnCurrentEntryChanged(j.db.GetCurrentEntry(), false)
@@ -43,6 +42,10 @@ func (j *jApp) OnTagsChanged(tags dto.Tags) {
 
 func (j *jApp) OnClientsChanged(clients dto.Clients) {
 	j.entries.SetClients(clients.DTO())
+}
+
+func (j *jApp) OnTimeEntriesChanged(entries dto.TimeEntries) {
+	j.entries.SetEntries(entries.DTO())
 }
 
 func (j *jApp) periodicSync(ctx context.Context) {
@@ -74,14 +77,14 @@ func (j *jApp) syncDuration() {
 	j.form.UpdateDuration()
 }
 
-func (j *jApp) OnCurrentEntryChanged(entry *gttimeentry.TimeEntry, external bool) {
+func (j *jApp) OnCurrentEntryChanged(entry dto.TimeEntry, external bool) {
 	log.Println("OnCurrentEntryChanged")
 	j.tray.SetCurrentEntry(entry)
 	j.form.SetTimeEntry(entry)
 	if external {
 		var text string
-		if entry != nil {
-			text = entry.Description
+		if !entry.Nil() {
+			text = entry.GetDescription()
 		} else {
 			text = "Timer stopped"
 		}

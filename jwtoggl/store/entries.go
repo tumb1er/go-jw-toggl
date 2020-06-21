@@ -1,10 +1,12 @@
 package store
 
-//go:generate bash -c "sed 's/Foos/TimeEntries/g;s/Foo/TimeEntry/g;s/foo/gttimeentry/g' foo.tpl > entries_gen.go"
+//#go:generate bash -c "sed 's/Foos/TimeEntries/g;s/Foo/TimeEntry/g;s/foo/gttimeentry/g' foo.tpl > entries_gen.go"
 
 import (
 	"github.com/jinzhu/gorm"
+	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
+	"strings"
 	"time"
 )
 
@@ -14,9 +16,80 @@ type TimeEntry struct {
 	Tag string
 }
 
+func (e TimeEntry) GetTags() []string {
+	if e.Tag == "" {
+		return []string{}
+	}
+	return []string{e.Tag}
+}
+
 type TimeEntries []TimeEntry
 
 type TimeEntryManager gorm.DB
+
+func NewTimeEntry(entry *gttimeentry.TimeEntry) TimeEntry {
+	if entry == nil {
+		return TimeEntry{}
+	}
+	timeEntry := TimeEntry{
+		TimeEntry: *entry,
+		Tag:       "",
+	}
+	if len(entry.Tags) > 0 {
+		timeEntry.Tag = entry.Tags[0]
+	}
+	return timeEntry
+}
+
+func (e TimeEntry) Nil() bool {
+	return e.PK == 0
+}
+
+func (e TimeEntry) IsCurrent() bool {
+	return e.Stop.IsZero()
+}
+
+func (e TimeEntry) GetDuration() time.Duration {
+	return e.Stop.Sub(e.Start)
+}
+
+func (e TimeEntry) GetStart() time.Time {
+	return e.Start
+}
+
+func (e TimeEntry) TaskKey() string {
+	key := e.Description
+	if strings.HasPrefix(e.Description, "#") {
+		key = strings.SplitN(e.Description, " ", 2)[0]
+	}
+	if len(e.Tags) > 0 {
+		key += e.Tags[0]
+	}
+	return key
+}
+
+func (e TimeEntry) GetDescription() string {
+	return e.Description
+}
+
+func (e TimeEntry) GetProjectTogglID() uint64 {
+	return e.Pid
+}
+
+func (e TimeEntry) GetTag() string {
+	if len(e.Tags) > 0 {
+		return e.Tags[0]
+	}
+	return ""
+}
+
+func (e TimeEntry) GetStop() time.Time {
+	return e.Stop
+}
+
+func (e TimeEntry) GetTogglID() uint64 {
+	return e.Id
+}
 
 func (e *TimeEntry) BeforeCreate() error {
 	e.loadTagFromTags()
@@ -44,7 +117,29 @@ func (e *TimeEntry) AfterFind() error {
 	return nil
 }
 
-func (m *TimeEntryManager) List() gttimeentry.TimeEntries {
+func (e TimeEntry) Equals(other dto.TimeEntry) bool {
+	if e.Nil() != other.Nil() {
+		return false
+	}
+	if e.Nil() && other.Nil() {
+		return true
+	}
+	return e.GetDescription() == other.GetDescription() &&
+		e.GetProjectTogglID() == other.GetProjectTogglID() &&
+		e.GetTag() == other.GetTag() &&
+		e.GetStart() == other.GetStart() &&
+		e.GetStop() == other.GetStop()
+}
+
+func (qs TimeEntries) DTO() []dto.TimeEntry {
+	result := make([]dto.TimeEntry, len(qs))
+	for i, t := range qs {
+		result[i] = t
+	}
+	return result
+}
+
+func (m *TimeEntryManager) List() TimeEntries {
 	return listTimeEntries(m.gorm().Where("stop <> ?", time.Time{}).Order("start DESC"))
 }
 
@@ -52,28 +147,24 @@ func (m *TimeEntryManager) Delete(extId uint64) bool {
 	return MustOrNotFound(m.gorm().Where("id = ?", extId).Delete(&TimeEntry{}))
 }
 
-func (m *TimeEntryManager) Current() *gttimeentry.TimeEntry {
+func (m *TimeEntryManager) Current() TimeEntry {
 	var entry TimeEntry
-	if MustOrNotFound(m.gorm().Where("stop = ?", time.Time{}).First(&entry)) {
-		return &entry.TimeEntry
-	}
-	return nil
+	MustOrNotFound(m.gorm().Where("stop = ?", time.Time{}).First(&entry))
+	return entry
 }
 
-func (m *TimeEntryManager) Create(timeEntry gttimeentry.TimeEntry) {
-	entry := &TimeEntry{TimeEntry: timeEntry}
-	Must(m.gorm().Create(entry))
+func (m *TimeEntryManager) Create(timeEntry *TimeEntry) {
+	Must(m.gorm().Create(timeEntry))
 }
 
-func (m *TimeEntryManager) Update(timeEntry gttimeentry.TimeEntry) {
-	entry := &TimeEntry{TimeEntry: timeEntry}
-	Must(m.gorm().Model(entry).Where("id = ?", timeEntry.Id).Updates(entry))
+func (m *TimeEntryManager) Update(timeEntry *TimeEntry) {
+	Must(m.gorm().Debug().Save(timeEntry))
 }
 
-func (m *TimeEntryManager) Get(extId uint64) *gttimeentry.TimeEntry {
+func (m *TimeEntryManager) Get(extId uint64) *TimeEntry {
 	var entry TimeEntry
 	if MustOrNotFound(m.gorm().Where("id = ?", extId).First(&entry)) {
-		return &entry.TimeEntry
+		return &entry
 	}
 	return nil
 }

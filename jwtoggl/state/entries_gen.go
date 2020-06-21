@@ -5,6 +5,7 @@ package state
 import (
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
 	"go-jw-toggl/jwtoggl/gtoggl/gtuser"
+	"go-jw-toggl/jwtoggl/store"
 	"log"
 	"time"
 )
@@ -33,6 +34,6 @@ func (db *TimeEntriesDB) saveTimeEntries(items gttimeentry.TimeEntries) bool {
 	}
 }
 
-func (db *TimeEntriesDB) ListTimeEntries() gttimeentry.TimeEntries {
+func (db *TimeEntriesDB) ListTimeEntries() store.TimeEntries {
 	return db.store().TimeEntries().List()
 }

@@ -3,11 +3,12 @@ package state
 import (
 	"context"
 	"errors"
+	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/gtoggl"
 	"go-jw-toggl/jwtoggl/gtoggl/gthttp"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
 	"go-jw-toggl/jwtoggl/gtoggl/gtwebsocket"
-	"go-jw-toggl/jwtoggl/tools"
+	"go-jw-toggl/jwtoggl/store"
 	"log"
 	"net/http"
 	"time"
@@ -59,64 +60,82 @@ func (db *DB) wid() uint64 {
 	return db.defaultWId
 }
 
-func (db *DB) UpdateCurrentEntry(entry *gttimeentry.TimeEntry) error {
-	entry.WId = db.defaultWId
-	entry.CreatedWith = "go-jw-toggl"
-	entry, err := db.client.TimeentryClient.Update(entry)
+func (db *DB) UpdateCurrentEntry(entry dto.TimeEntry) error {
+	timeEntry := &gttimeentry.TimeEntry{
+		Id:          entry.GetTogglID(),
+		Description: entry.GetDescription(),
+		Start:       entry.GetStart(),
+		Stop:        entry.GetStop(),
+		Tags:        entry.GetTags(),
+		Pid:         entry.GetProjectTogglID(),
+		WId:         db.defaultWId,
+		CreatedWith: "go-jw-toggl",
+	}
+	timeEntry, err := db.client.TimeentryClient.Update(timeEntry)
 	if err != nil {
 		return err
 	}
-	if db.update(*entry) {
+	storeEntry := store.NewTimeEntry(timeEntry)
+	if db.update(&storeEntry) {
 		db.onCurrentEntry(db.s.TimeEntries().Current(), false)
 	}
 	return nil
 }
 
-func (db *DB) CreateNewEntry(entry *gttimeentry.TimeEntry) error {
+func (db *DB) CreateNewEntry(entry dto.TimeEntry) error {
 	return db.createNewEntry(entry, false)
 }
 
-func (db *DB) createNewEntry(entry *gttimeentry.TimeEntry, notify bool) error {
-	entry.WId = db.defaultWId
-	entry.CreatedWith = "go-jw-toggl"
-	var err error
-	if entry.Start.IsZero() {
-		entry, err = db.client.TimeentryClient.Start(entry)
-	} else {
-		if entry.Stop.IsZero() {
-			entry.Duration = -entry.Start.Unix()
-		}
-		entry, err = db.client.TimeentryClient.Create(entry)
+func (db *DB) createNewEntry(entry dto.TimeEntry, notify bool) error {
+	timeEntry := &gttimeentry.TimeEntry{
+		Description: entry.GetDescription(),
+		Start:       entry.GetStart(),
+		Stop:        entry.GetStop(),
+		Duration:    -entry.GetStart().Unix(),
+		Tags:        entry.GetTags(),
+		Pid:         entry.GetProjectTogglID(),
+		WId:         db.defaultWId,
+		CreatedWith: "go-jw-toggl",
 	}
+	var err error
+	timeEntry, err = db.client.TimeentryClient.Create(timeEntry)
 	if err != nil {
 		return err
 	}
+
+	storeEntry := store.TimeEntry{
+		TimeEntry: *timeEntry,
+		Tag:       "",
+	}
+
 	old := db.s.TimeEntries().Current()
-	db.update(*entry)
-	if old != nil && old.Id != entry.Id && tools.IsCurrent(*entry) {
-		old.Stop = entry.Start
+	db.update(&storeEntry)
+	if !old.Nil() && old.Id != storeEntry.Id && storeEntry.IsCurrent() {
+		old.Stop = storeEntry.Start
 		old.Duration = int64(old.Stop.Sub(old.Start).Seconds())
-		db.update(*old)
+		db.update(&old)
 		db.onTimeEntriesChanged(db.s.TimeEntries().List())
 	}
-	db.onCurrentEntry(entry, notify)
+	db.onCurrentEntry(storeEntry, notify)
 	return nil
 }
 
-func (db *DB) StopEntry(entry *gttimeentry.TimeEntry) error {
-	if entry == nil {
+func (db *DB) StopEntry(entry dto.TimeEntry) error {
+	if entry.Nil() {
 		return nil
 	}
 	current := db.s.TimeEntries().Current()
-	if current == nil || current.Id != entry.Id {
+	if current.Nil() || current.Id != entry.GetTogglID() {
 		return errors.New("current entry de-sync")
 	}
-	entry, err := db.client.TimeentryClient.Stop(entry)
+	timeEntry := &gttimeentry.TimeEntry{Id: entry.GetTogglID()}
+	timeEntry, err := db.client.TimeentryClient.Stop(timeEntry)
 	if err != nil {
 		return err
 	}
-	db.update(*entry)
-	db.onCurrentEntry(nil, false)
+	storeEntry := store.NewTimeEntry(timeEntry)
+	db.update(&storeEntry)
+	db.onCurrentEntry(store.TimeEntry{}, false)
 	db.onTimeEntriesChanged(db.s.TimeEntries().List())
 	return nil
 }
@@ -125,7 +144,7 @@ func (db *DB) ContinueEntry(id uint64) error {
 	var entry *gttimeentry.TimeEntry
 	var err error
 	if prev := db.s.TimeEntries().Get(id); prev != nil {
-		entry = prev
+		entry = &prev.TimeEntry
 	} else {
 		entry, err = db.client.TimeentryClient.Get(id)
 		if err != nil {
@@ -133,10 +152,10 @@ func (db *DB) ContinueEntry(id uint64) error {
 		}
 	}
 	entry.Id = 0
-	entry.Start = time.Time{}
+	entry.Start = time.Now().Local()
 	entry.Stop = time.Time{}
 	entry.Duration = 0
-	return db.createNewEntry(entry, true)
+	return db.createNewEntry(store.NewTimeEntry(entry), true)
 }
 
 func (db *DB) DeleteEntry(id uint64) error {
@@ -155,14 +174,15 @@ func (db *DB) SyncCurrentEntry(force bool) error {
 	if err != nil {
 		return err
 	}
-	if entry != nil && db.update(*entry) || force {
+	storeEntry := store.NewTimeEntry(entry)
+	if entry != nil && db.update(&storeEntry) || force {
 		current := db.s.TimeEntries().Current()
-		if old == nil && current == nil {
+		if old.Nil() && current.Nil() {
 			// prevent notify change nil to nil
 			log.Println("Skip notify change current entry nil to nil")
 			return nil
 		}
-		if !tools.TimeEntriesEqual(old, current) || force {
+		if current.Equals(old) || force {
 			db.onCurrentEntry(current, true)
 		}
 	}
@@ -179,7 +199,7 @@ func (db *DB) SyncLastEntries(force bool) error {
 	}
 	if db.saveTimeEntries(entries) || force {
 		current := db.s.TimeEntries().Current()
-		if !tools.TimeEntriesEqual(current, old) {
+		if !current.Equals(old) {
 			db.onCurrentEntry(current, true)
 		}
 		db.onTimeEntriesChanged(db.s.TimeEntries().List())
@@ -213,7 +233,7 @@ func (db *DB) StartListen(ctx context.Context) {
 	}()
 }
 
-func (db *DB) update(timeEntry gttimeentry.TimeEntry) bool {
+func (db *DB) update(timeEntry *store.TimeEntry) bool {
 	if timeEntry.Id == 0 {
 		log.Fatal("empty timeEntry id")
 	}
@@ -224,7 +244,7 @@ func (db *DB) update(timeEntry gttimeentry.TimeEntry) bool {
 		return true
 	}
 
-	if tools.TimeEntriesEqual(existing, &timeEntry) {
+	if existing.Equals(timeEntry) {
 		// Нет изменений
 		return false
 	}
@@ -233,6 +253,6 @@ func (db *DB) update(timeEntry gttimeentry.TimeEntry) bool {
 	return true
 }
 
-func (db *DB) GetCurrentEntry() *gttimeentry.TimeEntry {
+func (db *DB) GetCurrentEntry() store.TimeEntry {
 	return db.s.TimeEntries().Current()
 }

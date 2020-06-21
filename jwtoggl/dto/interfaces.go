@@ -1,5 +1,7 @@
 package dto
 
+import "time"
+
 // Пакет dto описывает интерфейсы, используемые в UI и разделяющие
 // состояние БД от представления в приложении.
 
@@ -29,4 +31,22 @@ type Client interface {
 
 type Clients interface {
 	DTO() []Client // store.Clients -> []Client
+}
+
+type TimeEntry interface {
+	GetDuration() time.Duration
+	GetStart() time.Time
+	TaskKey() string
+	GetDescription() string
+	GetProjectTogglID() uint64
+	GetTag() string
+	GetStop() time.Time
+	GetTogglID() uint64
+	Nil() bool
+	Equals(entry TimeEntry) bool
+	GetTags() []string
+}
+
+type TimeEntries interface {
+	DTO() []TimeEntry // store.TimeEntries -> []TimeEntry
 }

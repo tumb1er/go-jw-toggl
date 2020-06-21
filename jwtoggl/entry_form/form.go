@@ -5,15 +5,13 @@ import (
 	"go-jw-toggl/jwtoggl/builder"
 	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/entry_form/gtk_entry_form"
-	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
-	"go-jw-toggl/jwtoggl/tools"
 	"log"
 	"time"
 )
 
 type EntryForm struct {
 	g                 *gtk_entry_form.GtkEntryForm
-	timeEntry         *gttimeentry.TimeEntry
+	timeEntry         dto.TimeEntry
 	onNewEntryCreated EntryCallback
 	onEntryStopped    EntryCallback
 	onEntryChanged    EntryCallback
@@ -21,7 +19,7 @@ type EntryForm struct {
 	uiEntry           entry
 }
 
-type EntryCallback func(entry *gttimeentry.TimeEntry)
+type EntryCallback func(dto.TimeEntry)
 
 func NewEntryForm(b *builder.Builder) (*EntryForm, error) {
 	f := &EntryForm{uiEntry: entry{Start: &time.Time{}}}
@@ -40,13 +38,12 @@ func NewEntryForm(b *builder.Builder) (*EntryForm, error) {
 
 func (f *EntryForm) OnEditCompleted() {
 	log.Println("OnEditCompleted")
-	entry := f.uiEntry.TimeEntry()
-	if entry != nil && entry.Id != 0 && !tools.TimeEntriesEqual(f.timeEntry, entry) {
-		log.Println("UPDATE!!!", entry.Start)
+	if f.uiEntry.Validate() && f.timeEntry.GetTogglID() != 0 && !f.timeEntry.Equals(f.uiEntry) {
+		log.Println("UPDATE!!!", f.uiEntry.GetStart())
+		f.timeEntry = f.uiEntry // копирование структуры
 		if f.onEntryChanged != nil {
-			f.onEntryChanged(entry)
+			f.onEntryChanged(f.timeEntry)
 		}
-		f.timeEntry = entry
 	} else {
 		log.Println("No update")
 	}
@@ -113,9 +110,9 @@ func (f *EntryForm) handleStart() {
 	if f.onNewEntryCreated == nil {
 		return
 	}
-	entry := f.uiEntry.TimeEntry()
-	if entry != nil {
-		f.onNewEntryCreated(entry)
+	if f.uiEntry.Validate() {
+		f.timeEntry = f.uiEntry // копирование структуры
+		f.onNewEntryCreated(f.timeEntry)
 	}
 }
 
@@ -123,7 +120,7 @@ func (f *EntryForm) handleStop() {
 	log.Println("handleStop")
 	if f.onEntryStopped != nil {
 		f.onEntryStopped(f.timeEntry)
-		f.SetTimeEntry(nil)
+		f.SetTimeEntry(entry{})
 	}
 }
 
@@ -135,8 +132,16 @@ func (f *EntryForm) SetProjects(projects []dto.Project) {
 	f.g.SetProjects(projects)
 }
 
-func (f *EntryForm) SetTimeEntry(entry *gttimeentry.TimeEntry) {
+func (f *EntryForm) SetTimeEntry(entry dto.TimeEntry) {
 	f.timeEntry = entry
+	if !entry.Nil() {
+		f.uiEntry.Id = entry.GetTogglID()
+		start := entry.GetStart()
+		f.uiEntry.Start = &start
+	} else {
+		f.uiEntry.Id = 0
+		f.uiEntry.Start = &time.Time{}
+	}
 	f.g.SetTimeEntry(entry)
 }
 

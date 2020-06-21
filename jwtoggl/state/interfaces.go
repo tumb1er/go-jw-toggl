@@ -39,12 +39,12 @@ type Tags interface {
 
 //Entries предоставляет доступ ко списку отметок времени в БД
 type Entries interface {
-	Get(id uint64) *gttimeentry.TimeEntry
-	Create(entry gttimeentry.TimeEntry)
-	Current() *gttimeentry.TimeEntry
-	Update(entry gttimeentry.TimeEntry)
+	Get(id uint64) *store.TimeEntry
+	Create(entry *store.TimeEntry)
+	Current() store.TimeEntry
+	Update(entry *store.TimeEntry)
 	Sync(gttimeentry.TimeEntries, time.Time, uint64) (bool, error)
-	List() gttimeentry.TimeEntries
+	List() store.TimeEntries
 	Delete(id uint64) bool
 }
 
@@ -55,7 +55,7 @@ type common interface {
 	store() Store
 	subscriber() Subscriber
 	wid() uint64
-	update(gttimeentry.TimeEntry) bool
+	update(*store.TimeEntry) bool
 }
 
 // Subscriber предоставляет доступ к подписке на события WS-клиента Toggl

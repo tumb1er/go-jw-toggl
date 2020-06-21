@@ -1,17 +1,18 @@
 package state
 
-//go:generate bash -c "sed 's/Foos/TimeEntries/g;s/Foo/TimeEntry/g;s/foo/gttimeentry/g' foo.tpl > entries_gen.go"
+//#go:generate bash -c "sed 's/Foos/TimeEntries/g;s/Foo/TimeEntry/g;s/foo/gttimeentry/g' foo.tpl > entries_gen.go"
 
 import (
 	"fmt"
+	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
 	"go-jw-toggl/jwtoggl/gtoggl/gtwebsocket"
-	"go-jw-toggl/jwtoggl/tools"
+	"go-jw-toggl/jwtoggl/store"
 )
 
-type OnCurrentEntryCallback func(entry *gttimeentry.TimeEntry, external bool)
+type OnCurrentEntryCallback func(entry dto.TimeEntry, external bool)
 
-type OnTimeEntriesChangedCallback func(gttimeentry.TimeEntries)
+type OnTimeEntriesChangedCallback func(dto.TimeEntries)
 
 type TimeEntriesDB struct {
 	common
@@ -30,7 +31,7 @@ func (db *TimeEntriesDB) onTimeEntryAction(action string, timeEntry gttimeentry.
 	if action == gtwebsocket.ActionDelete {
 		entries.Delete(timeEntry.Id)
 		current := entries.Current()
-		if !tools.TimeEntriesEqual(old, current) {
+		if !current.Equals(old) {
 			// Обновился текущий
 			db.onCurrentEntry(current, true)
 		} else {
@@ -38,9 +39,10 @@ func (db *TimeEntriesDB) onTimeEntryAction(action string, timeEntry gttimeentry.
 		}
 
 	} else if action == gtwebsocket.ActionUpdate || action == gtwebsocket.ActionInsert {
-		if db.update(timeEntry) {
+		storeEntry := store.NewTimeEntry(&timeEntry)
+		if db.update(&storeEntry) {
 			current := entries.Current()
-			if !tools.TimeEntriesEqual(old, current) {
+			if !current.Equals(old) {
 				// Обновился текущий
 				db.onCurrentEntry(current, true)
 			}

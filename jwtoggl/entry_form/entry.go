@@ -1,7 +1,7 @@
 package entry_form
 
 import (
-	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
+	"go-jw-toggl/jwtoggl/dto"
 	"strings"
 	"time"
 )
@@ -11,6 +11,57 @@ type entry struct {
 	PId         uint64
 	Tag         string
 	Start       *time.Time
+	Id          uint64
+}
+
+func (e entry) GetTags() []string {
+	if e.Tag == "" {
+		return []string{}
+	}
+	return []string{e.Tag}
+}
+
+func (e entry) GetDuration() time.Duration {
+	panic("implement me")
+}
+
+func (e entry) GetStart() time.Time {
+	if e.Start == nil {
+		return time.Time{}
+	}
+	return *e.Start
+}
+
+func (e entry) TaskKey() string {
+	panic("implement me")
+}
+
+func (e entry) GetDescription() string {
+	return e.Description
+}
+
+func (e entry) GetProjectTogglID() uint64 {
+	return e.PId
+}
+
+func (e entry) GetTag() string {
+	return e.Tag
+}
+
+func (e entry) GetStop() time.Time {
+	return time.Time{}
+}
+
+func (e entry) GetTogglID() uint64 {
+	return e.Id
+}
+
+func (e entry) Nil() bool {
+	return true
+}
+
+func (e entry) Equals(entry dto.TimeEntry) bool {
+	panic("implement me")
 }
 
 func (e entry) ValidateDescription() bool {
@@ -34,16 +85,4 @@ func (e entry) Validate() bool {
 		e.ValidateProject() &&
 		e.ValidateTag() &&
 		e.ValidateStart()
-}
-
-func (e entry) TimeEntry() *gttimeentry.TimeEntry {
-	if !e.Validate() {
-		return nil
-	}
-	return &gttimeentry.TimeEntry{
-		Description: e.Description,
-		Pid:         e.PId,
-		Tags:        []string{e.Tag},
-		Start:       *e.Start,
-	}
 }

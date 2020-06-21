@@ -64,12 +64,8 @@ func (qs TimeEntries) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) 
 	return changed, err
 }
 
-func listTimeEntries(scope *gorm.DB) gttimeentry.TimeEntries {
+func listTimeEntries(scope *gorm.DB) TimeEntries {
 	qs := NewTimeEntries()
-	length := Must(scope.Find(qs))
-	result := make(gttimeentry.TimeEntries, length)
-	for i, obj := range *qs {
-		result[i] = obj.TimeEntry
-	}
-	return result
+	Must(scope.Find(qs))
+	return *qs
 }

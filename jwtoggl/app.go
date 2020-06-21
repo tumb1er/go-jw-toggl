@@ -6,8 +6,8 @@ import (
 	"github.com/gotk3/gotk3/gtk"
 	"github.com/jinzhu/gorm"
 	"go-jw-toggl/jwtoggl/builder"
+	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/entry_form"
-	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
 	"go-jw-toggl/jwtoggl/history"
 	"go-jw-toggl/jwtoggl/state"
 	"go-jw-toggl/jwtoggl/status"
@@ -71,15 +71,15 @@ func (j *jApp) initForm(b *builder.Builder) {
 	j.form.OnEntryChanged(j.onEntryChanged)
 }
 
-func (j *jApp) onNewEntryCreated(entry *gttimeentry.TimeEntry) {
+func (j *jApp) onNewEntryCreated(entry dto.TimeEntry) {
 	j.handleError(j.db.CreateNewEntry(entry), "Entry creation error")
 }
 
-func (j *jApp) onEntryStopped(entry *gttimeentry.TimeEntry) {
+func (j *jApp) onEntryStopped(entry dto.TimeEntry) {
 	j.handleError(j.db.StopEntry(entry), "Entry stop error")
 }
 
-func (j *jApp) onEntryChanged(entry *gttimeentry.TimeEntry) {
+func (j *jApp) onEntryChanged(entry dto.TimeEntry) {
 	j.handleError(j.db.UpdateCurrentEntry(entry), "Entry save error")
 }
 

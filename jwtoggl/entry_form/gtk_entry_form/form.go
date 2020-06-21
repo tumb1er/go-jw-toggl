@@ -7,7 +7,6 @@ import (
 	"github.com/gotk3/gotk3/gtk"
 	"go-jw-toggl/jwtoggl/builder"
 	"go-jw-toggl/jwtoggl/dto"
-	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
 	"go-jw-toggl/jwtoggl/tools"
 	"log"
 	"strconv"
@@ -45,8 +44,6 @@ type GtkEntryForm struct {
 	imageStart        *gtk.Image
 	projectsListStore *gtk.ListStore
 	tagsListStore     *gtk.ListStore
-
-	entryId uint64
 
 	handler UIHandler
 }
@@ -286,10 +283,9 @@ func (f *GtkEntryForm) parseStart() (time.Time, error) {
 	}
 }
 
-func (f *GtkEntryForm) uiSetTimeEntry(entry *gttimeentry.TimeEntry) {
+func (f *GtkEntryForm) setTimeEntry(entry dto.TimeEntry) {
 	log.Println("SetTimeEntry:", entry)
-	if entry == nil {
-		f.entryId = 0
+	if entry.Nil() {
 		f.description.SetText("")
 		MarkValid(f.description, true)
 		f.project.SetActive(-1)
@@ -305,34 +301,35 @@ func (f *GtkEntryForm) uiSetTimeEntry(entry *gttimeentry.TimeEntry) {
 		f.duration.SetText("")
 		f.stop.SetText("")
 	} else {
-		f.entryId = entry.Id
-		f.description.SetText(entry.Description)
-		if len(entry.Tags) > 0 {
-			f.tag.SetActiveID(entry.Tags[0])
+		f.description.SetText(entry.GetDescription())
+		tag := entry.GetTag()
+		if tag != "" {
+			f.tag.SetActiveID(tag)
 		} else {
 			f.tag.SetActive(-1)
 		}
-		f.project.SetActiveID(strconv.FormatUint(entry.Pid, 10))
+		f.project.SetActiveID(strconv.FormatUint(entry.GetProjectTogglID(), 10))
 		f.button.SetImage(f.imageStop)
-		if entry.Start.IsZero() {
+		if entry.GetStart().IsZero() {
 			f.start.SetText("")
 		} else {
-			f.start.SetText(entry.Start.Local().Format("15:04:05"))
+			f.start.SetText(entry.GetStart().Local().Format("15:04:05"))
 		}
-		if entry.Stop.IsZero() {
+		if entry.GetStop().IsZero() {
 			f.stop.SetText("")
-			d := time.Now().Sub(entry.Start)
+			d := time.Now().Sub(entry.GetStart())
 			f.duration.SetText(d.Truncate(time.Second).String())
 		} else {
-			f.stop.SetText(entry.Stop.Format("15:04:05"))
-			d := entry.Stop.Sub(entry.Start)
+			f.stop.SetText(entry.GetStop().Format("15:04:05"))
+			d := entry.GetStop().Sub(entry.GetStart())
 			f.duration.SetText(d.Truncate(time.Second).String())
 		}
 	}
 }
 
-func (f *GtkEntryForm) SetTimeEntry(entry *gttimeentry.TimeEntry) {
-	tools.Schedule(f.uiSetTimeEntry, entry)
+func (f *GtkEntryForm) SetTimeEntry(entry dto.TimeEntry) {
+	log.Printf("Schedule setTimeEntry %+v\n", entry)
+	tools.Schedule(f.setTimeEntry, entry)
 }
 
 func (f *GtkEntryForm) SetButtonSensitive(s bool) {
