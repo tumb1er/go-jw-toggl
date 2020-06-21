@@ -48,7 +48,7 @@ func (qs TimeEntries) DTO() []dto.TimeEntry {
 func (qs TimeEntries) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 	err = db.Transaction(func(tx *gorm.DB) error {
 		existing := NewTimeEntries()
-		Must(tx.Find(existing))
+		Must(tx.Find(existing).Set("gorm:auto_preload", true))
 		extIdMap := make(map[uint64]TimeEntry)
 		for _, obj := range *existing {
 			extIdMap[obj.Id] = obj

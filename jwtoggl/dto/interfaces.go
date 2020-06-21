@@ -17,7 +17,7 @@ type Project interface {
 	GetName() string
 	GetHexColor() string
 	GetTogglID() uint64
-	GetClientTogglID() uint64
+	GetClient() Client
 }
 
 type Projects interface {
@@ -25,7 +25,6 @@ type Projects interface {
 }
 
 type Client interface {
-	GetTogglID() uint64
 	GetName() string
 }
 

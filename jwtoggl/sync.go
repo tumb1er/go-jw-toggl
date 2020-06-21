@@ -17,7 +17,6 @@ func (j *jApp) StartSync(ctx context.Context) {
 		j.handleError(err, "Sync error")
 		j.OnProjectsChanged(j.db.ListProjects())
 		j.OnTagsChanged(j.db.ListTags())
-		j.OnClientsChanged(j.db.ListClients())
 		j.OnTimeEntriesChanged(j.db.ListTimeEntries())
 	}
 	if err := j.db.SyncCurrentEntry(true); err != nil {
@@ -40,8 +39,10 @@ func (j *jApp) OnTagsChanged(tags dto.Tags) {
 	j.form.SetTags(tags.DTO())
 }
 
-func (j *jApp) OnClientsChanged(clients dto.Clients) {
-	j.entries.SetClients(clients.DTO())
+func (j *jApp) OnClientsChanged(_ dto.Clients) {
+	// Клиенты отображаются только в истории, а там они берутся из Project.Client,
+	// поэтому форсируем синхронизацию проектов.
+	j.entries.SetProjects(j.db.ListProjects().DTO())
 }
 
 func (j *jApp) OnTimeEntriesChanged(entries dto.TimeEntries) {

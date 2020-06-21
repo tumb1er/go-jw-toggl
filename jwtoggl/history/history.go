@@ -9,7 +9,6 @@ import (
 type History struct {
 	history  *gtk_history.GtkHistory
 	projects map[uint64]dto.Project
-	clients  map[uint64]dto.Client
 	entries  []dto.TimeEntry
 }
 
@@ -21,16 +20,8 @@ func (h *History) SetProjects(projects []dto.Project) {
 	h.setEntries()
 }
 
-func (h *History) SetClients(clients []dto.Client) {
-	h.clients = make(map[uint64]dto.Client)
-	for _, client := range clients {
-		h.clients[client.GetTogglID()] = client
-	}
-	h.setEntries()
-}
-
 func (h *History) setEntries() {
-	h.history.SetEntries(h.entries, h.projects, h.clients)
+	h.history.SetEntries(h.entries, h.projects)
 }
 
 func (h *History) SetEntries(entries []dto.TimeEntry) {
@@ -51,7 +42,6 @@ func New(b *builder.Builder) (*History, error) {
 	h := &History{
 		history:  history,
 		projects: make(map[uint64]dto.Project),
-		clients:  make(map[uint64]dto.Client),
 	}
 	return h, nil
 }

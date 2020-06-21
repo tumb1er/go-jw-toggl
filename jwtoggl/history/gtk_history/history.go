@@ -43,7 +43,6 @@ type Callback func(entryId uint64)
 type entriesContext struct {
 	Entries  []dto.TimeEntry
 	Projects map[uint64]dto.Project
-	Clients  map[uint64]dto.Client
 }
 
 type GtkHistory struct {
@@ -74,12 +73,10 @@ func (h *GtkHistory) OnButtonClick(_ *gtk.TreeView, e *gdk.Event) {
 
 func (h *GtkHistory) SetEntries(
 	entries []dto.TimeEntry,
-	projects map[uint64]dto.Project,
-	clients map[uint64]dto.Client) {
+	projects map[uint64]dto.Project) {
 	tools.Schedule(h.setEntries, entriesContext{
 		Entries:  entries,
 		Projects: projects,
-		Clients:  clients,
 	})
 }
 
@@ -157,9 +154,7 @@ func (h *GtkHistory) insertEntry(entries entriesContext, it *gtk.TreeIter,
 	if project, ok := entries.Projects[entry.GetProjectTogglID()]; ok {
 		ctx.Project = project.GetName()
 		ctx.Color = project.GetHexColor()
-		if client, ok := entries.Clients[project.GetClientTogglID()]; ok {
-			ctx.Client = client.GetName()
-		}
+		ctx.Client = project.GetClient().GetName()
 	}
 	ctx.Tag = entry.GetTag()
 
