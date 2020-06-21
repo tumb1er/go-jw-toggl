@@ -64,12 +64,8 @@ func (qs Foos) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 	return changed, err
 }
 
-func listFoos(scope *gorm.DB) foo.Foos {
+func listFoos(scope *gorm.DB) Foos {
 	qs := NewFoos()
-	length := Must(scope.Find(qs))
-	result := make(foo.Foos, length)
-	for i, obj := range *qs {
-		result[i] = obj.Foo
-	}
-	return result
+	Must(scope.Find(qs))
+	return *qs
 }

@@ -1,6 +1,6 @@
 package store
 
-//#go:generate bash -c "sed 's/Foo/Project/g;s/foo/gtproject/g' foo.tpl > projects_gen.go"
+//go:generate bash -c "sed 's/Foo/Project/g;s/foo/gtproject/g' foo.tpl > projects_gen.go"
 
 import (
 	"github.com/jinzhu/gorm"
