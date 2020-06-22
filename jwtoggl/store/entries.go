@@ -6,6 +6,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
+	"log"
 	"strings"
 	"time"
 )
@@ -87,7 +88,7 @@ func (obj TimeEntry) GetDuration() time.Duration {
 }
 
 func (obj TimeEntry) GetStart() time.Time {
-	return obj.Start
+	return obj.Start.Local()
 }
 
 func (obj TimeEntry) TaskKey() string {
@@ -136,13 +137,29 @@ func (obj *TimeEntry) AfterFind() error {
 }
 
 func (obj TimeEntry) Equals(other dto.TimeEntry) bool {
-	if obj.Nil() != other.Nil() {
-		return false
+	const equalsDebug = false
+	if equalsDebug {
+		if obj.Nil() != other.Nil() {
+			log.Printf("Nil test: %+v %+v\n", obj.Nil(), other.Nil())
+		}
+		if obj.GetName() != other.GetName() {
+			log.Printf("Name test: %s %s\n", obj.GetName(), other.GetName())
+		}
+		if obj.GetProject().GetTogglID() != other.GetProject().GetTogglID() {
+			log.Printf("Project test: %d %d\n", obj.GetProject().GetTogglID(), other.GetProject().GetTogglID())
+		}
+		if obj.GetTag() != other.GetTag() {
+			log.Printf("Tag test: %s %s\n", obj.GetTag(), other.GetTag())
+		}
+		if obj.GetStart() != other.GetStart() {
+			log.Printf("Start test: %s %s\n", obj.GetStart(), other.GetStart())
+		}
+		if obj.GetStop() != other.GetStop() {
+			log.Printf("Stop test: %s %s\n", obj.GetStop(), other.GetStop())
+		}
 	}
-	if obj.Nil() && other.Nil() {
-		return true
-	}
-	return obj.GetName() == other.GetName() &&
+	return obj.Nil() == other.Nil() &&
+		obj.GetName() == other.GetName() &&
 		obj.GetProject().GetTogglID() == other.GetProject().GetTogglID() &&
 		obj.GetTag() == other.GetTag() &&
 		obj.GetStart() == other.GetStart() &&

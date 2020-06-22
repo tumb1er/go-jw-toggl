@@ -53,7 +53,7 @@ func (e entry) GetStart() time.Time {
 	if e.Start == nil {
 		return time.Time{}
 	}
-	return *e.Start
+	return (*e.Start).Local()
 }
 
 func (e entry) TaskKey() string {
