@@ -137,6 +137,11 @@ func (obj *TimeEntry) AfterFind() error {
 }
 
 func (obj TimeEntry) Equals(other dto.TimeEntry) bool {
+	if obj.Nil() && other.Nil() {
+		// Не допускаем получения проекта у несуществующей записи.
+		return true
+	}
+
 	const equalsDebug = false
 	if equalsDebug {
 		if obj.Nil() != other.Nil() {
@@ -158,9 +163,11 @@ func (obj TimeEntry) Equals(other dto.TimeEntry) bool {
 			log.Printf("Stop test: %s %s\n", obj.GetStop(), other.GetStop())
 		}
 	}
+	p1 := obj.GetProject()
+	p2 := other.GetProject()
 	return obj.Nil() == other.Nil() &&
 		obj.GetName() == other.GetName() &&
-		obj.GetProject().GetTogglID() == other.GetProject().GetTogglID() &&
+		p1.GetTogglID() == p2.GetTogglID() &&
 		obj.GetTag() == other.GetTag() &&
 		obj.GetStart() == other.GetStart() &&
 		obj.GetStop() == other.GetStop()
