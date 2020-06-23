@@ -81,7 +81,7 @@ func (e entry) GetTogglID() uint64 {
 }
 
 func (e entry) Nil() bool {
-	return true
+	return e.Id == 0
 }
 
 func (e entry) Equals(_ dto.TimeEntry) bool {

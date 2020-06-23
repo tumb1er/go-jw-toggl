@@ -167,11 +167,18 @@ func (f *EntryForm) SetTimeEntry(entry dto.TimeEntry) {
 		f.uiEntry.Id = entry.GetTogglID()
 		start := entry.GetStart()
 		f.uiEntry.Start = &start
+		f.uiEntry.Description = entry.GetName()
+		f.uiEntry.PId = entry.GetProject().GetTogglID()
+		f.uiEntry.Tag = entry.GetTag()
 	} else {
 		f.uiEntry.Id = 0
 		f.uiEntry.Start = &time.Time{}
+		f.uiEntry.Description = ""
+		f.uiEntry.PId = 0
+		f.uiEntry.Tag = ""
+
 	}
-	f.g.SetTimeEntry(entry)
+	f.g.SetTimeEntry(f.uiEntry)
 }
 
 func (f *EntryForm) UpdateDuration() {
