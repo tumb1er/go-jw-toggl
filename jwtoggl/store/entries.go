@@ -137,9 +137,9 @@ func (obj *TimeEntry) AfterFind() error {
 }
 
 func (obj TimeEntry) Equals(other dto.TimeEntry) bool {
-	if obj.Nil() && other.Nil() {
+	if obj.Nil() || other.Nil() {
 		// Не допускаем получения проекта у несуществующей записи.
-		return true
+		return obj.Nil() == other.Nil()
 	}
 
 	const equalsDebug = false
