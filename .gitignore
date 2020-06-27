@@ -1,1 +1,4 @@
 .idea/
+/go-jw-toggl
+/go-jw-toggl.desktop
+/jwtoggl.db
