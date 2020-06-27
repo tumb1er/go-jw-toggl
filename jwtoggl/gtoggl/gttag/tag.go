@@ -4,13 +4,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"go-jw-toggl/jwtoggl/gtoggl/gthttp"
+	"time"
 )
 
 // Toggl Tag Definition
 type Tag struct {
-	Id   uint64 `json:"id"`
-	WId  uint64 `json:"wid"`
-	Name string `json:"name"`
+	Id        uint64    `json:"id"`
+	WId       uint64    `json:"wid"`
+	Name      string    `json:"name"`
+	UpdatedAt time.Time `json:"-"`
 }
 
 type Tags []Tag

@@ -15,12 +15,10 @@ type Project struct {
 	ClientPK uint
 }
 
-func (obj *Project) BeforeCreate(db *gorm.DB) error {
-	obj.loadClientFromToggl(db)
-	return nil
-}
-
 func (obj *Project) BeforeSave(db *gorm.DB) error {
+	if err := obj.Synced.BeforeSave(); err != nil {
+		return err
+	}
 	obj.loadClientFromToggl(db)
 	return nil
 }

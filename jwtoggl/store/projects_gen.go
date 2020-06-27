@@ -55,8 +55,11 @@ func (qs Projects) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 		}
 
 		for _, obj := range qs {
-			obj.SavedAt = ts
 			if prev, ok := extIdMap[obj.Id]; ok {
+				if prev.SavedAt.After(obj.UpdatedAt) {
+					// log.Printf("Skip saving Project %d %s\n\n", obj.Id, obj.Name)
+					obj.Project = prev.Project
+				}
 				obj.PK = prev.PK
 				if !tools.ProjectsEqual(&obj.Project, &prev.Project) {
 					changed = true

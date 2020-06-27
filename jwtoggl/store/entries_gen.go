@@ -55,8 +55,11 @@ func (qs TimeEntries) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) 
 		}
 
 		for _, obj := range qs {
-			obj.SavedAt = ts
 			if prev, ok := extIdMap[obj.Id]; ok {
+				if prev.SavedAt.After(obj.UpdatedAt) {
+					// log.Printf("Skip saving TimeEntry %d %s\n\n", obj.Id, obj.Name)
+					obj.TimeEntry = prev.TimeEntry
+				}
 				obj.PK = prev.PK
 				if !tools.TimeEntriesEqual(&obj.TimeEntry, &prev.TimeEntry) {
 					changed = true

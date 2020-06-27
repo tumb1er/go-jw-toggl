@@ -55,8 +55,11 @@ func (qs Tags) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 		}
 
 		for _, obj := range qs {
-			obj.SavedAt = ts
 			if prev, ok := extIdMap[obj.Id]; ok {
+				if prev.SavedAt.After(obj.UpdatedAt) {
+					// log.Printf("Skip saving Tag %d %s\n\n", obj.Id, obj.Name)
+					obj.Tag = prev.Tag
+				}
 				obj.PK = prev.PK
 				if !tools.TagsEqual(&obj.Tag, &prev.Tag) {
 					changed = true

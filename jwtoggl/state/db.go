@@ -28,7 +28,7 @@ type DB struct {
 }
 
 func NewDB(token string, store Store) (*DB, error) {
-	httpClient := &http.Client{Timeout: time.Second}
+	httpClient := &http.Client{Timeout: 10 * time.Second}
 	client, err := gtoggl.NewClient(token, gthttp.SetHttpClient(httpClient))
 	if err != nil {
 		return nil, err
@@ -131,15 +131,23 @@ func (db *DB) StopEntry(entry dto.TimeEntry) error {
 	if current.Nil() || current.Id != entry.GetTogglID() {
 		return errors.New("current entry de-sync")
 	}
-	timeEntry := &gttimeentry.TimeEntry{Id: current.Id}
-	timeEntry, err := db.client.TimeentryClient.Stop(timeEntry)
-	if err != nil {
-		return err
-	}
-	current.TimeEntry = *timeEntry
+	current.Stop = time.Now().Local()
 	db.update(&current)
 	db.onCurrentEntry(store.TimeEntry{}, false)
 	db.onTimeEntriesChanged(db.s.TimeEntries().List())
+
+	go func() {
+		log.Printf("Send stop: %+v\n", current.TimeEntry)
+		current.ComputeDuration()
+		entry, err := db.client.TimeentryClient.Update(&current.TimeEntry)
+		if err != nil {
+			log.Printf("TimeEntry stop error: %+v\n", err)
+		} else {
+			log.Printf("Stop result: %+v\n", entry)
+			current.TimeEntry = *entry
+			db.update(&current)
+		}
+	}()
 	return nil
 }
 
@@ -198,7 +206,7 @@ func (db *DB) SyncCurrentEntry(force bool) error {
 
 func (db *DB) SyncLastEntries(force bool) error {
 	end := time.Now()
-	start := end.Add(-72 * time.Hour)
+	start := end.Add(-7 * 24 * time.Hour)
 	old := db.s.TimeEntries().Current()
 	entries, err := db.client.TimeentryClient.GetRange(start, end)
 	if err != nil {

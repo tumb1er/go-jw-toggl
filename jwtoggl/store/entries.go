@@ -37,15 +37,18 @@ func (m *TimeEntryManager) FromTimeEntry(entry gttimeentry.TimeEntry) *TimeEntry
 	return timeEntry
 }
 
-func (obj *TimeEntry) BeforeCreate(db *gorm.DB) error {
+func (obj *TimeEntry) BeforeSave(db *gorm.DB) error {
+	if err := obj.Synced.BeforeSave(); err != nil {
+		return err
+	}
 	obj.loadProjectFromToggl(db)
 	obj.loadTagFromTags()
 	return nil
 }
 
-func (obj *TimeEntry) BeforeSave(db *gorm.DB) error {
-	obj.loadProjectFromToggl(db)
-	obj.loadTagFromTags()
+func (obj *TimeEntry) AfterFind() error {
+	obj.computeTags()
+	obj.ComputeDuration()
 	return nil
 }
 
@@ -64,6 +67,8 @@ func (obj *TimeEntry) loadProjectFromToggl(db *gorm.DB) {
 		if MustOrNotFound(qs.Where("id = ?", obj.Pid).First(&obj.Project)) {
 			// Нашли по внешнему ключу, проставляем внутренний
 			obj.ProjectPK = obj.Project.PK
+		} else if obj.Pid != 0 {
+			panic("Project missing")
 		}
 	}
 }
@@ -127,13 +132,20 @@ func (obj *TimeEntry) loadTagFromTags() {
 	}
 }
 
-func (obj *TimeEntry) AfterFind() error {
+func (obj *TimeEntry) ComputeDuration() {
+	if obj.Stop.IsZero() {
+		obj.Duration = -obj.Start.Unix()
+	} else {
+		obj.Duration = obj.Stop.Unix() - obj.Start.Unix()
+	}
+}
+
+func (obj *TimeEntry) computeTags() {
 	if obj.Tag != "" {
 		obj.Tags = []string{obj.Tag}
 	} else {
 		obj.Tags = []string{}
 	}
-	return nil
 }
 
 func (obj TimeEntry) Equals(other dto.TimeEntry) bool {

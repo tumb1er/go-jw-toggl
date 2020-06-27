@@ -17,14 +17,15 @@ type TimeEntry struct {
 	Project     *gtproject.Project     `json:"project"`
 	Start       time.Time              `json:"start"`
 	Stop        time.Time              `json:"stop"`
-	Duration    int64                  `json:"duration"`
+	Duration    int64                  `json:"duration" gorm:"-"`
 	Billable    bool                   `json:"billable"`
 	Workspace   *gtworkspace.Workspace `json:"workspace"`
 	Tags        []string               `json:"tags" gorm:"-"`
 	Pid         uint64                 `json:"pid"`
 	WId         uint64                 `json:"wid"`
 	Tid         uint64                 `json:"tid"`
-	CreatedWith string                 `json:"created_with,omitempty" `
+	CreatedWith string                 `json:"created_with,omitempty"`
+	UpdatedAt   time.Time              `json:"at,omitempty"`
 }
 
 type TimeEntries []TimeEntry

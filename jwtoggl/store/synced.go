@@ -12,6 +12,16 @@ type Synced struct {
 	//FetchedAt time.Time
 }
 
+func (s *Synced) BeforeCreate() error {
+	s.SavedAt = time.Now().Local()
+	return nil
+}
+
+func (s *Synced) BeforeSave() error {
+	s.SavedAt = time.Now().Local()
+	return nil
+}
+
 //
 //func (s *Synced) dump(obj interface{}) error {
 //	if buf, err := json.Marshal(obj); err != nil {
