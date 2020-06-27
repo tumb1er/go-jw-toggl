@@ -100,11 +100,6 @@ func (db *DB) createNewEntry(entry dto.TimeEntry, notify bool) error {
 		WId:         db.defaultWId,
 		CreatedWith: "go-jw-toggl",
 	}
-	var err error
-	timeEntry, err = db.client.TimeentryClient.Create(timeEntry)
-	if err != nil {
-		return err
-	}
 
 	storeEntry := store.TimeEntry{
 		TimeEntry: *timeEntry,
@@ -113,13 +108,26 @@ func (db *DB) createNewEntry(entry dto.TimeEntry, notify bool) error {
 
 	old := db.s.TimeEntries().Current()
 	db.update(&storeEntry)
-	if !old.Nil() && old.Id != storeEntry.Id && storeEntry.IsCurrent() {
+	if !old.Nil() && old.PK != storeEntry.PK && storeEntry.IsCurrent() {
 		old.Stop = storeEntry.Start
 		old.Duration = int64(old.Stop.Sub(old.Start).Seconds())
 		db.update(&old)
 		db.onTimeEntriesChanged(db.s.TimeEntries().List())
 	}
 	db.onCurrentEntry(storeEntry, notify)
+
+	go func() {
+		log.Printf("Start create entry: %+v\n", timeEntry)
+		var err error
+		timeEntry, err = db.client.TimeentryClient.Create(timeEntry)
+		if err != nil {
+			log.Printf("Create entry error: %+v\n", err)
+		} else {
+			log.Printf("Create entry result: %+v\n", timeEntry)
+			storeEntry.TimeEntry = *timeEntry
+			db.update(&storeEntry)
+		}
+	}()
 	return nil
 }
 
@@ -154,11 +162,7 @@ func (db *DB) StopEntry(entry dto.TimeEntry) error {
 func (db *DB) ContinueEntry(id uint64) error {
 	var storeEntry *store.TimeEntry
 	if storeEntry = db.s.TimeEntries().Get(id); storeEntry == nil {
-		if entry, err := db.client.TimeentryClient.Get(id); err != nil {
-			return err
-		} else {
-			storeEntry = db.s.TimeEntries().FromTimeEntry(*entry)
-		}
+		panic("Can't continue entry")
 	}
 
 	storeEntry.Id = 0
@@ -249,11 +253,14 @@ func (db *DB) StartListen(ctx context.Context) {
 }
 
 func (db *DB) update(timeEntry *store.TimeEntry) bool {
-	if timeEntry.Id == 0 {
-		log.Fatal("empty timeEntry id")
-	}
 	entries := db.s.TimeEntries()
-	existing := entries.Get(timeEntry.Id)
+	var existing *store.TimeEntry
+	if timeEntry.Id > 0 {
+		existing = entries.Get(timeEntry.Id)
+	}
+	if existing == nil {
+		existing = entries.GetByPK(timeEntry.PK)
+	}
 	if existing == nil {
 		entries.Create(timeEntry)
 		return true

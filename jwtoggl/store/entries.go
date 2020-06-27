@@ -159,6 +159,9 @@ func (obj TimeEntry) Equals(other dto.TimeEntry) bool {
 		if obj.Nil() != other.Nil() {
 			log.Printf("Nil test: %+v %+v\n", obj.Nil(), other.Nil())
 		}
+		if obj.GetTogglID() != other.GetTogglID() {
+			log.Printf("ID test: %d %d\n", obj.GetTogglID(), other.GetTogglID())
+		}
 		if obj.GetName() != other.GetName() {
 			log.Printf("Name test: %s %s\n", obj.GetName(), other.GetName())
 		}
@@ -178,6 +181,7 @@ func (obj TimeEntry) Equals(other dto.TimeEntry) bool {
 	p1 := obj.GetProject()
 	p2 := other.GetProject()
 	return obj.Nil() == other.Nil() &&
+		obj.GetTogglID() == other.GetTogglID() &&
 		obj.GetName() == other.GetName() &&
 		p1.GetTogglID() == p2.GetTogglID() &&
 		obj.GetTag() == other.GetTag() &&
@@ -210,7 +214,7 @@ func (m *TimeEntryManager) Create(timeEntry *TimeEntry) {
 
 func (m *TimeEntryManager) Update(timeEntry *TimeEntry) {
 	Must(m.gorm().Model(timeEntry).
-		Where("id = ?", timeEntry.Id).
+		Where("pk = ?", timeEntry.PK).
 		Updates(timeEntry))
 }
 
@@ -218,6 +222,15 @@ func (m *TimeEntryManager) Get(extId uint64) *TimeEntry {
 	var entry TimeEntry
 	if MustOrNotFound(m.gorm().
 		Where("id = ?", extId).First(&entry)) {
+		return &entry
+	}
+	return nil
+}
+
+func (m *TimeEntryManager) GetByPK(pk uint) *TimeEntry {
+	var entry TimeEntry
+	if MustOrNotFound(m.gorm().
+		Where("pk = ?", pk).First(&entry)) {
 		return &entry
 	}
 	return nil

@@ -48,6 +48,7 @@ type Entries interface {
 	List() store.TimeEntries
 	Delete(id uint64) bool
 	FromTimeEntry(entry gttimeentry.TimeEntry) *store.TimeEntry
+	GetByPK(pk uint) *store.TimeEntry
 }
 
 //common дает миксинам TagsDB, ClientsDB и прочим доступ к необходимым им полям из общего класса.
