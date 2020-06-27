@@ -47,7 +47,8 @@ type Entries interface {
 	Update(entry *store.TimeEntry)
 	Sync(gttimeentry.TimeEntries, time.Time, uint64) (bool, error)
 	List() store.TimeEntries
-	Delete(id uint64) bool
+	Delete(pk uint) bool
+	MarkDeleted(pk uint) bool
 	FromTimeEntry(entry gttimeentry.TimeEntry) *store.TimeEntry
 	GetByPK(pk uint) *store.TimeEntry
 }

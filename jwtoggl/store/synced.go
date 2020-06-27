@@ -10,6 +10,7 @@ type Synced struct {
 	// UpdatedAt time.Time
 	SavedAt time.Time
 	//FetchedAt time.Time
+	FlaggedAt time.Time
 }
 
 func (s *Synced) BeforeCreate() error {

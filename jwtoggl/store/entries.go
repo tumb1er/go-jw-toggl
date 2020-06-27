@@ -194,12 +194,18 @@ func (obj TimeEntry) Equals(other TimeEntry) bool {
 func (m *TimeEntryManager) List() TimeEntries {
 	return listTimeEntries(
 		m.gorm().
-			Where("stop <> ?", time.Time{}).
+			Where("stop <> ? AND flagged_at == ?", time.Time{}, time.Time{}).
 			Order("start DESC"))
 }
 
-func (m *TimeEntryManager) Delete(extId uint64) bool {
-	return MustOrNotFound(m.gorm().Where("id = ?", extId).Delete(&TimeEntry{}))
+func (m *TimeEntryManager) Delete(pk uint) bool {
+	return MustOrNotFound(m.gorm().Where("pk = ?", pk).Delete(&TimeEntry{}))
+}
+
+func (m *TimeEntryManager) MarkDeleted(pk uint) bool {
+	up := &TimeEntry{}
+	up.FlaggedAt = time.Now().Local()
+	return MustOrNotFound(m.gorm().Model(up).Where("pk = ?", pk).Update(up))
 }
 
 func (m *TimeEntryManager) Current() TimeEntry {

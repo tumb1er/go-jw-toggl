@@ -194,12 +194,19 @@ func (db *DB) DeleteEntry(pk uint) error {
 	if storeEntry == nil {
 		panic("Can't find entry to delete")
 	}
-	if err := db.client.TimeentryClient.Delete(storeEntry.Id); err != nil {
-		return err
-	}
 	entries := db.s.TimeEntries()
-	entries.Delete(storeEntry.Id)
+	entries.MarkDeleted(pk)
 	db.onTimeEntriesChanged(entries.List())
+	go func() {
+		log.Printf("Start delete entry: %d\n", storeEntry.Id)
+		if err := db.client.TimeentryClient.Delete(storeEntry.Id); err != nil {
+			log.Printf("Delete error: %+v\n", err)
+		} else {
+			log.Printf("Delete %d successfully\n", storeEntry.Id)
+			entries.Delete(storeEntry.PK)
+		}
+	}()
+
 	return nil
 }
 

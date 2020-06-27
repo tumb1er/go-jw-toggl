@@ -29,8 +29,9 @@ func (db *DB) OnCurrentEntry(cb OnCurrentEntryCallback) {
 func (db *TimeEntriesDB) onTimeEntryAction(action string, timeEntry gttimeentry.TimeEntry) error {
 	entries := db.store().TimeEntries()
 	old := entries.Current()
+	storeEntry := db.store().TimeEntries().FromTimeEntry(timeEntry)
 	if action == gtwebsocket.ActionDelete {
-		entries.Delete(timeEntry.Id)
+		entries.Delete(storeEntry.PK)
 		current := entries.Current()
 		if !tools.TimeEntriesEqual(&old.TimeEntry, &current.TimeEntry) {
 			// Обновился текущий
@@ -40,13 +41,10 @@ func (db *TimeEntriesDB) onTimeEntryAction(action string, timeEntry gttimeentry.
 		}
 
 	} else if action == gtwebsocket.ActionUpdate || action == gtwebsocket.ActionInsert {
-		log.Printf("onTimeEntryAction: %s %+v\n", timeEntry.Tags[0], timeEntry.Tags)
-		storeEntry := db.store().TimeEntries().FromTimeEntry(timeEntry)
-		log.Printf("onTimeEntryAction: %s %+v\n", storeEntry.Tag, storeEntry.Tags)
 		if db.update(storeEntry) {
-			log.Printf("onTimeEntryAction update: %s %+v\n", old.Tag, old.Tags)
+			log.Printf("onTimeEntryAction update: %+v\n", old)
 			current := entries.Current()
-			log.Printf("onTimeEntryAction current: %s %+v\n", current.Tag, current.Tags)
+			log.Printf("onTimeEntryAction current: %+v\n", current)
 			if !tools.TimeEntriesEqual(&old.TimeEntry, &current.TimeEntry) {
 				// Обновился текущий
 				log.Printf("onCurrentEntry: %+v\n", current)
