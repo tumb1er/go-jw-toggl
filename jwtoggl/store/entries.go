@@ -34,6 +34,11 @@ func (m *TimeEntryManager) FromTimeEntry(entry gttimeentry.TimeEntry) *TimeEntry
 		Must(m.gorm().Debug().Where("id = ?", entry.Pid).Find(&timeEntry.Project))
 		timeEntry.ProjectPK = timeEntry.Project.PK
 	}
+	if len(timeEntry.Tags) > 0 {
+		timeEntry.Tag = timeEntry.Tags[0]
+	} else {
+		timeEntry.Tag = ""
+	}
 	return timeEntry
 }
 

@@ -69,27 +69,30 @@ func (db *DB) UpdateCurrentEntry(entry dto.TimeEntry) error {
 	if storeProject == nil {
 		panic("Can't find project for entry")
 	}
-	timeEntry := &gttimeentry.TimeEntry{
-		Id:          storeEntry.Id,
-		Name:        entry.GetName(),
-		Start:       entry.GetStart(),
-		Stop:        entry.GetStop(),
-		Tags:        entry.GetTags(),
-		Pid:         storeProject.Id,
-		WId:         db.defaultWId,
-		CreatedWith: "go-jw-toggl",
-	}
-	if timeEntry.Stop.IsZero() {
-		timeEntry.Duration = -timeEntry.Start.Unix()
-	}
-	timeEntry, err := db.client.TimeentryClient.Update(timeEntry)
-	if err != nil {
-		return err
-	}
-	storeEntry.TimeEntry = *timeEntry
+	timeEntry := &storeEntry.TimeEntry
+	timeEntry.Name = entry.GetName()
+	timeEntry.Start = entry.GetStart()
+	timeEntry.Stop = entry.GetStop()
+	timeEntry.Tags = entry.GetTags()
+	timeEntry.Pid = storeProject.Id
+	timeEntry.WId = db.defaultWId
+	timeEntry.CreatedWith = "go-jw-toggl"
+	storeEntry.ComputeDuration()
+	storeEntry.Tag = entry.GetTag()
 	if db.update(storeEntry) {
 		db.onCurrentEntry(db.s.TimeEntries().Current(), false)
+		go func() {
+			log.Printf("Updating entry: %+v\n", timeEntry)
+			timeEntry, err := db.client.TimeentryClient.Update(timeEntry)
+			if err != nil {
+				log.Printf("Update entry error: %+v\n", timeEntry)
+			} else {
+				log.Printf("Update entry result: %+v\n", timeEntry)
+				db.update(storeEntry)
+			}
+		}()
 	}
+
 	return nil
 }
 

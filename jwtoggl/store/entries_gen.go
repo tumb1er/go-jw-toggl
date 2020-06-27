@@ -82,10 +82,6 @@ func listTimeEntries(scope *gorm.DB) TimeEntries {
 	return *qs
 }
 
-func (obj TimeEntry) GetTogglID() uint64 {
-	return obj.Id
-}
-
 func (obj TimeEntry) GetName() string {
 	return obj.Name
 }

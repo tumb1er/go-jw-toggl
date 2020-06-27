@@ -82,10 +82,6 @@ func listTags(scope *gorm.DB) Tags {
 	return *qs
 }
 
-func (obj Tag) GetTogglID() uint64 {
-	return obj.Id
-}
-
 func (obj Tag) GetName() string {
 	return obj.Name
 }

@@ -40,16 +40,19 @@ func (db *TimeEntriesDB) onTimeEntryAction(action string, timeEntry gttimeentry.
 		}
 
 	} else if action == gtwebsocket.ActionUpdate || action == gtwebsocket.ActionInsert {
-		log.Printf("onTimeEntryAction: %d\n", timeEntry.Pid)
+		log.Printf("onTimeEntryAction: %s %+v\n", timeEntry.Tags[0], timeEntry.Tags)
 		storeEntry := db.store().TimeEntries().FromTimeEntry(timeEntry)
-		log.Printf("onTimeEntryAction: %s %d\n", storeEntry.Project.Name, storeEntry.Project.Id)
+		log.Printf("onTimeEntryAction: %s %+v\n", storeEntry.Tag, storeEntry.Tags)
 		if db.update(storeEntry) {
-			log.Printf("onTimeEntryAction update: %s %d\n", storeEntry.Project.Name, storeEntry.Project.Id)
+			log.Printf("onTimeEntryAction update: %s %+v\n", old.Tag, old.Tags)
 			current := entries.Current()
-			log.Printf("onTimeEntryAction current: %s %d\n", current.Project.Name, current.Project.Id)
+			log.Printf("onTimeEntryAction current: %s %+v\n", current.Tag, current.Tags)
 			if !tools.TimeEntriesEqual(&old.TimeEntry, &current.TimeEntry) {
 				// Обновился текущий
+				log.Printf("onCurrentEntry: %+v\n", current)
 				db.onCurrentEntry(current, true)
+			} else {
+				log.Println("Current entry not changed.")
 			}
 			db.onTimeEntriesChanged(entries.List())
 
