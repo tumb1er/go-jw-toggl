@@ -56,10 +56,10 @@ func (qs Foos) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 
 		for _, obj := range qs {
 			if prev, ok := extIdMap[obj.Id]; ok {
-                if prev.SavedAt.After(obj.UpdatedAt) {
-                    // log.Printf("Skip saving Foo %d %s\n\n", obj.Id, obj.Name)
-                    obj.Foo = prev.Foo
-                }
+				if prev.SavedAt.After(obj.UpdatedAt) {
+					// log.Printf("Skip saving Foo %d %s\n\n", obj.Id, obj.Name)
+					obj.Foo = prev.Foo
+				}
 				obj.PK = prev.PK
 				if !tools.FoosEqual(&obj.Foo, &prev.Foo) {
 					changed = true
