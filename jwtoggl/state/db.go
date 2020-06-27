@@ -65,13 +65,17 @@ func (db *DB) UpdateCurrentEntry(entry dto.TimeEntry) error {
 	if storeEntry == nil {
 		panic("Can't find entry to update")
 	}
+	storeProject := db.s.Projects().GetByPK(entry.GetProject().GetPK())
+	if storeProject == nil {
+		panic("Can't find project for entry")
+	}
 	timeEntry := &gttimeentry.TimeEntry{
 		Id:          storeEntry.Id,
 		Name:        entry.GetName(),
 		Start:       entry.GetStart(),
 		Stop:        entry.GetStop(),
 		Tags:        entry.GetTags(),
-		Pid:         entry.GetProject().GetTogglID(),
+		Pid:         storeProject.Id,
 		WId:         db.defaultWId,
 		CreatedWith: "go-jw-toggl",
 	}
@@ -94,13 +98,17 @@ func (db *DB) CreateNewEntry(entry dto.TimeEntry) error {
 }
 
 func (db *DB) createNewEntry(entry dto.TimeEntry, notify bool) error {
+	storeProject := db.s.Projects().GetByPK(entry.GetProject().GetPK())
+	if storeProject == nil {
+		panic("Can't find project for new entry")
+	}
 	timeEntry := &gttimeentry.TimeEntry{
 		Name:        entry.GetName(),
 		Start:       entry.GetStart(),
 		Stop:        entry.GetStop(),
 		Duration:    -entry.GetStart().Unix(),
 		Tags:        entry.GetTags(),
-		Pid:         entry.GetProject().GetTogglID(),
+		Pid:         storeProject.Id,
 		WId:         db.defaultWId,
 		CreatedWith: "go-jw-toggl",
 	}

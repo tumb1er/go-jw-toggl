@@ -82,10 +82,6 @@ func listFoos(scope *gorm.DB) Foos {
 	return *qs
 }
 
-func (obj Foo) GetTogglID() uint64 {
-	return obj.Id
-}
-
 func (obj Foo) GetName() string {
 	return obj.Name
 }

@@ -8,14 +8,14 @@ import (
 
 type entry struct {
 	Description string
-	PId         uint64
+	ProjectPK   uint
 	Tag         string
 	Start       *time.Time
 	PK          uint
 }
 
 type project struct {
-	Id uint64
+	PK uint
 }
 
 func (p project) GetName() string {
@@ -26,8 +26,8 @@ func (p project) GetHexColor() string {
 	panic("implement me")
 }
 
-func (p project) GetTogglID() uint64 {
-	return p.Id
+func (p project) GetPK() uint {
+	return p.PK
 }
 
 func (p project) GetClient() dto.Client {
@@ -35,7 +35,7 @@ func (p project) GetClient() dto.Client {
 }
 
 func (e entry) GetProject() dto.Project {
-	return project{e.PId}
+	return project{e.ProjectPK}
 }
 
 func (e entry) GetTags() []string {
@@ -64,10 +64,6 @@ func (e entry) GetName() string {
 	return e.Description
 }
 
-func (e entry) GetProjectTogglID() uint64 {
-	return e.PId
-}
-
 func (e entry) GetTag() string {
 	return e.Tag
 }
@@ -93,7 +89,7 @@ func (e entry) ValidateTag() bool {
 }
 
 func (e entry) ValidateProject() bool {
-	return e.PId != 0
+	return e.ProjectPK != 0
 }
 
 func (e entry) ValidateStart() bool {

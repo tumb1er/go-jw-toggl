@@ -54,7 +54,7 @@ func (f *EntryForm) OnEditCompleted() {
 		log.Println("name changed")
 		changed = true
 	}
-	if f.timeEntry.GetProject().GetTogglID() != f.uiEntry.GetProject().GetTogglID() {
+	if f.timeEntry.GetProject().GetPK() != f.uiEntry.GetProject().GetPK() {
 		log.Println("project changed")
 		changed = true
 	}
@@ -97,10 +97,10 @@ func (f *EntryForm) OnStartTimeChanged(start *time.Time) bool {
 	return f.uiEntry.ValidateStart()
 }
 
-func (f *EntryForm) OnProjectChanged(pid uint64) bool {
+func (f *EntryForm) OnProjectChanged(pk uint) bool {
 	defer f.validate()
-	log.Printf("OnProjectChanged: %d\n", pid)
-	f.uiEntry.PId = pid
+	log.Printf("OnProjectChanged: %d\n", pk)
+	f.uiEntry.ProjectPK = pk
 	return f.uiEntry.ValidateProject()
 }
 
@@ -168,13 +168,13 @@ func (f *EntryForm) SetTimeEntry(entry dto.TimeEntry) {
 		start := entry.GetStart()
 		f.uiEntry.Start = &start
 		f.uiEntry.Description = entry.GetName()
-		f.uiEntry.PId = entry.GetProject().GetTogglID()
+		f.uiEntry.ProjectPK = entry.GetProject().GetPK()
 		f.uiEntry.Tag = entry.GetTag()
 	} else {
 		f.uiEntry.PK = 0
 		f.uiEntry.Start = &time.Time{}
 		f.uiEntry.Description = ""
-		f.uiEntry.PId = 0
+		f.uiEntry.ProjectPK = 0
 		f.uiEntry.Tag = ""
 
 	}

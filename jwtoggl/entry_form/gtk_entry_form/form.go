@@ -50,7 +50,7 @@ type GtkEntryForm struct {
 type UIHandler interface {
 	OnButtonClicked()
 	OnStartTimeChanged(*time.Time) bool
-	OnProjectChanged(uint64) bool
+	OnProjectChanged(uint) bool
 	OnTagChanged(string) bool
 	OnDescriptionChanged(string) bool
 	OnEditCompleted()
@@ -185,7 +185,7 @@ func (f *GtkEntryForm) notifyProject() {
 		log.Fatal("projectId parse error:", err)
 	} else {
 
-		MarkValid(f.projectEntry, f.handler.OnProjectChanged(pid))
+		MarkValid(f.projectEntry, f.handler.OnProjectChanged(uint(pid)))
 	}
 }
 
@@ -222,7 +222,7 @@ func (f *GtkEntryForm) setProjects(projects []dto.Project) error {
 		it := ls.Append()
 		html := fmt.Sprintf("<span foreground=\"%s\">%s</span>",
 			project.GetHexColor(), project.GetName())
-		if err := ls.SetValue(it, 0, project.GetTogglID()); err != nil {
+		if err := ls.SetValue(it, 0, project.GetPK()); err != nil {
 			return err
 		}
 		if err := ls.SetValue(it, 1, project.GetName()); err != nil {
@@ -309,7 +309,7 @@ func (f *GtkEntryForm) SetTimeEntry(entry dto.TimeEntry) {
 			} else {
 				f.tag.SetActive(-1)
 			}
-			f.project.SetActiveID(strconv.FormatUint(entry.GetProject().GetTogglID(), 10))
+			f.project.SetActiveID(strconv.FormatUint(uint64(entry.GetProject().GetPK()), 10))
 			f.button.SetImage(f.imageStop)
 			if entry.GetStart().IsZero() {
 				f.start.SetText("")

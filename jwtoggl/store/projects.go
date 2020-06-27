@@ -55,6 +55,15 @@ type Projects []Project
 
 type ProjectManager gorm.DB
 
+func (m *ProjectManager) GetByPK(pk uint) *Project {
+	var project Project
+	if MustOrNotFound(m.gorm().
+		Where("pk = ?", pk).First(&project)) {
+		return &project
+	}
+	return nil
+}
+
 func (m *ProjectManager) List() Projects {
 	return listProjects(m.gorm().Order("name ASC"))
 }

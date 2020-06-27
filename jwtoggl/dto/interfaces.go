@@ -16,7 +16,7 @@ type Tags interface {
 type Project interface {
 	GetName() string
 	GetHexColor() string
-	GetTogglID() uint64
+	GetPK() uint
 	GetClient() Client
 }
 
