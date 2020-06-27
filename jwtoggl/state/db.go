@@ -61,8 +61,12 @@ func (db *DB) wid() uint64 {
 }
 
 func (db *DB) UpdateCurrentEntry(entry dto.TimeEntry) error {
+	storeEntry := db.s.TimeEntries().GetByPK(entry.GetPK())
+	if storeEntry == nil {
+		panic("Can't find entry to update")
+	}
 	timeEntry := &gttimeentry.TimeEntry{
-		Id:          entry.GetTogglID(),
+		Id:          storeEntry.Id,
 		Name:        entry.GetName(),
 		Start:       entry.GetStart(),
 		Stop:        entry.GetStop(),
@@ -78,7 +82,7 @@ func (db *DB) UpdateCurrentEntry(entry dto.TimeEntry) error {
 	if err != nil {
 		return err
 	}
-	storeEntry := db.s.TimeEntries().FromTimeEntry(*timeEntry)
+	storeEntry.TimeEntry = *timeEntry
 	if db.update(storeEntry) {
 		db.onCurrentEntry(db.s.TimeEntries().Current(), false)
 	}
@@ -136,7 +140,7 @@ func (db *DB) StopEntry(entry dto.TimeEntry) error {
 		return nil
 	}
 	current := db.s.TimeEntries().Current()
-	if current.Nil() || current.Id != entry.GetTogglID() {
+	if current.Nil() || current.PK != entry.GetPK() {
 		return errors.New("current entry de-sync")
 	}
 	current.Stop = time.Now().Local()
@@ -159,9 +163,9 @@ func (db *DB) StopEntry(entry dto.TimeEntry) error {
 	return nil
 }
 
-func (db *DB) ContinueEntry(id uint64) error {
+func (db *DB) ContinueEntry(pk uint) error {
 	var storeEntry *store.TimeEntry
-	if storeEntry = db.s.TimeEntries().Get(id); storeEntry == nil {
+	if storeEntry = db.s.TimeEntries().GetByPK(pk); storeEntry == nil {
 		panic("Can't continue entry")
 	}
 
@@ -174,12 +178,16 @@ func (db *DB) ContinueEntry(id uint64) error {
 	return db.createNewEntry(storeEntry, true)
 }
 
-func (db *DB) DeleteEntry(id uint64) error {
-	if err := db.client.TimeentryClient.Delete(id); err != nil {
+func (db *DB) DeleteEntry(pk uint) error {
+	storeEntry := db.s.TimeEntries().GetByPK(pk)
+	if storeEntry == nil {
+		panic("Can't find entry to delete")
+	}
+	if err := db.client.TimeentryClient.Delete(storeEntry.Id); err != nil {
 		return err
 	}
 	entries := db.s.TimeEntries()
-	entries.Delete(id)
+	entries.Delete(storeEntry.Id)
 	db.onTimeEntriesChanged(entries.List())
 	return nil
 }
@@ -266,7 +274,7 @@ func (db *DB) update(timeEntry *store.TimeEntry) bool {
 		return true
 	}
 
-	if existing.Equals(timeEntry) {
+	if existing.Equals(*timeEntry) {
 		// Нет изменений
 		return false
 	}

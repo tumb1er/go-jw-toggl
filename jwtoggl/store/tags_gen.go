@@ -89,3 +89,7 @@ func (obj Tag) GetTogglID() uint64 {
 func (obj Tag) GetName() string {
 	return obj.Name
 }
+
+func (obj Tag) GetPK() uint {
+	return obj.PK
+}

@@ -164,14 +164,14 @@ func (f *EntryForm) SetProjects(projects []dto.Project) {
 func (f *EntryForm) SetTimeEntry(entry dto.TimeEntry) {
 	f.timeEntry = entry
 	if !entry.Nil() {
-		f.uiEntry.Id = entry.GetTogglID()
+		f.uiEntry.PK = entry.GetPK()
 		start := entry.GetStart()
 		f.uiEntry.Start = &start
 		f.uiEntry.Description = entry.GetName()
 		f.uiEntry.PId = entry.GetProject().GetTogglID()
 		f.uiEntry.Tag = entry.GetTag()
 	} else {
-		f.uiEntry.Id = 0
+		f.uiEntry.PK = 0
 		f.uiEntry.Start = &time.Time{}
 		f.uiEntry.Description = ""
 		f.uiEntry.PId = 0

@@ -11,7 +11,7 @@ type entry struct {
 	PId         uint64
 	Tag         string
 	Start       *time.Time
-	Id          uint64
+	PK          uint
 }
 
 type project struct {
@@ -76,16 +76,12 @@ func (e entry) GetStop() time.Time {
 	return time.Time{}
 }
 
-func (e entry) GetTogglID() uint64 {
-	return e.Id
+func (e entry) GetPK() uint {
+	return e.PK
 }
 
 func (e entry) Nil() bool {
-	return e.Id == 0
-}
-
-func (e entry) Equals(_ dto.TimeEntry) bool {
-	panic("implement me")
+	return e.PK == 0
 }
 
 func (e entry) ValidateDescription() bool {

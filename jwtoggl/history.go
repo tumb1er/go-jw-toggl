@@ -14,10 +14,10 @@ func (j *jApp) initHistory(b *builder.Builder) {
 	j.entries.InitCallbacks(j.OnEntryContinue, j.OnEntryDelete)
 }
 
-func (j *jApp) OnEntryContinue(id uint64) {
-	j.handleError(j.db.ContinueEntry(id), "Continue entry error")
+func (j *jApp) OnEntryContinue(pk uint) {
+	j.handleError(j.db.ContinueEntry(pk), "Continue entry error")
 }
 
-func (j *jApp) OnEntryDelete(id uint64) {
-	j.handleError(j.db.DeleteEntry(id), "Entry delete error")
+func (j *jApp) OnEntryDelete(pk uint) {
+	j.handleError(j.db.DeleteEntry(pk), "Entry delete error")
 }

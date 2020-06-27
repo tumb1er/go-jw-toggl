@@ -89,3 +89,7 @@ func (obj TimeEntry) GetTogglID() uint64 {
 func (obj TimeEntry) GetName() string {
 	return obj.Name
 }
+
+func (obj TimeEntry) GetPK() uint {
+	return obj.PK
+}

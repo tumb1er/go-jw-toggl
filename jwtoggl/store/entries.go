@@ -148,7 +148,7 @@ func (obj *TimeEntry) computeTags() {
 	}
 }
 
-func (obj TimeEntry) Equals(other dto.TimeEntry) bool {
+func (obj TimeEntry) Equals(other TimeEntry) bool {
 	if obj.Nil() || other.Nil() {
 		// Не допускаем получения проекта у несуществующей записи.
 		return obj.Nil() == other.Nil()
@@ -159,34 +159,31 @@ func (obj TimeEntry) Equals(other dto.TimeEntry) bool {
 		if obj.Nil() != other.Nil() {
 			log.Printf("Nil test: %+v %+v\n", obj.Nil(), other.Nil())
 		}
-		if obj.GetTogglID() != other.GetTogglID() {
-			log.Printf("ID test: %d %d\n", obj.GetTogglID(), other.GetTogglID())
+		if obj.Id != other.Id {
+			log.Printf("ID test: %d %d\n", obj.Id, other.Id)
 		}
-		if obj.GetName() != other.GetName() {
-			log.Printf("Name test: %s %s\n", obj.GetName(), other.GetName())
+		if obj.Name != other.Name {
+			log.Printf("Name test: %s %s\n", obj.Name, other.Name)
 		}
-		if obj.GetProject().GetTogglID() != other.GetProject().GetTogglID() {
-			log.Printf("Project test: %d %d\n", obj.GetProject().GetTogglID(), other.GetProject().GetTogglID())
+		if obj.Pid != other.Pid {
+			log.Printf("Project test: %d %d\n", obj.Pid, other.Pid)
 		}
 		if obj.GetTag() != other.GetTag() {
 			log.Printf("Tag test: %s %s\n", obj.GetTag(), other.GetTag())
 		}
-		if obj.GetStart() != other.GetStart() {
-			log.Printf("Start test: %s %s\n", obj.GetStart(), other.GetStart())
+		if obj.Start != other.Start {
+			log.Printf("Start test: %s %s\n", obj.Start, other.Start)
 		}
-		if obj.GetStop() != other.GetStop() {
-			log.Printf("Stop test: %s %s\n", obj.GetStop(), other.GetStop())
+		if obj.Stop != other.Stop {
+			log.Printf("Stop test: %s %s\n", obj.Stop, other.Stop)
 		}
 	}
-	p1 := obj.GetProject()
-	p2 := other.GetProject()
-	return obj.Nil() == other.Nil() &&
-		obj.GetTogglID() == other.GetTogglID() &&
-		obj.GetName() == other.GetName() &&
-		p1.GetTogglID() == p2.GetTogglID() &&
+	return obj.Id == other.Id &&
+		obj.Name == other.Name &&
+		obj.Pid == other.Pid &&
 		obj.GetTag() == other.GetTag() &&
-		obj.GetStart() == other.GetStart() &&
-		obj.GetStop() == other.GetStop()
+		obj.Start == other.Start &&
+		obj.Stop == other.Stop
 }
 
 func (m *TimeEntryManager) List() TimeEntries {

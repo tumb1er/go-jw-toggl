@@ -38,7 +38,7 @@ const (
 	signalButtonPress  = "button-press-event"
 )
 
-type Callback func(entryId uint64)
+type Callback func(entryPK uint)
 
 type GtkHistory struct {
 	store           *gtk.TreeStore
@@ -158,7 +158,7 @@ func (h *GtkHistory) insertEntry(it *gtk.TreeIter, entry dto.TimeEntry, grouped 
 		ctx.Duration = duration.Truncate(time.Second).String()
 	}
 
-	if err := h.store.SetValue(it, columnId, fmt.Sprintf("%d", entry.GetTogglID())); err != nil {
+	if err := h.store.SetValue(it, columnId, fmt.Sprintf("%d", entry.GetPK())); err != nil {
 		log.Fatal(err)
 	}
 	if err := h.store.SetValue(it, columnDescription, RenderDescription(ctx)); err != nil {
@@ -177,7 +177,7 @@ func (h *GtkHistory) insertEntry(it *gtk.TreeIter, entry dto.TimeEntry, grouped 
 	}
 }
 
-func (h *GtkHistory) getSelectedEntryId() (uint64, error) {
+func (h *GtkHistory) getSelectedEntryPK() (uint, error) {
 	s, err := h.treeView.GetSelection()
 	if err != nil {
 		return 0, err
@@ -199,7 +199,7 @@ func (h *GtkHistory) getSelectedEntryId() (uint64, error) {
 			if id, err := strconv.ParseUint(s, 10, 64); err != nil {
 				return 0, err
 			} else {
-				return id, nil
+				return uint(id), nil
 			}
 		}
 	} else {
@@ -218,7 +218,7 @@ func (h *GtkHistory) onRowActivated(_ *gtk.TreeView, path *gtk.TreePath) {
 
 func (h *GtkHistory) onMenuContinue() {
 	if h.onEntryContinue != nil {
-		if entry, err := h.getSelectedEntryId(); err == nil {
+		if entry, err := h.getSelectedEntryPK(); err == nil {
 			h.onEntryContinue(entry)
 		}
 	}
@@ -226,7 +226,7 @@ func (h *GtkHistory) onMenuContinue() {
 
 func (h *GtkHistory) onMenuDelete() {
 	if h.onEntryDelete != nil {
-		if entry, err := h.getSelectedEntryId(); err == nil {
+		if entry, err := h.getSelectedEntryPK(); err == nil {
 			h.onEntryDelete(entry)
 		}
 	}

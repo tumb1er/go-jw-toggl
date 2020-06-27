@@ -33,6 +33,7 @@ type Clients interface {
 }
 
 type TimeEntry interface {
+	GetPK() uint
 	GetDuration() time.Duration
 	GetStart() time.Time
 	TaskKey() string
@@ -40,9 +41,7 @@ type TimeEntry interface {
 	GetProject() Project
 	GetTag() string
 	GetStop() time.Time
-	GetTogglID() uint64
 	Nil() bool
-	Equals(entry TimeEntry) bool
 	GetTags() []string
 }
 
