@@ -7,6 +7,7 @@ import (
 	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/gtoggl/gtclient"
 	"go-jw-toggl/jwtoggl/tools"
+	"time"
 )
 
 func (m *ClientManager) Sync(items gtclient.Clients, wid uint64) (bool, error) {
@@ -47,11 +48,13 @@ func (qs Clients) DTO() []dto.Client {
 
 func (qs Clients) Sync(db *gorm.DB) (changed bool, err error) {
 	err = db.Transaction(func(tx *gorm.DB) error {
+		ts := time.Now().Local()
 		existing := NewClients()
 		Must(tx.Find(existing))
 		extIdMap := make(map[uint64]Client)
 		for _, obj := range *existing {
 			extIdMap[obj.Id] = obj
+			obj.Fetched = &ts
 		}
 
 		for _, obj := range qs {
@@ -70,7 +73,11 @@ func (qs Clients) Sync(db *gorm.DB) (changed bool, err error) {
 				Must(tx.Create(&obj))
 			}
 		}
-		changed = MustOrNotFound(tx.Where("modified < updated").Delete(Client{})) || changed
+		deleted := MustOrNotFound(
+			tx.
+				Where("modified < updated AND fetched < ?", ts).
+				Delete(Client{}))
+		changed = deleted || changed
 		return nil
 	})
 	return changed, err

@@ -80,19 +80,24 @@ func (db *DB) UpdateCurrentEntry(entry dto.TimeEntry) error {
 	storeEntry.ComputeDuration()
 	if db.update(storeEntry) {
 		db.onCurrentEntry(db.s.TimeEntries().Current(), false)
-		go func() {
-			log.Printf("Updating entry: %+v\n", timeEntry)
-			timeEntry, err := db.client.TimeentryClient.Update(timeEntry)
-			if err != nil {
-				log.Printf("Update entry error: %+v\n", timeEntry)
-			} else {
-				log.Printf("Update entry result: %+v\n", timeEntry)
-				db.update(storeEntry)
-			}
-		}()
+		go db.updateEntry(storeEntry)
 	}
 
 	return nil
+}
+
+func (db *DB) updateEntry(entry *store.TimeEntry) {
+	func() {
+		timeEntry := &entry.TimeEntry
+		log.Printf("Updating entry: %+v\n", timeEntry)
+
+		if timeEntry, err := db.client.TimeentryClient.Update(timeEntry); err != nil {
+			log.Printf("Update entry error: %+v\n", timeEntry)
+		} else {
+			log.Printf("Update entry result: %+v\n", timeEntry)
+			db.update(entry)
+		}
+	}()
 }
 
 func (db *DB) CreateNewEntry(entry dto.TimeEntry) error {

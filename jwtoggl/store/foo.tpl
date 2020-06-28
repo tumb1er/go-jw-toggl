@@ -7,6 +7,7 @@ import (
 	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/gtoggl/foo"
 	"go-jw-toggl/jwtoggl/tools"
+	"time"
 )
 
 func (m *FooManager) Sync(items foo.Foos, wid uint64) (bool, error) {
@@ -47,11 +48,13 @@ func (qs Foos) DTO() []dto.Foo {
 
 func (qs Foos) Sync(db *gorm.DB) (changed bool, err error) {
 	err = db.Transaction(func(tx *gorm.DB) error {
+	    ts := time.Now().Local()
 		existing := NewFoos()
 		Must(tx.Find(existing))
 		extIdMap := make(map[uint64]Foo)
 		for _, obj := range *existing {
 			extIdMap[obj.Id] = obj
+			obj.Fetched = &ts
 		}
 
 		for _, obj := range qs {
@@ -70,7 +73,11 @@ func (qs Foos) Sync(db *gorm.DB) (changed bool, err error) {
 				Must(tx.Create(&obj))
 			}
 		}
-		changed = MustOrNotFound(tx.Where("modified < updated").Delete(Foo{})) || changed
+		deleted := MustOrNotFound(
+		    tx.
+		    Where("modified < updated AND fetched < ?", ts).
+		    Delete(Foo{}))
+		changed = deleted || changed
 		return nil
 	})
 	return changed, err

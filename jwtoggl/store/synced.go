@@ -9,6 +9,7 @@ type Synced struct {
 	Updated  *time.Time
 	Modified *time.Time
 	Deleted  *time.Time
+	Fetched  *time.Time
 }
 
 func (s *Synced) BeforeSave() error {
