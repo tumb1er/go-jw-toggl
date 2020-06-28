@@ -152,6 +152,9 @@ func (db *DB) createEntry(entry store.TimeEntry) error {
 	} else {
 		log.Printf("Create entry result: %+v\n", timeEntry)
 		entry.TimeEntry = *timeEntry
+		entry.ComputeUpdated()
+		entry.MarkFetched()
+
 		db.update(&entry)
 		return nil
 	}

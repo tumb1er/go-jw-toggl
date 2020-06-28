@@ -184,6 +184,11 @@ func (obj *TimeEntry) ComputeTags() {
 	obj.TimeEntry.Tags = obj.GetTags()
 }
 
+func (obj *TimeEntry) MarkFetched() {
+	ts := time.Now().Local()
+	obj.Fetched = &ts
+}
+
 func (m *TimeEntryManager) List() TimeEntries {
 	return listTimeEntries(
 		m.gorm().

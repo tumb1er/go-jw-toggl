@@ -48,7 +48,7 @@ func (qs Foos) DTO() []dto.Foo {
 
 func (qs Foos) Sync(db *gorm.DB) (changed bool, err error) {
 	err = db.Transaction(func(tx *gorm.DB) error {
-	    ts := time.Now().Local()
+		ts := time.Now().Local()
 		existing := NewFoos()
 		Must(tx.Find(existing))
 		extIdMap := make(map[uint64]Foo)
