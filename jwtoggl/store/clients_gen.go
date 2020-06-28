@@ -7,10 +7,9 @@ import (
 	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/gtoggl/gtclient"
 	"go-jw-toggl/jwtoggl/tools"
-	"time"
 )
 
-func (m *ClientManager) Sync(items gtclient.Clients, ts time.Time, wid uint64) (bool, error) {
+func (m *ClientManager) Sync(items gtclient.Clients, wid uint64) (bool, error) {
 	filtered := make(gtclient.Clients, 0, len(items))
 	for _, item := range items {
 		if item.WId == wid {
@@ -18,7 +17,7 @@ func (m *ClientManager) Sync(items gtclient.Clients, ts time.Time, wid uint64) (
 		}
 	}
 	qs := NewClients(filtered)
-	return qs.Sync(m.gorm(), ts)
+	return qs.Sync(m.gorm())
 }
 
 func (m *ClientManager) gorm() *gorm.DB {
@@ -46,7 +45,7 @@ func (qs Clients) DTO() []dto.Client {
 	return result
 }
 
-func (qs Clients) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
+func (qs Clients) Sync(db *gorm.DB) (changed bool, err error) {
 	err = db.Transaction(func(tx *gorm.DB) error {
 		existing := NewClients()
 		Must(tx.Find(existing))
@@ -65,13 +64,13 @@ func (qs Clients) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 				if !tools.ClientsEqual(&obj.Client, &prev.Client) {
 					changed = true
 				}
-				Must(tx.Debug().Save(&obj))
+				Must(tx.Save(&obj))
 			} else {
 				changed = true
-				Must(tx.Debug().Create(&obj))
+				Must(tx.Create(&obj))
 			}
 		}
-		changed = MustOrNotFound(tx.Debug().Where("modified < updated").Delete(Client{})) || changed
+		changed = MustOrNotFound(tx.Where("modified < updated").Delete(Client{})) || changed
 		return nil
 	})
 	return changed, err
@@ -79,7 +78,7 @@ func (qs Clients) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 
 func listClients(scope *gorm.DB) Clients {
 	qs := NewClients()
-	Must(scope.Debug().Find(qs))
+	Must(scope.Find(qs))
 	return *qs
 }
 

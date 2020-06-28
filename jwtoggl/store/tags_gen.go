@@ -7,10 +7,9 @@ import (
 	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
 	"go-jw-toggl/jwtoggl/tools"
-	"time"
 )
 
-func (m *TagManager) Sync(items gttag.Tags, ts time.Time, wid uint64) (bool, error) {
+func (m *TagManager) Sync(items gttag.Tags, wid uint64) (bool, error) {
 	filtered := make(gttag.Tags, 0, len(items))
 	for _, item := range items {
 		if item.WId == wid {
@@ -18,7 +17,7 @@ func (m *TagManager) Sync(items gttag.Tags, ts time.Time, wid uint64) (bool, err
 		}
 	}
 	qs := NewTags(filtered)
-	return qs.Sync(m.gorm(), ts)
+	return qs.Sync(m.gorm())
 }
 
 func (m *TagManager) gorm() *gorm.DB {
@@ -46,7 +45,7 @@ func (qs Tags) DTO() []dto.Tag {
 	return result
 }
 
-func (qs Tags) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
+func (qs Tags) Sync(db *gorm.DB) (changed bool, err error) {
 	err = db.Transaction(func(tx *gorm.DB) error {
 		existing := NewTags()
 		Must(tx.Find(existing))
@@ -65,13 +64,13 @@ func (qs Tags) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 				if !tools.TagsEqual(&obj.Tag, &prev.Tag) {
 					changed = true
 				}
-				Must(tx.Debug().Save(&obj))
+				Must(tx.Save(&obj))
 			} else {
 				changed = true
-				Must(tx.Debug().Create(&obj))
+				Must(tx.Create(&obj))
 			}
 		}
-		changed = MustOrNotFound(tx.Debug().Where("modified < updated").Delete(Tag{})) || changed
+		changed = MustOrNotFound(tx.Where("modified < updated").Delete(Tag{})) || changed
 		return nil
 	})
 	return changed, err
@@ -79,7 +78,7 @@ func (qs Tags) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 
 func listTags(scope *gorm.DB) Tags {
 	qs := NewTags()
-	Must(scope.Debug().Find(qs))
+	Must(scope.Find(qs))
 	return *qs
 }
 

@@ -7,10 +7,9 @@ import (
 	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/tools"
-	"time"
 )
 
-func (m *ProjectManager) Sync(items gtproject.Projects, ts time.Time, wid uint64) (bool, error) {
+func (m *ProjectManager) Sync(items gtproject.Projects, wid uint64) (bool, error) {
 	filtered := make(gtproject.Projects, 0, len(items))
 	for _, item := range items {
 		if item.WId == wid {
@@ -18,7 +17,7 @@ func (m *ProjectManager) Sync(items gtproject.Projects, ts time.Time, wid uint64
 		}
 	}
 	qs := NewProjects(filtered)
-	return qs.Sync(m.gorm(), ts)
+	return qs.Sync(m.gorm())
 }
 
 func (m *ProjectManager) gorm() *gorm.DB {
@@ -46,7 +45,7 @@ func (qs Projects) DTO() []dto.Project {
 	return result
 }
 
-func (qs Projects) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
+func (qs Projects) Sync(db *gorm.DB) (changed bool, err error) {
 	err = db.Transaction(func(tx *gorm.DB) error {
 		existing := NewProjects()
 		Must(tx.Find(existing))
@@ -65,13 +64,13 @@ func (qs Projects) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 				if !tools.ProjectsEqual(&obj.Project, &prev.Project) {
 					changed = true
 				}
-				Must(tx.Debug().Save(&obj))
+				Must(tx.Save(&obj))
 			} else {
 				changed = true
-				Must(tx.Debug().Create(&obj))
+				Must(tx.Create(&obj))
 			}
 		}
-		changed = MustOrNotFound(tx.Debug().Where("modified < updated").Delete(Project{})) || changed
+		changed = MustOrNotFound(tx.Where("modified < updated").Delete(Project{})) || changed
 		return nil
 	})
 	return changed, err
@@ -79,7 +78,7 @@ func (qs Projects) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 
 func listProjects(scope *gorm.DB) Projects {
 	qs := NewProjects()
-	Must(scope.Debug().Find(qs))
+	Must(scope.Find(qs))
 	return *qs
 }
 

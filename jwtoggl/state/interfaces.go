@@ -7,7 +7,6 @@ import (
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
 	"go-jw-toggl/jwtoggl/gtoggl/gtwebsocket"
 	"go-jw-toggl/jwtoggl/store"
-	"time"
 )
 
 //Store предоставляет доступ к ORM-моделям
@@ -22,13 +21,13 @@ type Store interface {
 //Clients предоставляет доступ ко списку клиентов в БД
 type Clients interface {
 	List() store.Clients
-	Sync(gtclient.Clients, time.Time, uint64) (bool, error)
+	Sync(gtclient.Clients, uint64) (bool, error)
 }
 
 //Projects предоставляет доступ ко списку проектов в БД
 type Projects interface {
 	List() store.Projects
-	Sync(gtproject.Projects, time.Time, uint64) (bool, error)
+	Sync(gtproject.Projects, uint64) (bool, error)
 	Get(id uint64) *store.Project
 	GetByPK(pk uint) *store.Project
 }
@@ -36,7 +35,7 @@ type Projects interface {
 //TagSet предоставляет доступ ко списку тегов в БД
 type Tags interface {
 	List() store.Tags
-	Sync(gttag.Tags, time.Time, uint64) (bool, error)
+	Sync(gttag.Tags, uint64) (bool, error)
 }
 
 //Entries предоставляет доступ ко списку отметок времени в БД
@@ -45,7 +44,7 @@ type Entries interface {
 	Create(entry *store.TimeEntry)
 	Current() store.TimeEntry
 	Update(entry *store.TimeEntry)
-	Sync(gttimeentry.TimeEntries, time.Time, uint64) (bool, error)
+	Sync(gttimeentry.TimeEntries, uint64) (bool, error)
 	List() store.TimeEntries
 	Delete(pk uint) bool
 	MarkDeleted(pk uint) bool

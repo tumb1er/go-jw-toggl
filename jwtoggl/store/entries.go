@@ -32,7 +32,7 @@ func (m *TimeEntryManager) FromTimeEntry(entry gttimeentry.TimeEntry) *TimeEntry
 	timeEntry.TimeEntry = entry
 	if timeEntry.Project.Id != entry.Pid {
 		timeEntry.Project.PK = 0
-		Must(m.gorm().Debug().Where("id = ?", entry.Pid).Find(&timeEntry.Project))
+		Must(m.gorm().Where("id = ?", entry.Pid).Find(&timeEntry.Project))
 		timeEntry.ProjectPK = timeEntry.Project.PK
 	}
 	return timeEntry

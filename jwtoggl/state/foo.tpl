@@ -7,7 +7,6 @@ import (
 	"go-jw-toggl/jwtoggl/gtoggl/gtuser"
 	"go-jw-toggl/jwtoggl/store"
 	"log"
-	"time"
 )
 
 func (db *FoosDB) OnFoosChanged(cb OnFoosChangedCallback) {
@@ -25,7 +24,7 @@ func (db *FoosDB) saveUserData(user *gtuser.User, force bool) {
 }
 
 func (db *FoosDB) saveFoos(items foo.Foos) bool {
-	if changed, err := db.store().Foos().Sync(items, time.Now(), db.wid()); err != nil {
+	if changed, err := db.store().Foos().Sync(items, db.wid()); err != nil {
 		log.Fatal("Foos sync error: ", err)
 		return false
 	} else {

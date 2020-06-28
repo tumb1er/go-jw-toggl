@@ -7,7 +7,6 @@ import (
 	"go-jw-toggl/jwtoggl/gtoggl/gtuser"
 	"go-jw-toggl/jwtoggl/store"
 	"log"
-	"time"
 )
 
 func (db *TimeEntriesDB) OnTimeEntriesChanged(cb OnTimeEntriesChangedCallback) {
@@ -25,7 +24,7 @@ func (db *TimeEntriesDB) saveUserData(user *gtuser.User, force bool) {
 }
 
 func (db *TimeEntriesDB) saveTimeEntries(items gttimeentry.TimeEntries) bool {
-	if changed, err := db.store().TimeEntries().Sync(items, time.Now(), db.wid()); err != nil {
+	if changed, err := db.store().TimeEntries().Sync(items, db.wid()); err != nil {
 		log.Fatal("TimeEntries sync error: ", err)
 		return false
 	} else {

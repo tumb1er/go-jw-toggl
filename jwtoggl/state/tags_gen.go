@@ -7,7 +7,6 @@ import (
 	"go-jw-toggl/jwtoggl/gtoggl/gtuser"
 	"go-jw-toggl/jwtoggl/store"
 	"log"
-	"time"
 )
 
 func (db *TagsDB) OnTagsChanged(cb OnTagsChangedCallback) {
@@ -25,7 +24,7 @@ func (db *TagsDB) saveUserData(user *gtuser.User, force bool) {
 }
 
 func (db *TagsDB) saveTags(items gttag.Tags) bool {
-	if changed, err := db.store().Tags().Sync(items, time.Now(), db.wid()); err != nil {
+	if changed, err := db.store().Tags().Sync(items, db.wid()); err != nil {
 		log.Fatal("Tags sync error: ", err)
 		return false
 	} else {

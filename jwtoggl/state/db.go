@@ -129,19 +129,20 @@ func (db *DB) createNewEntry(entry dto.TimeEntry, notify bool) error {
 	}
 	db.onCurrentEntry(storeEntry, notify)
 
-	go func() {
-		log.Printf("Start create entry: %+v\n", timeEntry)
-		var err error
-		timeEntry, err = db.client.TimeentryClient.Create(timeEntry)
-		if err != nil {
-			log.Printf("Create entry error: %+v\n", err)
-		} else {
-			log.Printf("Create entry result: %+v\n", timeEntry)
-			storeEntry.TimeEntry = *timeEntry
-			db.update(&storeEntry)
-		}
-	}()
+	go db.createEntry(storeEntry)
 	return nil
+}
+
+func (db *DB) createEntry(entry store.TimeEntry) {
+	timeEntry := &entry.TimeEntry
+	log.Printf("Start create entry: %+v\n", timeEntry)
+	if timeEntry, err := db.client.TimeentryClient.Create(timeEntry); err != nil {
+		log.Printf("Create entry error: %+v\n", err)
+	} else {
+		log.Printf("Create entry result: %+v\n", timeEntry)
+		entry.TimeEntry = *timeEntry
+		db.update(&entry)
+	}
 }
 
 func (db *DB) StopEntry(entry dto.TimeEntry) error {
@@ -157,19 +158,22 @@ func (db *DB) StopEntry(entry dto.TimeEntry) error {
 	db.onCurrentEntry(store.TimeEntry{}, false)
 	db.onTimeEntriesChanged(db.s.TimeEntries().List())
 
-	go func() {
-		log.Printf("Send stop: %+v\n", current.TimeEntry)
-		current.ComputeDuration()
-		entry, err := db.client.TimeentryClient.Update(&current.TimeEntry)
-		if err != nil {
-			log.Printf("TimeEntry stop error: %+v\n", err)
-		} else {
-			log.Printf("Stop result: %+v\n", entry)
-			current.TimeEntry = *entry
-			db.update(&current)
-		}
-	}()
+	go db.stopEntry(current)
 	return nil
+}
+
+func (db *DB) stopEntry(entry store.TimeEntry) {
+	timeEntry := &entry.TimeEntry
+	log.Printf("Send stop: %+v\n", timeEntry)
+	entry.ComputeDuration()
+	timeEntry, err := db.client.TimeentryClient.Update(timeEntry)
+	if err != nil {
+		log.Printf("TimeEntry stop error: %+v\n", err)
+	} else {
+		log.Printf("Stop result: %+v\n", entry)
+		entry.TimeEntry = *timeEntry
+		db.update(&entry)
+	}
 }
 
 func (db *DB) ContinueEntry(pk uint) error {
@@ -182,8 +186,6 @@ func (db *DB) ContinueEntry(pk uint) error {
 	storeEntry.Start = time.Now().Local()
 	storeEntry.Stop = time.Time{}
 	storeEntry.Duration = 0
-	//storeEntry.Project = *db.store().Projects().Get(entry.Pid)
-	//storeEntry.ProjectPK = storeEntry.Project.PK
 	return db.createNewEntry(storeEntry, true)
 }
 
@@ -195,17 +197,18 @@ func (db *DB) DeleteEntry(pk uint) error {
 	entries := db.s.TimeEntries()
 	entries.MarkDeleted(pk)
 	db.onTimeEntriesChanged(entries.List())
-	go func() {
-		log.Printf("Start delete entry: %d\n", storeEntry.Id)
-		if err := db.client.TimeentryClient.Delete(storeEntry.Id); err != nil {
-			log.Printf("Delete error: %+v\n", err)
-		} else {
-			log.Printf("Delete %d successfully\n", storeEntry.Id)
-			entries.Delete(storeEntry.PK)
-		}
-	}()
-
+	go db.deleteEntry(storeEntry)
 	return nil
+}
+
+func (db *DB) deleteEntry(storeEntry *store.TimeEntry) {
+	log.Printf("Start delete entry: %d\n", storeEntry.Id)
+	if err := db.client.TimeentryClient.Delete(storeEntry.Id); err != nil {
+		log.Printf("Delete error: %+v\n", err)
+	} else {
+		log.Printf("Delete %d successfully\n", storeEntry.Id)
+		db.s.TimeEntries().Delete(storeEntry.PK)
+	}
 }
 
 func (db *DB) SyncCurrentEntry(force bool) error {

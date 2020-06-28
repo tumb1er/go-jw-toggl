@@ -7,7 +7,6 @@ import (
 	"go-jw-toggl/jwtoggl/gtoggl/gtuser"
 	"go-jw-toggl/jwtoggl/store"
 	"log"
-	"time"
 )
 
 func (db *ProjectsDB) OnProjectsChanged(cb OnProjectsChangedCallback) {
@@ -25,7 +24,7 @@ func (db *ProjectsDB) saveUserData(user *gtuser.User, force bool) {
 }
 
 func (db *ProjectsDB) saveProjects(items gtproject.Projects) bool {
-	if changed, err := db.store().Projects().Sync(items, time.Now(), db.wid()); err != nil {
+	if changed, err := db.store().Projects().Sync(items, db.wid()); err != nil {
 		log.Fatal("Projects sync error: ", err)
 		return false
 	} else {
