@@ -50,6 +50,9 @@ type Entries interface {
 	MarkDeleted(pk uint) bool
 	FromTimeEntry(entry gttimeentry.TimeEntry) *store.TimeEntry
 	GetByPK(pk uint) *store.TimeEntry
+	DeletedEntries() store.TimeEntries
+	NewEntries() store.TimeEntries
+	ChangedEntries() store.TimeEntries
 }
 
 //common дает миксинам TagsDB, ClientsDB и прочим доступ к необходимым им полям из общего класса.

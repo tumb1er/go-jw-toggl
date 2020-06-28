@@ -13,7 +13,7 @@ type Synced struct {
 }
 
 func (s *Synced) BeforeSave() error {
-	if s.Updated != nil {
+	if s.After(s.Modified) {
 		s.Modified = s.Updated
 	} else {
 		ts := time.Now().Local()

@@ -30,6 +30,10 @@ func (j *jApp) syncUser() {
 	j.handleError(j.db.SyncUser(false), "Sync error")
 }
 
+func (j *jApp) syncChanges() {
+	j.handleError(j.db.SyncChanges(), "Changes sync error")
+}
+
 func (j *jApp) OnProjectsChanged(projects dto.Projects) {
 	j.form.SetProjects(projects.DTO())
 	// В истории проекты берутся из TimeEntry.Project, форсируем

@@ -54,10 +54,10 @@ func (qs TimeEntries) Sync(db *gorm.DB) (changed bool, err error) {
 		extIdMap := make(map[uint64]TimeEntry)
 		for _, obj := range *existing {
 			extIdMap[obj.Id] = obj
-			obj.Fetched = &ts
 		}
 
 		for _, obj := range qs {
+			obj.Fetched = &ts
 			if prev, ok := extIdMap[obj.Id]; ok {
 				if prev.After(obj.Updated) {
 					// log.Printf("Skip saving TimeEntry %d %s\n\n", obj.Id, obj.Name)

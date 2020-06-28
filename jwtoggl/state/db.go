@@ -14,6 +14,10 @@ import (
 	"time"
 )
 
+const (
+	debugSyncChanged = true
+)
+
 type DB struct {
 	client     *gtoggl.TogglClient
 	httpClient *http.Client
@@ -80,24 +84,26 @@ func (db *DB) UpdateCurrentEntry(entry dto.TimeEntry) error {
 	storeEntry.ComputeDuration()
 	if db.update(storeEntry) {
 		db.onCurrentEntry(db.s.TimeEntries().Current(), false)
-		go db.updateEntry(storeEntry)
+		if !debugSyncChanged {
+			go db.updateEntry(storeEntry)
+		}
 	}
 
 	return nil
 }
 
-func (db *DB) updateEntry(entry *store.TimeEntry) {
-	func() {
-		timeEntry := &entry.TimeEntry
-		log.Printf("Updating entry: %+v\n", timeEntry)
+func (db *DB) updateEntry(entry *store.TimeEntry) error {
+	timeEntry := &entry.TimeEntry
+	log.Printf("Updating entry: %+v\n", timeEntry)
 
-		if timeEntry, err := db.client.TimeentryClient.Update(timeEntry); err != nil {
-			log.Printf("Update entry error: %+v\n", timeEntry)
-		} else {
-			log.Printf("Update entry result: %+v\n", timeEntry)
-			db.update(entry)
-		}
-	}()
+	if timeEntry, err := db.client.TimeentryClient.Update(timeEntry); err != nil {
+		log.Printf("Update entry error: %+v\n", timeEntry)
+		return err
+	} else {
+		log.Printf("Update entry result: %+v\n", timeEntry)
+		db.update(entry)
+		return nil
+	}
 }
 
 func (db *DB) CreateNewEntry(entry dto.TimeEntry) error {
@@ -134,19 +140,24 @@ func (db *DB) createNewEntry(entry dto.TimeEntry, notify bool) error {
 	}
 	db.onCurrentEntry(storeEntry, notify)
 
-	go db.createEntry(storeEntry)
+	if !debugSyncChanged {
+		go db.createEntry(storeEntry)
+	}
+
 	return nil
 }
 
-func (db *DB) createEntry(entry store.TimeEntry) {
+func (db *DB) createEntry(entry store.TimeEntry) error {
 	timeEntry := &entry.TimeEntry
 	log.Printf("Start create entry: %+v\n", timeEntry)
 	if timeEntry, err := db.client.TimeentryClient.Create(timeEntry); err != nil {
 		log.Printf("Create entry error: %+v\n", err)
+		return err
 	} else {
 		log.Printf("Create entry result: %+v\n", timeEntry)
 		entry.TimeEntry = *timeEntry
 		db.update(&entry)
+		return nil
 	}
 }
 
@@ -162,8 +173,9 @@ func (db *DB) StopEntry(entry dto.TimeEntry) error {
 	db.update(&current)
 	db.onCurrentEntry(store.TimeEntry{}, false)
 	db.onTimeEntriesChanged(db.s.TimeEntries().List())
-
-	go db.stopEntry(current)
+	if !debugSyncChanged {
+		go db.stopEntry(current)
+	}
 	return nil
 }
 
@@ -202,17 +214,21 @@ func (db *DB) DeleteEntry(pk uint) error {
 	entries := db.s.TimeEntries()
 	entries.MarkDeleted(pk)
 	db.onTimeEntriesChanged(entries.List())
-	go db.deleteEntry(storeEntry)
+	if !debugSyncChanged {
+		go db.deleteEntry(storeEntry)
+	}
 	return nil
 }
 
-func (db *DB) deleteEntry(storeEntry *store.TimeEntry) {
+func (db *DB) deleteEntry(storeEntry *store.TimeEntry) error {
 	log.Printf("Start delete entry: %d\n", storeEntry.Id)
 	if err := db.client.TimeentryClient.Delete(storeEntry.Id); err != nil {
 		log.Printf("Delete error: %+v\n", err)
+		return err
 	} else {
 		log.Printf("Delete %d successfully\n", storeEntry.Id)
 		db.s.TimeEntries().Delete(storeEntry.PK)
+		return nil
 	}
 }
 
@@ -268,6 +284,27 @@ func (db *DB) SyncUser(force bool) error {
 	db.ProjectsDB.saveUserData(user, force)
 	db.TagsDB.saveUserData(user, force)
 	db.TimeEntriesDB.saveUserData(user, force)
+	return nil
+}
+
+func (db *DB) SyncChanges() error {
+	log.Println("Start sync changes")
+	defer log.Println("Finish sync changes")
+	for _, entry := range db.s.TimeEntries().DeletedEntries() {
+		if err := db.deleteEntry(&entry); err != nil {
+			return err
+		}
+	}
+	for _, entry := range db.s.TimeEntries().NewEntries() {
+		if err := db.createEntry(entry); err != nil {
+			return err
+		}
+	}
+	for _, entry := range db.s.TimeEntries().ChangedEntries() {
+		if err := db.updateEntry(&entry); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

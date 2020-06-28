@@ -191,6 +191,24 @@ func (m *TimeEntryManager) List() TimeEntries {
 			Order("start DESC"))
 }
 
+func (m *TimeEntryManager) DeletedEntries() TimeEntries {
+	return listTimeEntries(
+		m.gorm().
+			Where("id != 0 AND deleted IS NOT NULL"))
+}
+
+func (m *TimeEntryManager) NewEntries() TimeEntries {
+	return listTimeEntries(
+		m.gorm().
+			Where("id == 0 AND deleted IS NULL"))
+}
+
+func (m *TimeEntryManager) ChangedEntries() TimeEntries {
+	return listTimeEntries(
+		m.gorm().
+			Where("id <> 0 AND modified > updated AND deleted IS NULL"))
+}
+
 func (m *TimeEntryManager) Delete(pk uint) bool {
 	return MustOrNotFound(m.gorm().Where("pk = ?", pk).Delete(&TimeEntry{}))
 }
