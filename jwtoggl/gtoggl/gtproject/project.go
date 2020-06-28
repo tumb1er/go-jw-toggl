@@ -16,7 +16,7 @@ type Project struct {
 	HexColor  string    `json:"hex_color"`
 	IsPrivate *bool     `json:"is_private,omitempty"`
 	Active    bool      `json:"active"`
-	UpdatedAt time.Time `json:"at,omitempty"`
+	At        time.Time `json:"at,omitempty" gorm:"-"`
 }
 
 type Projects []Project

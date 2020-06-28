@@ -9,10 +9,10 @@ import (
 
 // Toggl Tag Definition
 type Tag struct {
-	Id        uint64    `json:"id"`
-	WId       uint64    `json:"wid"`
-	Name      string    `json:"name"`
-	UpdatedAt time.Time `json:"-"`
+	Id   uint64    `json:"id"`
+	WId  uint64    `json:"wid"`
+	Name string    `json:"name"`
+	At   time.Time `json:"-" gorm:"-"`
 }
 
 type Tags []Tag

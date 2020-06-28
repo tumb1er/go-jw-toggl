@@ -9,11 +9,11 @@ import (
 
 // Toggl Client Definition
 type Client struct {
-	Id        uint64    `json:"id"`
-	WId       uint64    `json:"wid"`
-	Name      string    `json:"name"`
-	Currency  string    `json:"currency"`
-	UpdatedAt time.Time `json:"at,omitempty"`
+	Id       uint64    `json:"id"`
+	WId      uint64    `json:"wid"`
+	Name     string    `json:"name"`
+	Currency string    `json:"currency"`
+	At       time.Time `json:"at,omitempty" gorm:"-"`
 }
 
 type Clients []Client

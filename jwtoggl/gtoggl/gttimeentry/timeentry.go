@@ -25,7 +25,7 @@ type TimeEntry struct {
 	WId         uint64                 `json:"wid"`
 	Tid         uint64                 `json:"tid"`
 	CreatedWith string                 `json:"created_with,omitempty"`
-	UpdatedAt   time.Time              `json:"at,omitempty"`
+	At          time.Time              `json:"at,omitempty" gorm:"-"`
 }
 
 type TimeEntries []TimeEntry
