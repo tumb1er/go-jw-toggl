@@ -10,7 +10,7 @@ type Tag interface {
 }
 
 type Tags interface {
-	DTO() []Tag // store.Tags -> []Tag
+	DTO() []Tag // store.TagSet -> []Tag
 }
 
 type Project interface {

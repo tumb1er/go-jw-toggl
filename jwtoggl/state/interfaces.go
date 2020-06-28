@@ -33,7 +33,7 @@ type Projects interface {
 	GetByPK(pk uint) *store.Project
 }
 
-//Tags предоставляет доступ ко списку тегов в БД
+//TagSet предоставляет доступ ко списку тегов в БД
 type Tags interface {
 	List() store.Tags
 	Sync(gttag.Tags, time.Time, uint64) (bool, error)

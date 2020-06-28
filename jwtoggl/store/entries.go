@@ -17,7 +17,7 @@ type TimeEntry struct {
 	gttimeentry.TimeEntry
 	Project   Project `gorm:"foreignkey:ProjectPK"`
 	ProjectPK uint
-	Tags      []Tag `gorm:"many2many:entry_tags"`
+	TagSet    []Tag `gorm:"many2many:entry_tags"`
 }
 
 type TimeEntries []TimeEntry
@@ -49,6 +49,7 @@ func (obj *TimeEntry) BeforeSave(db *gorm.DB) error {
 
 func (obj *TimeEntry) AfterFind() error {
 	obj.ComputeDuration()
+	obj.ComputeTags()
 	return nil
 }
 
@@ -80,18 +81,18 @@ func (obj *TimeEntry) loadTagsFromToggl(db *gorm.DB) {
 	for _, t := range tags {
 		tagsMap[t.Name] = t
 	}
-	obj.Tags = make([]Tag, 0, len(obj.TimeEntry.Tags))
+	obj.TagSet = make([]Tag, 0, len(obj.TimeEntry.Tags))
 	for _, t := range obj.TimeEntry.Tags {
-		obj.Tags = append(obj.Tags, tagsMap[t])
+		obj.TagSet = append(obj.TagSet, tagsMap[t])
 	}
 }
 
 func (obj TimeEntry) GetTags() []string {
-	if obj.Tags == nil {
+	if len(obj.TagSet) == 0 {
 		panic("Tags not preloaded")
 	}
-	result := make([]string, len(obj.Tags))
-	for i, t := range obj.Tags {
+	result := make([]string, len(obj.TagSet))
+	for i, t := range obj.TagSet {
 		result[i] = t.Name
 	}
 	return result
@@ -179,6 +180,10 @@ func (obj TimeEntry) Equals(other TimeEntry) bool {
 		obj.Stop == other.Stop
 }
 
+func (obj *TimeEntry) ComputeTags() {
+	obj.TimeEntry.Tags = obj.GetTags()
+}
+
 func (m *TimeEntryManager) List() TimeEntries {
 	return listTimeEntries(
 		m.gorm().
@@ -212,6 +217,15 @@ func (m *TimeEntryManager) Update(timeEntry *TimeEntry) {
 	Must(m.gorm().Model(timeEntry).
 		Where("pk = ?", timeEntry.PK).
 		Updates(timeEntry))
+	if len(timeEntry.TagSet) > 0 {
+		res := m.gorm().
+			Model(timeEntry).
+			Association("TagSet").
+			Replace(timeEntry.TagSet)
+		if res.Error != nil {
+			log.Fatal(res.Error)
+		}
+	}
 }
 
 func (m *TimeEntryManager) Get(extId uint64) *TimeEntry {

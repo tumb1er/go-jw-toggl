@@ -60,7 +60,7 @@ func (f *EntryForm) OnEditCompleted() {
 		changed = true
 	}
 	if !tools.TagSlicesEqual(f.timeEntry.GetTags(), f.uiEntry.GetTags()) {
-		log.Println("tag changed")
+		log.Printf("tag changed %+v %+v\n", f.timeEntry.GetTags(), f.uiEntry.GetTags())
 		changed = true
 	}
 	if f.timeEntry.GetStart() != f.uiEntry.GetStart() {

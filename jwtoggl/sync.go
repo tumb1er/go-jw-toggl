@@ -81,7 +81,7 @@ func (j *jApp) syncDuration() {
 }
 
 func (j *jApp) OnCurrentEntryChanged(entry dto.TimeEntry, external bool) {
-	log.Println("OnCurrentEntryChanged")
+	log.Printf("OnCurrentEntryChanged %+v\n", entry)
 	j.tray.SetCurrentEntry(entry)
 	j.form.SetTimeEntry(entry)
 	if external {
