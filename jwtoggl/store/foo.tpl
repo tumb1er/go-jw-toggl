@@ -75,7 +75,7 @@ func (qs Foos) Sync(db *gorm.DB) (changed bool, err error) {
 		}
 		deleted := MustOrNotFound(
 		    tx.
-		    Where("modified < updated AND fetched < ?", ts).
+		    Where("modified <= updated AND fetched < ?", ts).
 		    Delete(Foo{}))
 		changed = deleted || changed
 		return nil
