@@ -9,6 +9,7 @@ import (
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
 	"go-jw-toggl/jwtoggl/gtoggl/gtwebsocket"
 	"go-jw-toggl/jwtoggl/store"
+	"go-jw-toggl/jwtoggl/tools"
 	"log"
 	"net/http"
 	"time"
@@ -78,7 +79,7 @@ func (db *DB) UpdateCurrentEntry(entry dto.TimeEntry) error {
 	timeEntry.WId = db.defaultWId
 	timeEntry.CreatedWith = "go-jw-toggl"
 	storeEntry.ComputeDuration()
-	storeEntry.Tag = entry.GetTag()
+	storeEntry.Tag = tools.Tag(timeEntry.Tags)
 	if db.update(storeEntry) {
 		db.onCurrentEntry(db.s.TimeEntries().Current(), false)
 		go func() {

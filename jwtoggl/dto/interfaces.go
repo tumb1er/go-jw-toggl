@@ -39,7 +39,6 @@ type TimeEntry interface {
 	TaskKey() string
 	GetName() string
 	GetProject() Project
-	GetTag() string
 	GetStop() time.Time
 	Nil() bool
 	GetTags() []string

@@ -143,7 +143,7 @@ func (h *GtkHistory) insertEntry(it *gtk.TreeIter, entry dto.TimeEntry, grouped 
 	ctx.Project = project.GetName()
 	ctx.Color = project.GetHexColor()
 	ctx.Client = project.GetClient().GetName()
-	ctx.Tag = entry.GetTag()
+	ctx.Tag = tools.Tag(entry.GetTags())
 
 	start := entry.GetStart()
 	if !start.IsZero() {

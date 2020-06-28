@@ -303,7 +303,7 @@ func (f *GtkEntryForm) SetTimeEntry(entry dto.TimeEntry) {
 			f.stop.SetText("")
 		} else {
 			f.description.SetText(entry.GetName())
-			tag := entry.GetTag()
+			tag := tools.Tag(entry.GetTags())
 			if tag != "" {
 				f.tag.SetActiveID(tag)
 			} else {

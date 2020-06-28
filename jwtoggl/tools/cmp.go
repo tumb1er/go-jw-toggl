@@ -84,3 +84,10 @@ func ClientsEqual(c1 *gtclient.Client, c2 *gtclient.Client) bool {
 	// c1 == nil && c2 == nil
 	return true
 }
+
+func Tag(tags []string) string {
+	if len(tags) == 0 {
+		return ""
+	}
+	return tags[0]
+}
