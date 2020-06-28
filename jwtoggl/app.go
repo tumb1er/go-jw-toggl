@@ -72,7 +72,7 @@ func (j *jApp) initForm(b *builder.Builder) {
 }
 
 func (j *jApp) onNewEntryCreated(entry dto.TimeEntry) {
-	j.handleError(j.db.CreateNewEntry(entry), "Entry creation error")
+	j.handleError(j.db.CreateEntry(entry), "Entry creation error")
 }
 
 func (j *jApp) onEntryStopped(entry dto.TimeEntry) {

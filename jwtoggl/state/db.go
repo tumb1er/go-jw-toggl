@@ -106,11 +106,7 @@ func (db *DB) updateEntry(entry *store.TimeEntry) error {
 	}
 }
 
-func (db *DB) CreateNewEntry(entry dto.TimeEntry) error {
-	return db.createNewEntry(entry, false)
-}
-
-func (db *DB) createNewEntry(entry dto.TimeEntry, notify bool) error {
+func (db *DB) CreateEntry(entry dto.TimeEntry) error {
 	storeProject := db.s.Projects().GetByPK(entry.GetProject().GetPK())
 	if storeProject == nil {
 		panic("Can't find project for new entry")
@@ -138,7 +134,7 @@ func (db *DB) createNewEntry(entry dto.TimeEntry, notify bool) error {
 		db.update(&old)
 		db.onTimeEntriesChanged(db.s.TimeEntries().List())
 	}
-	db.onCurrentEntry(storeEntry, notify)
+	db.onCurrentEntry(storeEntry, false)
 
 	if !debugSyncChanged {
 		go db.createEntry(storeEntry)
@@ -203,7 +199,7 @@ func (db *DB) ContinueEntry(pk uint) error {
 	storeEntry.Start = time.Now().Local()
 	storeEntry.Stop = time.Time{}
 	storeEntry.Duration = 0
-	return db.createNewEntry(storeEntry, true)
+	return db.CreateEntry(storeEntry)
 }
 
 func (db *DB) DeleteEntry(pk uint) error {
