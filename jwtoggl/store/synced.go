@@ -12,16 +12,6 @@ type Synced struct {
 	Fetched  *time.Time
 }
 
-func (s *Synced) BeforeSave() error {
-	if s.After(s.Modified) {
-		s.Modified = s.Updated
-	} else {
-		ts := time.Now().Local()
-		s.Modified = &ts
-	}
-	return nil
-}
-
 func (s Synced) After(ts *time.Time) bool {
 	if ts == nil {
 		return s.Updated != nil
@@ -35,4 +25,5 @@ func (s Synced) After(ts *time.Time) bool {
 func (s *Synced) MarkDeleted() {
 	ts := time.Now().Local()
 	s.Deleted = &ts
+	s.Modified = &ts
 }

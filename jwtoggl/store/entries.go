@@ -39,9 +39,6 @@ func (m *TimeEntryManager) FromTimeEntry(entry gttimeentry.TimeEntry) *TimeEntry
 }
 
 func (obj *TimeEntry) BeforeSave(db *gorm.DB) error {
-	if err := obj.Synced.BeforeSave(); err != nil {
-		return err
-	}
 	obj.loadProjectFromToggl(db)
 	obj.loadTagsFromToggl(db)
 	return nil
@@ -187,6 +184,11 @@ func (obj *TimeEntry) ComputeTags() {
 func (obj *TimeEntry) MarkFetched() {
 	ts := time.Now().Local()
 	obj.Fetched = &ts
+}
+
+func (obj *TimeEntry) MarkModified() {
+	ts := time.Now().Local()
+	obj.Modified = &ts
 }
 
 func (m *TimeEntryManager) List() TimeEntries {

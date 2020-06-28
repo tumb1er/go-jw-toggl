@@ -16,9 +16,6 @@ type Project struct {
 }
 
 func (obj *Project) BeforeSave(db *gorm.DB) error {
-	if err := obj.Synced.BeforeSave(); err != nil {
-		return err
-	}
 	obj.loadClientFromToggl(db)
 	return nil
 }

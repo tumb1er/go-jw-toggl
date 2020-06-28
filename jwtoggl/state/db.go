@@ -80,8 +80,8 @@ func (db *DB) UpdateCurrentEntry(entry dto.TimeEntry) error {
 	timeEntry.Tags = entry.GetTags()
 	timeEntry.Pid = storeProject.Id
 	timeEntry.WId = db.defaultWId
-	timeEntry.CreatedWith = "go-jw-toggl"
 	storeEntry.ComputeDuration()
+	storeEntry.MarkModified()
 	if db.update(storeEntry) {
 		db.onCurrentEntry(db.s.TimeEntries().Current(), false)
 		if !debugSyncChanged {
@@ -145,6 +145,7 @@ func (db *DB) CreateEntry(entry dto.TimeEntry) error {
 
 func (db *DB) createEntry(entry store.TimeEntry) error {
 	timeEntry := &entry.TimeEntry
+	timeEntry.CreatedWith = "go-jw-toggl"
 	log.Printf("Start create entry: %+v\n", timeEntry)
 	if timeEntry, err := db.client.TimeentryClient.Create(timeEntry); err != nil {
 		log.Printf("Create entry error: %+v\n", err)
@@ -152,6 +153,7 @@ func (db *DB) createEntry(entry store.TimeEntry) error {
 	} else {
 		log.Printf("Create entry result: %+v\n", timeEntry)
 		entry.TimeEntry = *timeEntry
+
 		entry.ComputeUpdated()
 		entry.MarkFetched()
 
@@ -168,7 +170,8 @@ func (db *DB) StopEntry(entry dto.TimeEntry) error {
 	if current.Nil() || current.PK != entry.GetPK() {
 		return errors.New("current entry de-sync")
 	}
-	current.Stop = time.Now().Local()
+	current.MarkModified()
+	current.Stop = *current.Modified
 	db.update(&current)
 	db.onCurrentEntry(store.TimeEntry{}, false)
 	db.onTimeEntriesChanged(db.s.TimeEntries().List())

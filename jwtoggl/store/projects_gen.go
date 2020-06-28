@@ -59,9 +59,13 @@ func (qs Projects) Sync(db *gorm.DB) (changed bool, err error) {
 		for _, obj := range qs {
 			obj.Fetched = &ts
 			if prev, ok := extIdMap[obj.Id]; ok {
-				if prev.After(obj.Updated) {
+				if !obj.After(prev.Modified) {
 					// log.Printf("Skip saving Project %d %s\n\n", obj.Id, obj.Name)
 					obj.Project = prev.Project
+					obj.Modified = prev.Modified
+					obj.Deleted = prev.Deleted
+				} else {
+					obj.Modified = obj.Updated
 				}
 				obj.PK = prev.PK
 				if !tools.ProjectsEqual(&obj.Project, &prev.Project) {
@@ -70,6 +74,7 @@ func (qs Projects) Sync(db *gorm.DB) (changed bool, err error) {
 				Must(tx.Save(&obj))
 			} else {
 				changed = true
+				obj.Modified = obj.Updated
 				Must(tx.Create(&obj))
 			}
 		}
