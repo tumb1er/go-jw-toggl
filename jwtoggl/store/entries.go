@@ -6,6 +6,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
+	"go-jw-toggl/jwtoggl/tools"
 	"log"
 	"strings"
 	"time"
@@ -14,9 +15,9 @@ import (
 type TimeEntry struct {
 	Synced
 	gttimeentry.TimeEntry
-	Tag       string
 	Project   Project `gorm:"foreignkey:ProjectPK"`
 	ProjectPK uint
+	Tags      []Tag `gorm:"many2many:entry_tags"`
 }
 
 type TimeEntries []TimeEntry
@@ -34,11 +35,6 @@ func (m *TimeEntryManager) FromTimeEntry(entry gttimeentry.TimeEntry) *TimeEntry
 		Must(m.gorm().Debug().Where("id = ?", entry.Pid).Find(&timeEntry.Project))
 		timeEntry.ProjectPK = timeEntry.Project.PK
 	}
-	if len(timeEntry.Tags) > 0 {
-		timeEntry.Tag = timeEntry.Tags[0]
-	} else {
-		timeEntry.Tag = ""
-	}
 	return timeEntry
 }
 
@@ -47,12 +43,11 @@ func (obj *TimeEntry) BeforeSave(db *gorm.DB) error {
 		return err
 	}
 	obj.loadProjectFromToggl(db)
-	obj.loadTagFromTags()
+	obj.loadTagsFromToggl(db)
 	return nil
 }
 
 func (obj *TimeEntry) AfterFind() error {
-	obj.computeTags()
 	obj.ComputeDuration()
 	return nil
 }
@@ -78,11 +73,28 @@ func (obj *TimeEntry) loadProjectFromToggl(db *gorm.DB) {
 	}
 }
 
-func (obj TimeEntry) GetTags() []string {
-	if obj.Tag == "" {
-		return []string{}
+func (obj *TimeEntry) loadTagsFromToggl(db *gorm.DB) {
+	tagsMap := make(map[string]Tag)
+	tags := make([]Tag, 0)
+	Must(db.Find(&tags))
+	for _, t := range tags {
+		tagsMap[t.Name] = t
 	}
-	return []string{obj.Tag}
+	obj.Tags = make([]Tag, 0, len(obj.TimeEntry.Tags))
+	for _, t := range obj.TimeEntry.Tags {
+		obj.Tags = append(obj.Tags, tagsMap[t])
+	}
+}
+
+func (obj TimeEntry) GetTags() []string {
+	if obj.Tags == nil {
+		panic("Tags not preloaded")
+	}
+	result := make([]string, len(obj.Tags))
+	for i, t := range obj.Tags {
+		result[i] = t.Name
+	}
+	return result
 }
 
 func (obj TimeEntry) Nil() bool {
@@ -106,9 +118,7 @@ func (obj TimeEntry) TaskKey() string {
 	if strings.HasPrefix(obj.Name, "#") {
 		key = strings.SplitN(obj.Name, " ", 2)[0]
 	}
-	if len(obj.Tags) > 0 {
-		key += obj.Tags[0]
-	}
+	key += tools.Tag(obj.GetTags())
 	return key
 }
 
@@ -119,22 +129,8 @@ func (obj TimeEntry) GetProject() dto.Project {
 	return obj.Project
 }
 
-func (obj TimeEntry) GetTag() string {
-	if len(obj.Tags) > 0 {
-		return obj.Tags[0]
-	}
-	return ""
-}
-
 func (obj TimeEntry) GetStop() time.Time {
 	return obj.Stop
-}
-
-func (obj *TimeEntry) loadTagFromTags() {
-	obj.Tag = ""
-	if len(obj.Tags) > 0 {
-		obj.Tag = obj.Tags[0]
-	}
 }
 
 func (obj *TimeEntry) ComputeDuration() {
@@ -142,14 +138,6 @@ func (obj *TimeEntry) ComputeDuration() {
 		obj.Duration = -obj.Start.Unix()
 	} else {
 		obj.Duration = obj.Stop.Unix() - obj.Start.Unix()
-	}
-}
-
-func (obj *TimeEntry) computeTags() {
-	if obj.Tag != "" {
-		obj.Tags = []string{obj.Tag}
-	} else {
-		obj.Tags = []string{}
 	}
 }
 
@@ -173,8 +161,8 @@ func (obj TimeEntry) Equals(other TimeEntry) bool {
 		if obj.Pid != other.Pid {
 			log.Printf("Project test: %d %d\n", obj.Pid, other.Pid)
 		}
-		if obj.GetTag() != other.GetTag() {
-			log.Printf("Tag test: %s %s\n", obj.GetTag(), other.GetTag())
+		if !tools.TagSlicesEqual(obj.GetTags(), other.GetTags()) {
+			log.Printf("Tag test: %s %s\n", obj.GetTags(), other.GetTags())
 		}
 		if obj.Start != other.Start {
 			log.Printf("Start test: %s %s\n", obj.Start, other.Start)
@@ -186,7 +174,7 @@ func (obj TimeEntry) Equals(other TimeEntry) bool {
 	return obj.Id == other.Id &&
 		obj.Name == other.Name &&
 		obj.Pid == other.Pid &&
-		obj.GetTag() == other.GetTag() &&
+		tools.TagSlicesEqual(obj.GetTags(), other.GetTags()) &&
 		obj.Start == other.Start &&
 		obj.Stop == other.Stop
 }
