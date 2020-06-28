@@ -33,6 +33,7 @@ func NewFoos(items ...foo.Foos) *Foos {
 	result := make(Foos, len(items[0]))
 	for i, item := range items[0] {
 		result[i] = Foo{Foo: item}
+		result[i].ComputeUpdated()
 	}
 	return &result
 }
@@ -56,7 +57,7 @@ func (qs Foos) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 
 		for _, obj := range qs {
 			if prev, ok := extIdMap[obj.Id]; ok {
-				if prev.SavedAt.After(obj.UpdatedAt) {
+				if prev.After(obj.Updated) {
 					// log.Printf("Skip saving Foo %d %s\n\n", obj.Id, obj.Name)
 					obj.Foo = prev.Foo
 				}
@@ -64,13 +65,13 @@ func (qs Foos) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 				if !tools.FoosEqual(&obj.Foo, &prev.Foo) {
 					changed = true
 				}
-				Must(tx.Save(&obj))
+				Must(tx.Debug().Save(&obj))
 			} else {
 				changed = true
-				Must(tx.Create(&obj))
+				Must(tx.Debug().Create(&obj))
 			}
 		}
-		changed = MustOrNotFound(tx.Where("saved_at < ?", ts).Delete(Foo{})) || changed
+		changed = MustOrNotFound(tx.Debug().Where("modified < updated").Delete(Foo{})) || changed
 		return nil
 	})
 	return changed, err
@@ -78,7 +79,7 @@ func (qs Foos) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 
 func listFoos(scope *gorm.DB) Foos {
 	qs := NewFoos()
-	Must(scope.Find(qs))
+	Must(scope.Debug().Find(qs))
 	return *qs
 }
 
@@ -88,4 +89,8 @@ func (obj Foo) GetName() string {
 
 func (obj Foo) GetPK() uint {
 	return obj.PK
+}
+
+func (obj *Foo) ComputeUpdated() {
+    obj.Updated = &obj.Foo.At
 }

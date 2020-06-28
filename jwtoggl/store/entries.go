@@ -187,7 +187,7 @@ func (obj *TimeEntry) ComputeTags() {
 func (m *TimeEntryManager) List() TimeEntries {
 	return listTimeEntries(
 		m.gorm().
-			Where("stop <> ? AND flagged_at == ?", time.Time{}, time.Time{}).
+			Where("stop <> ? AND deleted IS NULL", time.Time{}).
 			Order("start DESC"))
 }
 
@@ -197,7 +197,7 @@ func (m *TimeEntryManager) Delete(pk uint) bool {
 
 func (m *TimeEntryManager) MarkDeleted(pk uint) bool {
 	up := &TimeEntry{}
-	up.FlaggedAt = time.Now().Local()
+	up.MarkDeleted()
 	return MustOrNotFound(m.gorm().Model(up).Where("pk = ?", pk).Update(up))
 }
 

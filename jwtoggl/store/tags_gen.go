@@ -33,6 +33,7 @@ func NewTags(items ...gttag.Tags) *Tags {
 	result := make(Tags, len(items[0]))
 	for i, item := range items[0] {
 		result[i] = Tag{Tag: item}
+		result[i].ComputeUpdated()
 	}
 	return &result
 }
@@ -56,7 +57,7 @@ func (qs Tags) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 
 		for _, obj := range qs {
 			if prev, ok := extIdMap[obj.Id]; ok {
-				if prev.SavedAt.After(obj.UpdatedAt) {
+				if prev.After(obj.Updated) {
 					// log.Printf("Skip saving Tag %d %s\n\n", obj.Id, obj.Name)
 					obj.Tag = prev.Tag
 				}
@@ -64,13 +65,13 @@ func (qs Tags) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 				if !tools.TagsEqual(&obj.Tag, &prev.Tag) {
 					changed = true
 				}
-				Must(tx.Save(&obj))
+				Must(tx.Debug().Save(&obj))
 			} else {
 				changed = true
-				Must(tx.Create(&obj))
+				Must(tx.Debug().Create(&obj))
 			}
 		}
-		changed = MustOrNotFound(tx.Where("saved_at < ?", ts).Delete(Tag{})) || changed
+		changed = MustOrNotFound(tx.Debug().Where("modified < updated").Delete(Tag{})) || changed
 		return nil
 	})
 	return changed, err
@@ -78,7 +79,7 @@ func (qs Tags) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 
 func listTags(scope *gorm.DB) Tags {
 	qs := NewTags()
-	Must(scope.Find(qs))
+	Must(scope.Debug().Find(qs))
 	return *qs
 }
 
@@ -88,4 +89,8 @@ func (obj Tag) GetName() string {
 
 func (obj Tag) GetPK() uint {
 	return obj.PK
+}
+
+func (obj *Tag) ComputeUpdated() {
+	obj.Updated = &obj.Tag.At
 }

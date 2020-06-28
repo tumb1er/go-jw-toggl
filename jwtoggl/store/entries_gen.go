@@ -33,6 +33,7 @@ func NewTimeEntries(items ...gttimeentry.TimeEntries) *TimeEntries {
 	result := make(TimeEntries, len(items[0]))
 	for i, item := range items[0] {
 		result[i] = TimeEntry{TimeEntry: item}
+		result[i].ComputeUpdated()
 	}
 	return &result
 }
@@ -56,7 +57,7 @@ func (qs TimeEntries) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) 
 
 		for _, obj := range qs {
 			if prev, ok := extIdMap[obj.Id]; ok {
-				if prev.SavedAt.After(obj.UpdatedAt) {
+				if prev.After(obj.Updated) {
 					// log.Printf("Skip saving TimeEntry %d %s\n\n", obj.Id, obj.Name)
 					obj.TimeEntry = prev.TimeEntry
 				}
@@ -64,13 +65,13 @@ func (qs TimeEntries) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) 
 				if !tools.TimeEntriesEqual(&obj.TimeEntry, &prev.TimeEntry) {
 					changed = true
 				}
-				Must(tx.Save(&obj))
+				Must(tx.Debug().Save(&obj))
 			} else {
 				changed = true
-				Must(tx.Create(&obj))
+				Must(tx.Debug().Create(&obj))
 			}
 		}
-		changed = MustOrNotFound(tx.Where("saved_at < ?", ts).Delete(TimeEntry{})) || changed
+		changed = MustOrNotFound(tx.Debug().Where("modified < updated").Delete(TimeEntry{})) || changed
 		return nil
 	})
 	return changed, err
@@ -78,7 +79,7 @@ func (qs TimeEntries) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) 
 
 func listTimeEntries(scope *gorm.DB) TimeEntries {
 	qs := NewTimeEntries()
-	Must(scope.Find(qs))
+	Must(scope.Debug().Find(qs))
 	return *qs
 }
 
@@ -88,4 +89,8 @@ func (obj TimeEntry) GetName() string {
 
 func (obj TimeEntry) GetPK() uint {
 	return obj.PK
+}
+
+func (obj *TimeEntry) ComputeUpdated() {
+	obj.Updated = &obj.TimeEntry.At
 }

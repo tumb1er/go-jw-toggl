@@ -33,6 +33,7 @@ func NewProjects(items ...gtproject.Projects) *Projects {
 	result := make(Projects, len(items[0]))
 	for i, item := range items[0] {
 		result[i] = Project{Project: item}
+		result[i].ComputeUpdated()
 	}
 	return &result
 }
@@ -56,7 +57,7 @@ func (qs Projects) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 
 		for _, obj := range qs {
 			if prev, ok := extIdMap[obj.Id]; ok {
-				if prev.SavedAt.After(obj.UpdatedAt) {
+				if prev.After(obj.Updated) {
 					// log.Printf("Skip saving Project %d %s\n\n", obj.Id, obj.Name)
 					obj.Project = prev.Project
 				}
@@ -64,13 +65,13 @@ func (qs Projects) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 				if !tools.ProjectsEqual(&obj.Project, &prev.Project) {
 					changed = true
 				}
-				Must(tx.Save(&obj))
+				Must(tx.Debug().Save(&obj))
 			} else {
 				changed = true
-				Must(tx.Create(&obj))
+				Must(tx.Debug().Create(&obj))
 			}
 		}
-		changed = MustOrNotFound(tx.Where("saved_at < ?", ts).Delete(Project{})) || changed
+		changed = MustOrNotFound(tx.Debug().Where("modified < updated").Delete(Project{})) || changed
 		return nil
 	})
 	return changed, err
@@ -78,7 +79,7 @@ func (qs Projects) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 
 func listProjects(scope *gorm.DB) Projects {
 	qs := NewProjects()
-	Must(scope.Find(qs))
+	Must(scope.Debug().Find(qs))
 	return *qs
 }
 
@@ -88,4 +89,8 @@ func (obj Project) GetName() string {
 
 func (obj Project) GetPK() uint {
 	return obj.PK
+}
+
+func (obj *Project) ComputeUpdated() {
+	obj.Updated = &obj.Project.At
 }

@@ -33,6 +33,7 @@ func NewClients(items ...gtclient.Clients) *Clients {
 	result := make(Clients, len(items[0]))
 	for i, item := range items[0] {
 		result[i] = Client{Client: item}
+		result[i].ComputeUpdated()
 	}
 	return &result
 }
@@ -56,7 +57,7 @@ func (qs Clients) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 
 		for _, obj := range qs {
 			if prev, ok := extIdMap[obj.Id]; ok {
-				if prev.SavedAt.After(obj.UpdatedAt) {
+				if prev.After(obj.Updated) {
 					// log.Printf("Skip saving Client %d %s\n\n", obj.Id, obj.Name)
 					obj.Client = prev.Client
 				}
@@ -64,13 +65,13 @@ func (qs Clients) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 				if !tools.ClientsEqual(&obj.Client, &prev.Client) {
 					changed = true
 				}
-				Must(tx.Save(&obj))
+				Must(tx.Debug().Save(&obj))
 			} else {
 				changed = true
-				Must(tx.Create(&obj))
+				Must(tx.Debug().Create(&obj))
 			}
 		}
-		changed = MustOrNotFound(tx.Where("saved_at < ?", ts).Delete(Client{})) || changed
+		changed = MustOrNotFound(tx.Debug().Where("modified < updated").Delete(Client{})) || changed
 		return nil
 	})
 	return changed, err
@@ -78,7 +79,7 @@ func (qs Clients) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 
 func listClients(scope *gorm.DB) Clients {
 	qs := NewClients()
-	Must(scope.Find(qs))
+	Must(scope.Debug().Find(qs))
 	return *qs
 }
 
@@ -88,4 +89,8 @@ func (obj Client) GetName() string {
 
 func (obj Client) GetPK() uint {
 	return obj.PK
+}
+
+func (obj *Client) ComputeUpdated() {
+	obj.Updated = &obj.Client.At
 }
