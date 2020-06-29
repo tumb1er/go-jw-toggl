@@ -52,11 +52,11 @@ func (f *EntryForm) OnEditCompleted() {
 	}
 	changed := false
 	if f.timeEntry.GetName() != f.uiEntry.Name {
-		log.Println("name changed")
+		log.Printf("name changed: %s -> %s\n", f.timeEntry.GetName(), f.uiEntry.Name)
 		changed = true
 	}
 	if f.timeEntry.GetProjectPK() != f.uiEntry.ProjectPK {
-		log.Println("project changed")
+		log.Printf("project changed: %d -> %d\n", f.timeEntry.GetProjectPK(), f.uiEntry.ProjectPK)
 		changed = true
 	}
 	if !tools.TagSlicesEqual(f.timeEntry.GetTags(), f.uiEntry.GetTags()) {
@@ -64,7 +64,7 @@ func (f *EntryForm) OnEditCompleted() {
 		changed = true
 	}
 	if f.timeEntry.GetStart() != f.uiEntry.GetStart() {
-		log.Println("start changed")
+		log.Printf("start changed: %s -> %s\n", f.timeEntry.GetStart(), f.uiEntry.GetStart())
 		changed = true
 	}
 	if !changed {
@@ -72,7 +72,7 @@ func (f *EntryForm) OnEditCompleted() {
 		return
 	}
 
-	log.Println("UPDATE!!!", f.uiEntry, f.timeEntry)
+	log.Println("UPDATE!!!")
 	f.timeEntry = f.uiEntry // копирование структуры
 	if f.onEntryChanged != nil {
 		f.onEntryChanged(f.timeEntry)
@@ -83,8 +83,8 @@ func (f *EntryForm) OnButtonClicked() {
 	if !f.timeEntry.Nil() {
 		f.handleStop()
 	} else {
-		if f.uiEntry.Start == nil || f.uiEntry.Start.IsZero() {
-			start := time.Now()
+		if f.uiEntry.GetStart().IsZero() {
+			start := time.Now().Local()
 			f.uiEntry.Start = &start
 		}
 		f.handleStart()
