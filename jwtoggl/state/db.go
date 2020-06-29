@@ -236,7 +236,7 @@ func (db *DB) SyncCurrentEntry(force bool) error {
 			log.Println("Skip notify change current entry nil to nil")
 			return nil
 		}
-		if current.Equals(old) || force {
+		if !current.Equals(old) || force {
 			db.onCurrentEntry(current, true)
 		}
 	}
