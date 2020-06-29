@@ -94,6 +94,10 @@ func (db *DB) updateEntry(entry *store.TimeEntry) error {
 		return err
 	} else {
 		log.Printf("Update entry result: %+v\n", timeEntry)
+
+		entry.ComputeUpdated()
+		entry.MarkFetched()
+
 		db.update(entry)
 		return nil
 	}
