@@ -32,6 +32,7 @@ type Clients interface {
 	DTO() []Client // store.Clients -> []Client
 }
 
+//TimeEntrySaver описывает методы, достаточные для создания и редактирования записи
 type TimeEntrySaver interface {
 	GetPK() uint
 	Nil() bool
@@ -41,6 +42,7 @@ type TimeEntrySaver interface {
 	GetTags() []string
 }
 
+//TimeEntry описывает методы, необходимые для корректного отображения записей в истории
 type TimeEntry interface {
 	TimeEntrySaver
 	GetDuration() time.Duration
