@@ -32,16 +32,21 @@ type Clients interface {
 	DTO() []Client // store.Clients -> []Client
 }
 
-type TimeEntry interface {
+type TimeEntrySaver interface {
 	GetPK() uint
-	GetDuration() time.Duration
-	GetStart() time.Time
-	TaskKey() string
+	Nil() bool
 	GetName() string
+	GetStart() time.Time
+	GetProjectPK() uint
+	GetTags() []string
+}
+
+type TimeEntry interface {
+	TimeEntrySaver
+	GetDuration() time.Duration
+	TaskKey() string
 	GetProject() Project
 	GetStop() time.Time
-	Nil() bool
-	GetTags() []string
 }
 
 type TimeEntries interface {

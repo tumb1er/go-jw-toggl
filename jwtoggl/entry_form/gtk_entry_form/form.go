@@ -282,7 +282,7 @@ func (f *GtkEntryForm) parseStart() (time.Time, error) {
 	}
 }
 
-func (f *GtkEntryForm) SetTimeEntry(entry dto.TimeEntry) {
+func (f *GtkEntryForm) SetTimeEntry(entry dto.TimeEntrySaver) {
 	log.Printf("Schedule setTimeEntry %+v\n", entry)
 	tools.Schedule(func() {
 		log.Println("SetTimeEntry:", entry)
@@ -309,22 +309,15 @@ func (f *GtkEntryForm) SetTimeEntry(entry dto.TimeEntry) {
 			} else {
 				f.tag.SetActive(-1)
 			}
-			f.project.SetActiveID(strconv.FormatUint(uint64(entry.GetProject().GetPK()), 10))
+			f.project.SetActiveID(strconv.FormatUint(uint64(entry.GetProjectPK()), 10))
 			f.button.SetImage(f.imageStop)
 			if entry.GetStart().IsZero() {
 				f.start.SetText("")
 			} else {
 				f.start.SetText(entry.GetStart().Local().Format("15:04:05"))
 			}
-			if entry.GetStop().IsZero() {
-				f.stop.SetText("")
-				d := time.Now().Sub(entry.GetStart())
-				f.duration.SetText(d.Truncate(time.Second).String())
-			} else {
-				f.stop.SetText(entry.GetStop().Format("15:04:05"))
-				d := entry.GetStop().Sub(entry.GetStart())
-				f.duration.SetText(d.Truncate(time.Second).String())
-			}
+			d := time.Now().Sub(entry.GetStart())
+			f.duration.SetText(d.Truncate(time.Second).String())
 		}
 	})
 }

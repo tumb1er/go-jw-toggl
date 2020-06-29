@@ -1,41 +1,20 @@
 package entry_form
 
 import (
-	"go-jw-toggl/jwtoggl/dto"
 	"strings"
 	"time"
 )
 
 type entry struct {
-	Description string
-	ProjectPK   uint
-	Tag         string
-	Start       *time.Time
-	PK          uint
+	Name      string
+	ProjectPK uint
+	Tag       string
+	Start     *time.Time
+	PK        uint
 }
 
-type project struct {
-	PK uint
-}
-
-func (p project) GetName() string {
-	panic("implement me")
-}
-
-func (p project) GetHexColor() string {
-	panic("implement me")
-}
-
-func (p project) GetPK() uint {
-	return p.PK
-}
-
-func (p project) GetClient() dto.Client {
-	panic("implement me")
-}
-
-func (e entry) GetProject() dto.Project {
-	return project{e.ProjectPK}
+func (e entry) GetProjectPK() uint {
+	return e.ProjectPK
 }
 
 func (e entry) GetTags() []string {
@@ -45,10 +24,6 @@ func (e entry) GetTags() []string {
 	return []string{e.Tag}
 }
 
-func (e entry) GetDuration() time.Duration {
-	panic("implement me")
-}
-
 func (e entry) GetStart() time.Time {
 	if e.Start == nil {
 		return time.Time{}
@@ -56,20 +31,8 @@ func (e entry) GetStart() time.Time {
 	return (*e.Start).Local()
 }
 
-func (e entry) TaskKey() string {
-	panic("implement me")
-}
-
 func (e entry) GetName() string {
-	return e.Description
-}
-
-func (e entry) GetTag() string {
-	return e.Tag
-}
-
-func (e entry) GetStop() time.Time {
-	return time.Time{}
+	return e.Name
 }
 
 func (e entry) GetPK() uint {
@@ -81,7 +44,7 @@ func (e entry) Nil() bool {
 }
 
 func (e entry) ValidateDescription() bool {
-	return strings.HasPrefix(e.Description, "#")
+	return strings.HasPrefix(e.Name, "#")
 }
 
 func (e entry) ValidateTag() bool {

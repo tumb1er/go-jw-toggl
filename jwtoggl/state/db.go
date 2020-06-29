@@ -64,23 +64,20 @@ func (db *DB) wid() uint64 {
 	return db.defaultWId
 }
 
-func (db *DB) UpdateCurrentEntry(entry dto.TimeEntry) error {
+func (db *DB) UpdateCurrentEntry(entry dto.TimeEntrySaver) error {
 	storeEntry := db.s.TimeEntries().GetByPK(entry.GetPK())
 	if storeEntry == nil {
 		panic("Can't find entry to update")
 	}
-	storeProject := db.s.Projects().GetByPK(entry.GetProject().GetPK())
+	storeProject := db.s.Projects().GetByPK(entry.GetProjectPK())
 	if storeProject == nil {
 		panic("Can't find project for entry")
 	}
 	timeEntry := &storeEntry.TimeEntry
 	timeEntry.Name = entry.GetName()
 	timeEntry.Start = entry.GetStart()
-	timeEntry.Stop = entry.GetStop()
 	timeEntry.Tags = entry.GetTags()
 	timeEntry.Pid = storeProject.Id
-	timeEntry.WId = db.defaultWId
-	storeEntry.ComputeDuration()
 	storeEntry.MarkModified()
 	if db.update(storeEntry) {
 		db.onCurrentEntry(db.s.TimeEntries().Current(), false)
@@ -94,6 +91,7 @@ func (db *DB) UpdateCurrentEntry(entry dto.TimeEntry) error {
 
 func (db *DB) updateEntry(entry *store.TimeEntry) error {
 	timeEntry := &entry.TimeEntry
+	timeEntry.WId = db.defaultWId
 	log.Printf("Updating entry: %+v\n", timeEntry)
 
 	if timeEntry, err := db.client.TimeentryClient.Update(timeEntry); err != nil {
@@ -106,20 +104,16 @@ func (db *DB) updateEntry(entry *store.TimeEntry) error {
 	}
 }
 
-func (db *DB) CreateEntry(entry dto.TimeEntry) error {
-	storeProject := db.s.Projects().GetByPK(entry.GetProject().GetPK())
+func (db *DB) CreateEntry(entry dto.TimeEntrySaver) error {
+	storeProject := db.s.Projects().GetByPK(entry.GetProjectPK())
 	if storeProject == nil {
 		panic("Can't find project for new entry")
 	}
 	timeEntry := &gttimeentry.TimeEntry{
-		Name:        entry.GetName(),
-		Start:       entry.GetStart(),
-		Stop:        entry.GetStop(),
-		Duration:    -entry.GetStart().Unix(),
-		Tags:        entry.GetTags(),
-		Pid:         storeProject.Id,
-		WId:         db.defaultWId,
-		CreatedWith: "go-jw-toggl",
+		Name:  entry.GetName(),
+		Start: entry.GetStart(),
+		Tags:  entry.GetTags(),
+		Pid:   storeProject.Id,
 	}
 
 	storeEntry := store.TimeEntry{
@@ -146,6 +140,7 @@ func (db *DB) CreateEntry(entry dto.TimeEntry) error {
 func (db *DB) createEntry(entry store.TimeEntry) error {
 	timeEntry := &entry.TimeEntry
 	timeEntry.CreatedWith = "go-jw-toggl"
+	timeEntry.WId = db.defaultWId
 	log.Printf("Start create entry: %+v\n", timeEntry)
 	if timeEntry, err := db.client.TimeentryClient.Create(timeEntry); err != nil {
 		log.Printf("Create entry error: %+v\n", err)
@@ -162,12 +157,9 @@ func (db *DB) createEntry(entry store.TimeEntry) error {
 	}
 }
 
-func (db *DB) StopEntry(entry dto.TimeEntry) error {
-	if entry.Nil() {
-		return nil
-	}
+func (db *DB) StopEntry(pk uint) error {
 	current := db.s.TimeEntries().Current()
-	if current.Nil() || current.PK != entry.GetPK() {
+	if current.Nil() || current.PK != pk {
 		return errors.New("current entry de-sync")
 	}
 	current.MarkModified()

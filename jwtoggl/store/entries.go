@@ -84,6 +84,10 @@ func (obj *TimeEntry) loadTagsFromToggl(db *gorm.DB) {
 	}
 }
 
+func (obj TimeEntry) GetProjectPK() uint {
+	return obj.ProjectPK
+}
+
 func (obj TimeEntry) GetTags() []string {
 	if len(obj.TagSet) == 0 {
 		panic("Tags not preloaded")

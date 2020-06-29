@@ -12,7 +12,7 @@ import (
 
 type EntryForm struct {
 	g                 *gtk_entry_form.GtkEntryForm
-	timeEntry         dto.TimeEntry
+	timeEntry         dto.TimeEntrySaver
 	onNewEntryCreated EntryCallback
 	onEntryStopped    EntryCallback
 	onEntryChanged    EntryCallback
@@ -20,7 +20,7 @@ type EntryForm struct {
 	uiEntry           entry
 }
 
-type EntryCallback func(dto.TimeEntry)
+type EntryCallback func(saver dto.TimeEntrySaver)
 
 func NewEntryForm(b *builder.Builder) (*EntryForm, error) {
 	f := &EntryForm{
@@ -51,11 +51,11 @@ func (f *EntryForm) OnEditCompleted() {
 		return
 	}
 	changed := false
-	if f.timeEntry.GetName() != f.uiEntry.GetName() {
+	if f.timeEntry.GetName() != f.uiEntry.Name {
 		log.Println("name changed")
 		changed = true
 	}
-	if f.timeEntry.GetProject().GetPK() != f.uiEntry.GetProject().GetPK() {
+	if f.timeEntry.GetProjectPK() != f.uiEntry.ProjectPK {
 		log.Println("project changed")
 		changed = true
 	}
@@ -115,7 +115,7 @@ func (f *EntryForm) OnTagChanged(tag string) bool {
 func (f *EntryForm) OnDescriptionChanged(text string) bool {
 	defer f.validate()
 	log.Printf("OnDescriptionChanged: %s\n", text)
-	f.uiEntry.Description = text
+	f.uiEntry.Name = text
 	return f.uiEntry.ValidateDescription()
 }
 
@@ -162,19 +162,19 @@ func (f *EntryForm) SetProjects(projects []dto.Project) {
 	f.g.SetProjects(projects)
 }
 
-func (f *EntryForm) SetTimeEntry(entry dto.TimeEntry) {
+func (f *EntryForm) SetTimeEntry(entry dto.TimeEntrySaver) {
 	f.timeEntry = entry
 	if !entry.Nil() {
 		f.uiEntry.PK = entry.GetPK()
 		start := entry.GetStart()
 		f.uiEntry.Start = &start
-		f.uiEntry.Description = entry.GetName()
-		f.uiEntry.ProjectPK = entry.GetProject().GetPK()
+		f.uiEntry.Name = entry.GetName()
+		f.uiEntry.ProjectPK = entry.GetProjectPK()
 		f.uiEntry.Tag = tools.Tag(entry.GetTags())
 	} else {
 		f.uiEntry.PK = 0
 		f.uiEntry.Start = &time.Time{}
-		f.uiEntry.Description = ""
+		f.uiEntry.Name = ""
 		f.uiEntry.ProjectPK = 0
 		f.uiEntry.Tag = ""
 

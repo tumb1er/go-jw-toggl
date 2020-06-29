@@ -71,15 +71,15 @@ func (j *jApp) initForm(b *builder.Builder) {
 	j.form.OnEntryChanged(j.onEntryChanged)
 }
 
-func (j *jApp) onNewEntryCreated(entry dto.TimeEntry) {
+func (j *jApp) onNewEntryCreated(entry dto.TimeEntrySaver) {
 	j.handleError(j.db.CreateEntry(entry), "Entry creation error")
 }
 
-func (j *jApp) onEntryStopped(entry dto.TimeEntry) {
-	j.handleError(j.db.StopEntry(entry), "Entry stop error")
+func (j *jApp) onEntryStopped(entry dto.TimeEntrySaver) {
+	j.handleError(j.db.StopEntry(entry.GetPK()), "Entry stop error")
 }
 
-func (j *jApp) onEntryChanged(entry dto.TimeEntry) {
+func (j *jApp) onEntryChanged(entry dto.TimeEntrySaver) {
 	j.handleError(j.db.UpdateCurrentEntry(entry), "Entry save error")
 }
 
