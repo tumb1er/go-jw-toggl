@@ -74,7 +74,7 @@ func (db *DB) UpdateCurrentEntry(entry dto.TimeEntrySaver) error {
 	}
 	storeEntry.SetTimeEntry(entry, *project)
 	storeEntry.MarkModified()
-	if db.update(storeEntry) {
+	if db.s.TimeEntries().CreateOrUpdate(storeEntry) {
 		db.onCurrentEntry(db.s.TimeEntries().Current(), false)
 		if !debugSyncChanged {
 			go db.updateEntry(storeEntry)
@@ -98,7 +98,7 @@ func (db *DB) updateEntry(entry *store.TimeEntry) error {
 		entry.ComputeUpdated()
 		entry.MarkFetched()
 
-		db.update(entry)
+		db.s.TimeEntries().Update(entry)
 		return nil
 	}
 }
@@ -112,11 +112,11 @@ func (db *DB) CreateEntry(entry dto.TimeEntrySaver) error {
 	storeEntry.SetTimeEntry(entry, *project)
 	storeEntry.MarkModified()
 	old := db.s.TimeEntries().Current()
-	db.update(&storeEntry)
+	db.s.TimeEntries().Create(&storeEntry)
 	if !old.Nil() && old.PK != storeEntry.PK {
 		old.Stop = storeEntry.Start
 		old.ComputeDuration()
-		db.update(&old)
+		db.s.TimeEntries().Update(&old)
 		db.onTimeEntriesChanged(db.s.TimeEntries().List())
 	}
 	db.onCurrentEntry(storeEntry, false)
@@ -144,7 +144,7 @@ func (db *DB) createEntry(entry store.TimeEntry) error {
 		entry.ComputeUpdated()
 		entry.MarkFetched()
 
-		db.update(&entry)
+		db.s.TimeEntries().Update(&entry)
 		return nil
 	}
 }
@@ -156,7 +156,7 @@ func (db *DB) StopEntry(pk uint) error {
 	}
 	current.MarkModified()
 	current.Stop = *current.Modified
-	db.update(&current)
+	db.s.TimeEntries().Update(&current)
 	db.onCurrentEntry(store.TimeEntry{}, false)
 	db.onTimeEntriesChanged(db.s.TimeEntries().List())
 	if !debugSyncChanged {
@@ -179,7 +179,7 @@ func (db *DB) stopEntry(entry store.TimeEntry) {
 		entry.ComputeUpdated()
 		entry.MarkFetched()
 
-		db.update(&entry)
+		db.s.TimeEntries().Update(&entry)
 	}
 }
 
@@ -220,7 +220,8 @@ func (db *DB) deleteEntry(storeEntry *store.TimeEntry) error {
 }
 
 func (db *DB) SyncCurrentEntry(force bool) error {
-	old := db.s.TimeEntries().Current()
+	entries := db.s.TimeEntries()
+	old := entries.Current()
 	entry, err := db.client.TimeentryClient.Current()
 	if err != nil {
 		return err
@@ -228,9 +229,9 @@ func (db *DB) SyncCurrentEntry(force bool) error {
 	if entry == nil {
 		return nil
 	}
-	storeEntry := db.s.TimeEntries().FromTimeEntry(*entry)
-	if storeEntry != nil && db.update(storeEntry) || force {
-		current := db.s.TimeEntries().Current()
+	storeEntry := entries.FromTimeEntry(*entry)
+	if entries.CreateOrUpdate(&storeEntry) || force {
+		current := entries.Current()
 		if old.Nil() && current.Nil() {
 			// prevent notify change nil to nil
 			log.Println("Skip notify change current entry nil to nil")
@@ -306,29 +307,6 @@ func (db *DB) StartListen(ctx context.Context) {
 			log.Fatal("WebSocket listen error:", err)
 		}
 	}()
-}
-
-func (db *DB) update(timeEntry *store.TimeEntry) bool {
-	entries := db.s.TimeEntries()
-	var existing *store.TimeEntry
-	if timeEntry.Id > 0 {
-		existing = entries.Get(timeEntry.Id)
-	}
-	if existing == nil {
-		existing = entries.GetByPK(timeEntry.PK)
-	}
-	if existing == nil {
-		entries.Create(timeEntry)
-		return true
-	}
-
-	if existing.Equals(*timeEntry) {
-		// Нет изменений
-		return false
-	}
-
-	entries.Update(timeEntry)
-	return true
 }
 
 func (db *DB) GetCurrentEntry() store.TimeEntry {

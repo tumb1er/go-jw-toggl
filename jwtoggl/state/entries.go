@@ -41,7 +41,7 @@ func (db *TimeEntriesDB) onTimeEntryAction(action string, timeEntry gttimeentry.
 		}
 
 	} else if action == gtwebsocket.ActionUpdate || action == gtwebsocket.ActionInsert {
-		if db.update(storeEntry) {
+		if db.store().TimeEntries().CreateOrUpdate(&storeEntry) {
 			log.Printf("onTimeEntryAction update: %+v\n", old)
 			current := entries.Current()
 			log.Printf("onTimeEntryAction current: %+v\n", current)

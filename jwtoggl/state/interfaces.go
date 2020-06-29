@@ -48,11 +48,12 @@ type Entries interface {
 	List() store.TimeEntries
 	Delete(pk uint) bool
 	MarkDeleted(pk uint) bool
-	FromTimeEntry(entry gttimeentry.TimeEntry) *store.TimeEntry
+	FromTimeEntry(entry gttimeentry.TimeEntry) store.TimeEntry
 	GetByPK(pk uint) *store.TimeEntry
 	DeletedEntries() store.TimeEntries
 	NewEntries() store.TimeEntries
 	ChangedEntries() store.TimeEntries
+	CreateOrUpdate(entry *store.TimeEntry) bool
 }
 
 //common дает миксинам TagsDB, ClientsDB и прочим доступ к необходимым им полям из общего класса.
@@ -62,7 +63,6 @@ type common interface {
 	store() Store
 	subscriber() Subscriber
 	wid() uint64
-	update(*store.TimeEntry) bool
 }
 
 // Subscriber предоставляет доступ к подписке на события WS-клиента Toggl

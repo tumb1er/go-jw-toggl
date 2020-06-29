@@ -9,7 +9,7 @@ import (
 
 type TimeEntryManager gorm.DB
 
-func (m *TimeEntryManager) FromTimeEntry(entry gttimeentry.TimeEntry) *TimeEntry {
+func (m *TimeEntryManager) FromTimeEntry(entry gttimeentry.TimeEntry) TimeEntry {
 	timeEntry := m.Get(entry.Id)
 	if timeEntry == nil {
 		timeEntry = &TimeEntry{}
@@ -20,7 +20,7 @@ func (m *TimeEntryManager) FromTimeEntry(entry gttimeentry.TimeEntry) *TimeEntry
 		Must(m.gorm().Where("id = ?", entry.Pid).Find(&timeEntry.Project))
 		timeEntry.ProjectPK = timeEntry.Project.PK
 	}
-	return timeEntry
+	return *timeEntry
 }
 
 func (m *TimeEntryManager) List() TimeEntries {
@@ -101,4 +101,26 @@ func (m *TimeEntryManager) Update(timeEntry *TimeEntry) {
 			log.Fatal(res.Error)
 		}
 	}
+}
+
+func (m *TimeEntryManager) CreateOrUpdate(timeEntry *TimeEntry) bool {
+	var existing *TimeEntry
+	if timeEntry.Id > 0 {
+		existing = m.Get(timeEntry.Id)
+	}
+	if existing == nil {
+		existing = m.GetByPK(timeEntry.PK)
+	}
+	if existing == nil {
+		m.Create(timeEntry)
+		return true
+	}
+
+	if existing.Equals(*timeEntry) {
+		// Нет изменений
+		return false
+	}
+
+	m.Update(timeEntry)
+	return true
 }
