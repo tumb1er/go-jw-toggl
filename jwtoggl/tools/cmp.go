@@ -5,6 +5,7 @@ import (
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
+	"sort"
 )
 
 func TagSlicesEqual(t1, t2 []string) bool {
@@ -15,6 +16,8 @@ func TagSlicesEqual(t1, t2 []string) bool {
 		if len(t1) != len(t2) {
 			return false
 		}
+		sort.Strings(t1)
+		sort.Strings(t2)
 		for i, v := range t1 {
 			if v != t2[i] {
 				return false
