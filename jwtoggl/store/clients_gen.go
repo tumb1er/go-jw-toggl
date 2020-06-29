@@ -103,5 +103,7 @@ func (obj Client) GetPK() uint {
 }
 
 func (obj *Client) ComputeUpdated() {
-	obj.Updated = &obj.Client.At
+	if !obj.Client.At.IsZero() {
+		obj.Updated = &obj.Client.At
+	}
 }

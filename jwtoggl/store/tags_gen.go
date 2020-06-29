@@ -103,5 +103,7 @@ func (obj Tag) GetPK() uint {
 }
 
 func (obj *Tag) ComputeUpdated() {
-	obj.Updated = &obj.Tag.At
+	if !obj.Tag.At.IsZero() {
+		obj.Updated = &obj.Tag.At
+	}
 }

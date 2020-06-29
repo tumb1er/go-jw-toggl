@@ -103,5 +103,7 @@ func (obj Project) GetPK() uint {
 }
 
 func (obj *Project) ComputeUpdated() {
-	obj.Updated = &obj.Project.At
+	if !obj.Project.At.IsZero() {
+		obj.Updated = &obj.Project.At
+	}
 }

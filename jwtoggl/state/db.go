@@ -169,12 +169,16 @@ func (db *DB) stopEntry(entry store.TimeEntry) {
 	timeEntry := &entry.TimeEntry
 	log.Printf("Send stop: %+v\n", timeEntry)
 	entry.ComputeDuration()
-	timeEntry, err := db.client.TimeentryClient.Update(timeEntry)
-	if err != nil {
+
+	if timeEntry, err := db.client.TimeentryClient.Update(timeEntry); err != nil {
 		log.Printf("TimeEntry stop error: %+v\n", err)
 	} else {
 		log.Printf("Stop result: %+v\n", entry)
 		entry.TimeEntry = *timeEntry
+
+		entry.ComputeUpdated()
+		entry.MarkFetched()
+
 		db.update(&entry)
 	}
 }
@@ -185,10 +189,7 @@ func (db *DB) ContinueEntry(pk uint) error {
 		panic("Can't continue entry")
 	}
 
-	storeEntry.Id = 0
 	storeEntry.Start = time.Now().Local()
-	storeEntry.Stop = time.Time{}
-	storeEntry.Duration = 0
 	return db.CreateEntry(storeEntry)
 }
 

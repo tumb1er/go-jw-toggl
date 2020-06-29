@@ -103,5 +103,7 @@ func (obj TimeEntry) GetPK() uint {
 }
 
 func (obj *TimeEntry) ComputeUpdated() {
-	obj.Updated = &obj.TimeEntry.At
+	if !obj.TimeEntry.At.IsZero() {
+		obj.Updated = &obj.TimeEntry.At
+	}
 }
