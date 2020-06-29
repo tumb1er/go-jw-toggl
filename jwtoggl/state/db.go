@@ -115,7 +115,6 @@ func (db *DB) CreateEntry(entry dto.TimeEntrySaver) error {
 	db.s.TimeEntries().Create(&storeEntry)
 	if !old.Nil() && old.PK != storeEntry.PK {
 		old.Stop = storeEntry.Start
-		old.ComputeDuration()
 		db.s.TimeEntries().Update(&old)
 		db.onTimeEntriesChanged(db.s.TimeEntries().List())
 	}
@@ -129,7 +128,6 @@ func (db *DB) CreateEntry(entry dto.TimeEntrySaver) error {
 }
 
 func (db *DB) createEntry(entry store.TimeEntry) error {
-	entry.ComputeDuration()
 	entry.CreatedWith = "go-jw-toggl"
 	entry.WId = db.defaultWId
 	timeEntry := &entry.TimeEntry
@@ -154,8 +152,7 @@ func (db *DB) StopEntry(pk uint) error {
 	if current.Nil() || current.PK != pk {
 		return errors.New("current entry de-sync")
 	}
-	current.MarkModified()
-	current.Stop = *current.Modified
+	current.MarkStopped()
 	db.s.TimeEntries().Update(&current)
 	db.onCurrentEntry(store.TimeEntry{}, false)
 	db.onTimeEntriesChanged(db.s.TimeEntries().List())
@@ -168,8 +165,6 @@ func (db *DB) StopEntry(pk uint) error {
 func (db *DB) stopEntry(entry store.TimeEntry) {
 	timeEntry := &entry.TimeEntry
 	log.Printf("Send stop: %+v\n", timeEntry)
-	entry.ComputeDuration()
-
 	if timeEntry, err := db.client.TimeentryClient.Update(timeEntry); err != nil {
 		log.Printf("TimeEntry stop error: %+v\n", err)
 	} else {

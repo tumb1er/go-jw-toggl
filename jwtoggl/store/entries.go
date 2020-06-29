@@ -29,8 +29,8 @@ func (obj *TimeEntry) BeforeSave(db *gorm.DB) error {
 }
 
 func (obj *TimeEntry) AfterFind() error {
-	obj.ComputeDuration()
-	obj.ComputeTags()
+	obj.computeDuration()
+	obj.computeTags()
 	return nil
 }
 
@@ -123,7 +123,7 @@ func (obj TimeEntry) GetStop() time.Time {
 	return obj.Stop
 }
 
-func (obj *TimeEntry) ComputeDuration() {
+func (obj *TimeEntry) computeDuration() {
 	if obj.Stop.IsZero() {
 		obj.Duration = -obj.Start.Unix()
 	} else {
@@ -169,7 +169,7 @@ func (obj TimeEntry) Equals(other TimeEntry) bool {
 		obj.Stop == other.Stop
 }
 
-func (obj *TimeEntry) ComputeTags() {
+func (obj *TimeEntry) computeTags() {
 	obj.TimeEntry.Tags = obj.GetTags()
 }
 
@@ -191,4 +191,12 @@ func (obj *TimeEntry) SetTimeEntry(entry dto.TimeEntrySaver, project Project) {
 	obj.Name = entry.GetName()
 	obj.Start = entry.GetStart()
 	obj.Tags = entry.GetTags()
+	obj.computeDuration()
+}
+
+func (obj *TimeEntry) MarkStopped() {
+	ts := time.Now().Local()
+	obj.Stop = ts
+	obj.Modified = &ts
+	obj.computeDuration()
 }
