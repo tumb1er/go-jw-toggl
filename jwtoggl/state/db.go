@@ -138,9 +138,10 @@ func (db *DB) CreateEntry(entry dto.TimeEntrySaver) error {
 }
 
 func (db *DB) createEntry(entry store.TimeEntry) error {
+	entry.ComputeDuration()
+	entry.CreatedWith = "go-jw-toggl"
+	entry.WId = db.defaultWId
 	timeEntry := &entry.TimeEntry
-	timeEntry.CreatedWith = "go-jw-toggl"
-	timeEntry.WId = db.defaultWId
 	log.Printf("Start create entry: %+v\n", timeEntry)
 	if timeEntry, err := db.client.TimeentryClient.Create(timeEntry); err != nil {
 		log.Printf("Create entry error: %+v\n", err)
