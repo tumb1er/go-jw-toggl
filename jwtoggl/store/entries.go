@@ -53,6 +53,7 @@ func (obj *TimeEntry) AfterFind() error {
 func (obj *TimeEntry) loadProjectFromToggl(db *gorm.DB) {
 	qs := db.Set("gorm:auto_preload", true)
 	if obj.Project.PK == 0 {
+		log.Println("WARNING: project for entry not preloaded")
 		// Загружаем проект из БД по внутреннему ключу
 		if obj.ProjectPK != 0 {
 			if !MustOrNotFound(qs.Where("pk = ?", obj.ProjectPK).First(&obj.Project)) {
