@@ -1,12 +1,12 @@
-package db
+package state
 
 // gtclient.tpl предоставляет общие методы для работы со всеми DTO Toggle.
 
 import (
 	"go-jw-toggl/jwtoggl/gtoggl/gtclient"
 	"go-jw-toggl/jwtoggl/gtoggl/gtuser"
+	"go-jw-toggl/jwtoggl/store"
 	"log"
-	"time"
 )
 
 func (db *ClientsDB) OnClientsChanged(cb OnClientsChangedCallback) {
@@ -24,7 +24,7 @@ func (db *ClientsDB) saveUserData(user *gtuser.User, force bool) {
 }
 
 func (db *ClientsDB) saveClients(items gtclient.Clients) bool {
-	if changed, err := db.store().Clients().Sync(items, time.Now(), db.wid()); err != nil {
+	if changed, err := db.store().Clients().Sync(items, db.wid()); err != nil {
 		log.Fatal("Clients sync error: ", err)
 		return false
 	} else {
@@ -33,7 +33,7 @@ func (db *ClientsDB) saveClients(items gtclient.Clients) bool {
 	}
 }
 
-func (db *ClientsDB) ListClients() gtclient.Clients {
+func (db *ClientsDB) ListClients() store.Clients {
 	return db.store().Clients().List()
 }
 

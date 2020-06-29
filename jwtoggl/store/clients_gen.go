@@ -4,24 +4,13 @@ package store
 
 import (
 	"github.com/jinzhu/gorm"
+	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/gtoggl/gtclient"
 	"go-jw-toggl/jwtoggl/tools"
 	"time"
 )
 
-func (obj *Client) BeforeCreate() error {
-	return obj.dump(obj.Client)
-}
-
-func (obj *Client) BeforeSave() error {
-	return obj.dump(obj.Client)
-}
-
-func (obj *Client) AfterFind() error {
-	return obj.load(&obj.Client)
-}
-
-func (m *ClientManager) Sync(items gtclient.Clients, ts time.Time, wid uint64) (bool, error) {
+func (m *ClientManager) Sync(items gtclient.Clients, wid uint64) (bool, error) {
 	filtered := make(gtclient.Clients, 0, len(items))
 	for _, item := range items {
 		if item.WId == wid {
@@ -29,11 +18,11 @@ func (m *ClientManager) Sync(items gtclient.Clients, ts time.Time, wid uint64) (
 		}
 	}
 	qs := NewClients(filtered)
-	return qs.Sync(m.gorm(), ts)
+	return qs.Sync(m.gorm())
 }
 
 func (m *ClientManager) gorm() *gorm.DB {
-	return (*gorm.DB)(m)
+	return (*gorm.DB)(m).Set("gorm:auto_preload", true)
 }
 
 func NewClients(items ...gtclient.Clients) *Clients {
@@ -44,12 +33,22 @@ func NewClients(items ...gtclient.Clients) *Clients {
 	result := make(Clients, len(items[0]))
 	for i, item := range items[0] {
 		result[i] = Client{Client: item}
+		result[i].ComputeUpdated()
 	}
 	return &result
 }
 
-func (qs Clients) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
+func (qs Clients) DTO() []dto.Client {
+	result := make([]dto.Client, len(qs))
+	for i, c := range qs {
+		result[i] = c
+	}
+	return result
+}
+
+func (qs Clients) Sync(db *gorm.DB) (changed bool, err error) {
 	err = db.Transaction(func(tx *gorm.DB) error {
+		ts := time.Now().Local()
 		existing := NewClients()
 		Must(tx.Find(existing))
 		extIdMap := make(map[uint64]Client)
@@ -58,8 +57,16 @@ func (qs Clients) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 		}
 
 		for _, obj := range qs {
-			obj.SavedAt = ts
+			obj.Fetched = &ts
 			if prev, ok := extIdMap[obj.Id]; ok {
+				if !obj.After(prev.Modified) {
+					// log.Printf("Skip saving Client %d %s\n\n", obj.Id, obj.Name)
+					obj.Client = prev.Client
+					obj.Modified = prev.Modified
+					obj.Deleted = prev.Deleted
+				} else {
+					obj.Modified = obj.Updated
+				}
 				obj.PK = prev.PK
 				if !tools.ClientsEqual(&obj.Client, &prev.Client) {
 					changed = true
@@ -67,21 +74,36 @@ func (qs Clients) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 				Must(tx.Save(&obj))
 			} else {
 				changed = true
+				obj.Modified = obj.Updated
 				Must(tx.Create(&obj))
 			}
 		}
-		changed = MustOrNotFound(tx.Where("saved_at < ?", ts).Delete(Client{})) || changed
+		deleted := MustOrNotFound(
+			tx.
+				Where("modified <= updated AND fetched < ?", ts).
+				Delete(Client{}))
+		changed = deleted || changed
 		return nil
 	})
 	return changed, err
 }
 
-func listClients(scope *gorm.DB) gtclient.Clients {
+func listClients(scope *gorm.DB) Clients {
 	qs := NewClients()
-	length := Must(scope.Find(qs))
-	result := make(gtclient.Clients, length)
-	for i, obj := range *qs {
-		result[i] = obj.Client
+	Must(scope.Find(qs))
+	return *qs
+}
+
+func (obj Client) GetName() string {
+	return obj.Name
+}
+
+func (obj Client) GetPK() uint {
+	return obj.PK
+}
+
+func (obj *Client) ComputeUpdated() {
+	if !obj.Client.At.IsZero() {
+		obj.Updated = &obj.Client.At
 	}
-	return result
 }

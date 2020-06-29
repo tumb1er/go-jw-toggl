@@ -6,9 +6,7 @@ import (
 	"github.com/gotk3/gotk3/gtk"
 	"github.com/gotk3/gotk3/pango"
 	"go-jw-toggl/jwtoggl/builder"
-	"go-jw-toggl/jwtoggl/gtoggl/gtclient"
-	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
-	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
+	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/tools"
 	"log"
 	"strconv"
@@ -40,13 +38,7 @@ const (
 	signalButtonPress  = "button-press-event"
 )
 
-type Callback func(entryId uint64)
-
-type entriesContext struct {
-	Entries  gttimeentry.TimeEntries
-	Projects map[uint64]gtproject.Project
-	Clients  map[uint64]gtclient.Client
-}
+type Callback func(entryPK uint)
 
 type GtkHistory struct {
 	store           *gtk.TreeStore
@@ -74,44 +66,36 @@ func (h *GtkHistory) OnButtonClick(_ *gtk.TreeView, e *gdk.Event) {
 	}
 }
 
-func (h *GtkHistory) SetEntries(
-	entries gttimeentry.TimeEntries,
-	projects map[uint64]gtproject.Project,
-	clients map[uint64]gtclient.Client) {
-	tools.Schedule(h.setEntries, entriesContext{
-		Entries:  entries,
-		Projects: projects,
-		Clients:  clients,
-	})
-}
+func (h *GtkHistory) SetEntries(entries []dto.TimeEntry) {
+	tools.Schedule(
+		func() {
+			h.store.Clear()
 
-func (h *GtkHistory) setEntries(c entriesContext) {
-	h.store.Clear()
+			cache := make(dayGroup)
 
-	cache := make(dayGroup)
-
-	for _, entry := range c.Entries {
-		duration := entry.Stop.Sub(entry.Start)
-		ds := cache.add(h.store, entry)
-		ds.duration += duration
-		ts := ds.add(h.store, entry)
-		if ts.count == 0 {
-			h.insertEntry(c, ts.it, entry, false)
-		} else {
-			it := h.store.Append(ts.it)
-			h.insertEntry(c, it, entry, true)
-		}
-		ts.count += 1
-	}
-
-	for day, ds := range cache {
-		h.insertDayEntry(day.Format("2006-01-02"), ds.it, ds.duration)
-		for _, ts := range ds.tasks {
-			if ts.count > 1 {
-				h.insertTaskSummary(ts.it, ts.count)
+			for _, entry := range entries {
+				duration := entry.GetDuration() // entry.Stop.Sub(entry.Start)
+				ds := cache.add(h.store, entry)
+				ds.duration += duration
+				ts := ds.add(h.store, entry)
+				if ts.count == 0 {
+					h.insertEntry(ts.it, entry, false)
+				} else {
+					it := h.store.Append(ts.it)
+					h.insertEntry(it, entry, true)
+				}
+				ts.count += 1
 			}
-		}
-	}
+
+			for day, ds := range cache {
+				h.insertDayEntry(day.Format("2006-01-02"), ds.it, ds.duration)
+				for _, ts := range ds.tasks {
+					if ts.count > 1 {
+						h.insertTaskSummary(ts.it, ts.count)
+					}
+				}
+			}
+		})
 }
 
 func (h *GtkHistory) insertTaskSummary(it *gtk.TreeIter, count int) {
@@ -152,32 +136,29 @@ func (h *GtkHistory) insertDayEntry(day string, it *gtk.TreeIter, duration time.
 	}
 }
 
-func (h *GtkHistory) insertEntry(entries entriesContext, it *gtk.TreeIter,
-	entry gttimeentry.TimeEntry, grouped bool) {
+func (h *GtkHistory) insertEntry(it *gtk.TreeIter, entry dto.TimeEntry, grouped bool) {
 	var ctx Ctx
-	ctx.Description = entry.Description
-	if project, ok := entries.Projects[entry.Pid]; ok {
-		ctx.Project = project.Name
-		ctx.Color = project.HexColor
-		if client, ok := entries.Clients[project.CId]; ok {
-			ctx.Client = client.Name
-		}
+	ctx.Description = entry.GetName()
+	project := entry.GetProject()
+	ctx.Project = project.GetName()
+	ctx.Color = project.GetHexColor()
+	ctx.Client = project.GetClient().GetName()
+	ctx.Tag = tools.Tag(entry.GetTags())
+
+	start := entry.GetStart()
+	if !start.IsZero() {
+		ctx.Start = start.Local().Format("15:04")
 	}
-	if len(entry.Tags) >= 1 {
-		ctx.Tag = entry.Tags[0]
+	stop := entry.GetStop()
+	if !stop.IsZero() {
+		ctx.Stop = stop.Local().Format("15:04")
 	}
-	if !entry.Start.IsZero() {
-		ctx.Start = entry.Start.Local().Format("15:04")
-	}
-	if !entry.Stop.IsZero() {
-		ctx.Stop = entry.Stop.Local().Format("15:04")
-	}
-	if entry.Duration > 0 {
-		duration := time.Duration(entry.Duration) * time.Second
+	duration := entry.GetDuration()
+	if duration > 0 {
 		ctx.Duration = duration.Truncate(time.Second).String()
 	}
 
-	if err := h.store.SetValue(it, columnId, fmt.Sprintf("%d", entry.Id)); err != nil {
+	if err := h.store.SetValue(it, columnId, fmt.Sprintf("%d", entry.GetPK())); err != nil {
 		log.Fatal(err)
 	}
 	if err := h.store.SetValue(it, columnDescription, RenderDescription(ctx)); err != nil {
@@ -196,7 +177,7 @@ func (h *GtkHistory) insertEntry(entries entriesContext, it *gtk.TreeIter,
 	}
 }
 
-func (h *GtkHistory) getSelectedEntryId() (uint64, error) {
+func (h *GtkHistory) getSelectedEntryPK() (uint, error) {
 	s, err := h.treeView.GetSelection()
 	if err != nil {
 		return 0, err
@@ -218,7 +199,7 @@ func (h *GtkHistory) getSelectedEntryId() (uint64, error) {
 			if id, err := strconv.ParseUint(s, 10, 64); err != nil {
 				return 0, err
 			} else {
-				return id, nil
+				return uint(id), nil
 			}
 		}
 	} else {
@@ -237,21 +218,17 @@ func (h *GtkHistory) onRowActivated(_ *gtk.TreeView, path *gtk.TreePath) {
 
 func (h *GtkHistory) onMenuContinue() {
 	if h.onEntryContinue != nil {
-		entry, err := h.getSelectedEntryId()
-		if err != nil {
-			log.Fatal(err)
+		if entry, err := h.getSelectedEntryPK(); err == nil {
+			h.onEntryContinue(entry)
 		}
-		h.onEntryContinue(entry)
 	}
 }
 
 func (h *GtkHistory) onMenuDelete() {
 	if h.onEntryDelete != nil {
-		entry, err := h.getSelectedEntryId()
-		if err != nil {
-			log.Fatal(err)
+		if entry, err := h.getSelectedEntryPK(); err == nil {
+			h.onEntryDelete(entry)
 		}
-		h.onEntryDelete(entry)
 	}
 }
 

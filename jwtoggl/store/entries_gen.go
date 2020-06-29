@@ -4,24 +4,13 @@ package store
 
 import (
 	"github.com/jinzhu/gorm"
+	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
 	"go-jw-toggl/jwtoggl/tools"
 	"time"
 )
 
-func (obj *TimeEntry) BeforeCreate() error {
-	return obj.dump(obj.TimeEntry)
-}
-
-func (obj *TimeEntry) BeforeSave() error {
-	return obj.dump(obj.TimeEntry)
-}
-
-func (obj *TimeEntry) AfterFind() error {
-	return obj.load(&obj.TimeEntry)
-}
-
-func (m *TimeEntryManager) Sync(items gttimeentry.TimeEntries, ts time.Time, wid uint64) (bool, error) {
+func (m *TimeEntryManager) Sync(items gttimeentry.TimeEntries, wid uint64) (bool, error) {
 	filtered := make(gttimeentry.TimeEntries, 0, len(items))
 	for _, item := range items {
 		if item.WId == wid {
@@ -29,11 +18,11 @@ func (m *TimeEntryManager) Sync(items gttimeentry.TimeEntries, ts time.Time, wid
 		}
 	}
 	qs := NewTimeEntries(filtered)
-	return qs.Sync(m.gorm(), ts)
+	return qs.Sync(m.gorm())
 }
 
 func (m *TimeEntryManager) gorm() *gorm.DB {
-	return (*gorm.DB)(m)
+	return (*gorm.DB)(m).Set("gorm:auto_preload", true)
 }
 
 func NewTimeEntries(items ...gttimeentry.TimeEntries) *TimeEntries {
@@ -44,12 +33,22 @@ func NewTimeEntries(items ...gttimeentry.TimeEntries) *TimeEntries {
 	result := make(TimeEntries, len(items[0]))
 	for i, item := range items[0] {
 		result[i] = TimeEntry{TimeEntry: item}
+		result[i].ComputeUpdated()
 	}
 	return &result
 }
 
-func (qs TimeEntries) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
+func (qs TimeEntries) DTO() []dto.TimeEntry {
+	result := make([]dto.TimeEntry, len(qs))
+	for i, c := range qs {
+		result[i] = c
+	}
+	return result
+}
+
+func (qs TimeEntries) Sync(db *gorm.DB) (changed bool, err error) {
 	err = db.Transaction(func(tx *gorm.DB) error {
+		ts := time.Now().Local()
 		existing := NewTimeEntries()
 		Must(tx.Find(existing))
 		extIdMap := make(map[uint64]TimeEntry)
@@ -58,8 +57,16 @@ func (qs TimeEntries) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) 
 		}
 
 		for _, obj := range qs {
-			obj.SavedAt = ts
+			obj.Fetched = &ts
 			if prev, ok := extIdMap[obj.Id]; ok {
+				if !obj.After(prev.Modified) {
+					// log.Printf("Skip saving TimeEntry %d %s\n\n", obj.Id, obj.Name)
+					obj.TimeEntry = prev.TimeEntry
+					obj.Modified = prev.Modified
+					obj.Deleted = prev.Deleted
+				} else {
+					obj.Modified = obj.Updated
+				}
 				obj.PK = prev.PK
 				if !tools.TimeEntriesEqual(&obj.TimeEntry, &prev.TimeEntry) {
 					changed = true
@@ -67,21 +74,36 @@ func (qs TimeEntries) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) 
 				Must(tx.Save(&obj))
 			} else {
 				changed = true
+				obj.Modified = obj.Updated
 				Must(tx.Create(&obj))
 			}
 		}
-		changed = MustOrNotFound(tx.Where("saved_at < ?", ts).Delete(TimeEntry{})) || changed
+		deleted := MustOrNotFound(
+			tx.
+				Where("modified <= updated AND fetched < ?", ts).
+				Delete(TimeEntry{}))
+		changed = deleted || changed
 		return nil
 	})
 	return changed, err
 }
 
-func listTimeEntries(scope *gorm.DB) gttimeentry.TimeEntries {
+func listTimeEntries(scope *gorm.DB) TimeEntries {
 	qs := NewTimeEntries()
-	length := Must(scope.Find(qs))
-	result := make(gttimeentry.TimeEntries, length)
-	for i, obj := range *qs {
-		result[i] = obj.TimeEntry
+	Must(scope.Find(qs))
+	return *qs
+}
+
+func (obj TimeEntry) GetName() string {
+	return obj.Name
+}
+
+func (obj TimeEntry) GetPK() uint {
+	return obj.PK
+}
+
+func (obj *TimeEntry) ComputeUpdated() {
+	if !obj.TimeEntry.At.IsZero() {
+		obj.Updated = &obj.TimeEntry.At
 	}
-	return result
 }

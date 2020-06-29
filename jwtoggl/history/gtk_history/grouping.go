@@ -2,8 +2,7 @@ package gtk_history
 
 import (
 	"github.com/gotk3/gotk3/gtk"
-	gttimeentry "go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
-	"go-jw-toggl/jwtoggl/tools"
+	"go-jw-toggl/jwtoggl/dto"
 	"time"
 )
 
@@ -19,23 +18,23 @@ type daySummary struct {
 	tasks    map[string]*taskSummary
 }
 
-func (ds *daySummary) add(s *gtk.TreeStore, entry gttimeentry.TimeEntry) *taskSummary {
-	key := tools.TaskKey(entry)
+func (ds *daySummary) add(s *gtk.TreeStore, entry dto.TimeEntry) *taskSummary {
+	key := entry.TaskKey()
 	summary, ok := ds.tasks[key]
 	if ok {
 		return summary
 	}
 	ds.tasks[key] = &taskSummary{
 		it:    s.Append(ds.it),
-		title: entry.Description,
+		title: entry.GetName(),
 	}
 	return ds.tasks[key]
 }
 
 type dayGroup map[time.Time]*daySummary
 
-func (dg dayGroup) add(s *gtk.TreeStore, entry gttimeentry.TimeEntry) *daySummary {
-	day := entry.Start.Local().Truncate(24 * time.Hour)
+func (dg dayGroup) add(s *gtk.TreeStore, entry dto.TimeEntry) *daySummary {
+	day := entry.GetStart().Local().Truncate(24 * time.Hour)
 	summary, ok := dg[day]
 	if ok {
 		return summary

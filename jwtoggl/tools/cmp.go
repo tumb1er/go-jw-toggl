@@ -5,7 +5,7 @@ import (
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
-	"strings"
+	"sort"
 )
 
 func TagSlicesEqual(t1, t2 []string) bool {
@@ -16,6 +16,8 @@ func TagSlicesEqual(t1, t2 []string) bool {
 		if len(t1) != len(t2) {
 			return false
 		}
+		sort.Strings(t1)
+		sort.Strings(t2)
 		for i, v := range t1 {
 			if v != t2[i] {
 				return false
@@ -32,7 +34,7 @@ func TimeEntriesEqual(e1, e2 *gttimeentry.TimeEntry) bool {
 	}
 	if e1 != nil && e2 != nil {
 		return e1.Id == e2.Id &&
-			e1.Description == e2.Description &&
+			e1.Name == e2.Name &&
 			e1.Pid == e2.Pid &&
 			TagSlicesEqual(e1.Tags, e2.Tags) &&
 			e1.Start.Equal(e2.Start) &&
@@ -40,10 +42,6 @@ func TimeEntriesEqual(e1, e2 *gttimeentry.TimeEntry) bool {
 	}
 	// e1 == nil && e2 == nil
 	return true
-}
-
-func IsCurrent(e gttimeentry.TimeEntry) bool {
-	return e.Stop.IsZero()
 }
 
 func ProjectsEqual(p1 *gtproject.Project, p2 *gtproject.Project) bool {
@@ -86,13 +84,9 @@ func ClientsEqual(c1 *gtclient.Client, c2 *gtclient.Client) bool {
 	return true
 }
 
-func TaskKey(e gttimeentry.TimeEntry) string {
-	key := e.Description
-	if strings.HasPrefix(e.Description, "#") {
-		key = strings.SplitN(e.Description, " ", 2)[0]
+func Tag(tags []string) string {
+	if len(tags) == 0 {
+		return ""
 	}
-	if len(e.Tags) > 0 {
-		key += e.Tags[0]
-	}
-	return key
+	return tags[0]
 }

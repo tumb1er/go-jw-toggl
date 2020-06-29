@@ -8,14 +8,14 @@ import (
 )
 
 type Tag struct {
-	Named
-	gttag.Tag `gorm:"-"`
+	Synced
+	gttag.Tag
 }
 
 type Tags []Tag
 
 type TagManager gorm.DB
 
-func (m *TagManager) List() gttag.Tags {
+func (m *TagManager) List() Tags {
 	return listTags(m.gorm().Order("name ASC"))
 }

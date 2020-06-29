@@ -4,17 +4,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"go-jw-toggl/jwtoggl/gtoggl/gthttp"
+	"time"
 )
 
 // Toggl Project Definition
 type Project struct {
-	Id        uint64 `json:"id"`
-	WId       uint64 `json:"wid"`
-	CId       uint64 `json:"cid"`
-	Name      string `json:"name"`
-	HexColor  string `json:"hex_color"`
-	IsPrivate *bool  `json:"is_private,omitempty"`
-	Active    bool   `json:"active"`
+	Id        uint64    `json:"id"`
+	WId       uint64    `json:"wid"`
+	CId       uint64    `json:"cid"`
+	Name      string    `json:"name"`
+	HexColor  string    `json:"hex_color"`
+	IsPrivate *bool     `json:"is_private,omitempty"`
+	Active    bool      `json:"active"`
+	At        time.Time `json:"at,omitempty" gorm:"-"`
 }
 
 type Projects []Project

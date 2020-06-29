@@ -4,24 +4,13 @@ package store
 
 import (
 	"github.com/jinzhu/gorm"
+	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
 	"go-jw-toggl/jwtoggl/tools"
 	"time"
 )
 
-func (obj *Tag) BeforeCreate() error {
-	return obj.dump(obj.Tag)
-}
-
-func (obj *Tag) BeforeSave() error {
-	return obj.dump(obj.Tag)
-}
-
-func (obj *Tag) AfterFind() error {
-	return obj.load(&obj.Tag)
-}
-
-func (m *TagManager) Sync(items gttag.Tags, ts time.Time, wid uint64) (bool, error) {
+func (m *TagManager) Sync(items gttag.Tags, wid uint64) (bool, error) {
 	filtered := make(gttag.Tags, 0, len(items))
 	for _, item := range items {
 		if item.WId == wid {
@@ -29,11 +18,11 @@ func (m *TagManager) Sync(items gttag.Tags, ts time.Time, wid uint64) (bool, err
 		}
 	}
 	qs := NewTags(filtered)
-	return qs.Sync(m.gorm(), ts)
+	return qs.Sync(m.gorm())
 }
 
 func (m *TagManager) gorm() *gorm.DB {
-	return (*gorm.DB)(m)
+	return (*gorm.DB)(m).Set("gorm:auto_preload", true)
 }
 
 func NewTags(items ...gttag.Tags) *Tags {
@@ -44,12 +33,22 @@ func NewTags(items ...gttag.Tags) *Tags {
 	result := make(Tags, len(items[0]))
 	for i, item := range items[0] {
 		result[i] = Tag{Tag: item}
+		result[i].ComputeUpdated()
 	}
 	return &result
 }
 
-func (qs Tags) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
+func (qs Tags) DTO() []dto.Tag {
+	result := make([]dto.Tag, len(qs))
+	for i, c := range qs {
+		result[i] = c
+	}
+	return result
+}
+
+func (qs Tags) Sync(db *gorm.DB) (changed bool, err error) {
 	err = db.Transaction(func(tx *gorm.DB) error {
+		ts := time.Now().Local()
 		existing := NewTags()
 		Must(tx.Find(existing))
 		extIdMap := make(map[uint64]Tag)
@@ -58,8 +57,16 @@ func (qs Tags) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 		}
 
 		for _, obj := range qs {
-			obj.SavedAt = ts
+			obj.Fetched = &ts
 			if prev, ok := extIdMap[obj.Id]; ok {
+				if !obj.After(prev.Modified) {
+					// log.Printf("Skip saving Tag %d %s\n\n", obj.Id, obj.Name)
+					obj.Tag = prev.Tag
+					obj.Modified = prev.Modified
+					obj.Deleted = prev.Deleted
+				} else {
+					obj.Modified = obj.Updated
+				}
 				obj.PK = prev.PK
 				if !tools.TagsEqual(&obj.Tag, &prev.Tag) {
 					changed = true
@@ -67,21 +74,36 @@ func (qs Tags) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 				Must(tx.Save(&obj))
 			} else {
 				changed = true
+				obj.Modified = obj.Updated
 				Must(tx.Create(&obj))
 			}
 		}
-		changed = MustOrNotFound(tx.Where("saved_at < ?", ts).Delete(Tag{})) || changed
+		deleted := MustOrNotFound(
+			tx.
+				Where("modified <= updated AND fetched < ?", ts).
+				Delete(Tag{}))
+		changed = deleted || changed
 		return nil
 	})
 	return changed, err
 }
 
-func listTags(scope *gorm.DB) gttag.Tags {
+func listTags(scope *gorm.DB) Tags {
 	qs := NewTags()
-	length := Must(scope.Find(qs))
-	result := make(gttag.Tags, length)
-	for i, obj := range *qs {
-		result[i] = obj.Tag
+	Must(scope.Find(qs))
+	return *qs
+}
+
+func (obj Tag) GetName() string {
+	return obj.Name
+}
+
+func (obj Tag) GetPK() uint {
+	return obj.PK
+}
+
+func (obj *Tag) ComputeUpdated() {
+	if !obj.Tag.At.IsZero() {
+		obj.Updated = &obj.Tag.At
 	}
-	return result
 }

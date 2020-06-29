@@ -4,24 +4,13 @@ package store
 
 import (
 	"github.com/jinzhu/gorm"
+	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/tools"
 	"time"
 )
 
-func (obj *Project) BeforeCreate() error {
-	return obj.dump(obj.Project)
-}
-
-func (obj *Project) BeforeSave() error {
-	return obj.dump(obj.Project)
-}
-
-func (obj *Project) AfterFind() error {
-	return obj.load(&obj.Project)
-}
-
-func (m *ProjectManager) Sync(items gtproject.Projects, ts time.Time, wid uint64) (bool, error) {
+func (m *ProjectManager) Sync(items gtproject.Projects, wid uint64) (bool, error) {
 	filtered := make(gtproject.Projects, 0, len(items))
 	for _, item := range items {
 		if item.WId == wid {
@@ -29,11 +18,11 @@ func (m *ProjectManager) Sync(items gtproject.Projects, ts time.Time, wid uint64
 		}
 	}
 	qs := NewProjects(filtered)
-	return qs.Sync(m.gorm(), ts)
+	return qs.Sync(m.gorm())
 }
 
 func (m *ProjectManager) gorm() *gorm.DB {
-	return (*gorm.DB)(m)
+	return (*gorm.DB)(m).Set("gorm:auto_preload", true)
 }
 
 func NewProjects(items ...gtproject.Projects) *Projects {
@@ -44,12 +33,22 @@ func NewProjects(items ...gtproject.Projects) *Projects {
 	result := make(Projects, len(items[0]))
 	for i, item := range items[0] {
 		result[i] = Project{Project: item}
+		result[i].ComputeUpdated()
 	}
 	return &result
 }
 
-func (qs Projects) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
+func (qs Projects) DTO() []dto.Project {
+	result := make([]dto.Project, len(qs))
+	for i, c := range qs {
+		result[i] = c
+	}
+	return result
+}
+
+func (qs Projects) Sync(db *gorm.DB) (changed bool, err error) {
 	err = db.Transaction(func(tx *gorm.DB) error {
+		ts := time.Now().Local()
 		existing := NewProjects()
 		Must(tx.Find(existing))
 		extIdMap := make(map[uint64]Project)
@@ -58,8 +57,16 @@ func (qs Projects) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 		}
 
 		for _, obj := range qs {
-			obj.SavedAt = ts
+			obj.Fetched = &ts
 			if prev, ok := extIdMap[obj.Id]; ok {
+				if !obj.After(prev.Modified) {
+					// log.Printf("Skip saving Project %d %s\n\n", obj.Id, obj.Name)
+					obj.Project = prev.Project
+					obj.Modified = prev.Modified
+					obj.Deleted = prev.Deleted
+				} else {
+					obj.Modified = obj.Updated
+				}
 				obj.PK = prev.PK
 				if !tools.ProjectsEqual(&obj.Project, &prev.Project) {
 					changed = true
@@ -67,21 +74,36 @@ func (qs Projects) Sync(db *gorm.DB, ts time.Time) (changed bool, err error) {
 				Must(tx.Save(&obj))
 			} else {
 				changed = true
+				obj.Modified = obj.Updated
 				Must(tx.Create(&obj))
 			}
 		}
-		changed = MustOrNotFound(tx.Where("saved_at < ?", ts).Delete(Project{})) || changed
+		deleted := MustOrNotFound(
+			tx.
+				Where("modified <= updated AND fetched < ?", ts).
+				Delete(Project{}))
+		changed = deleted || changed
 		return nil
 	})
 	return changed, err
 }
 
-func listProjects(scope *gorm.DB) gtproject.Projects {
+func listProjects(scope *gorm.DB) Projects {
 	qs := NewProjects()
-	length := Must(scope.Find(qs))
-	result := make(gtproject.Projects, length)
-	for i, obj := range *qs {
-		result[i] = obj.Project
+	Must(scope.Find(qs))
+	return *qs
+}
+
+func (obj Project) GetName() string {
+	return obj.Name
+}
+
+func (obj Project) GetPK() uint {
+	return obj.PK
+}
+
+func (obj *Project) ComputeUpdated() {
+	if !obj.Project.At.IsZero() {
+		obj.Updated = &obj.Project.At
 	}
-	return result
 }

@@ -24,6 +24,7 @@ func (j *jApp) onShow() {
 func (j *jApp) onSync() {
 	log.Println("onSync")
 	j.syncUser()
+	j.syncChanges()
 }
 
 func (j *jApp) onExit() {

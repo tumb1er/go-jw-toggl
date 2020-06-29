@@ -5,7 +5,7 @@ import (
 	"github.com/gotk3/gotk3/gtk"
 	"github.com/tumb1er/go-notifier/notifier"
 	"go-jw-toggl/jwtoggl/builder"
-	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
+	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/tools"
 	"log"
 )
@@ -50,7 +50,7 @@ func New(b *builder.Builder) (*Tray, error) {
 	if t.popup, err = notifier.NewNotifier(icon); err != nil {
 		return nil, err
 	}
-	t.SetCurrentEntry(nil)
+	t.ClearCurrentEntry()
 	t.indicator.SetStatus(appindicator.StatusActive)
 	t.indicator.SetMenu(t.menu)
 	t.indicator.SetSecondaryActivateTarget(t.menuShow)
@@ -74,24 +74,28 @@ func (t *Tray) ConnectSignals(
 	return nil
 }
 
-func (t *Tray) SetCurrentEntry(entry *gttimeentry.TimeEntry) {
-	if entry == nil {
-		t.indicator.SetLabel("Work!", "")
-		icon := tools.GetIconPath(TogglIconBW)
-		t.indicator.SetIcon(icon)
-		if err := t.popup.SetIcon(icon); err != nil {
-			log.Fatal("Popup error:", err)
-		}
-		t.menuShow.SetLabel("New...")
+func (t *Tray) SetCurrentEntry(entry dto.TimeEntry) {
+	if entry.Nil() {
+		t.ClearCurrentEntry()
 	} else {
-		t.indicator.SetLabel(tools.Shorten(entry.Description), "")
+		t.indicator.SetLabel(tools.Shorten(entry.GetName()), "")
 		icon := tools.GetIconPath(TogglIcon)
 		t.indicator.SetIcon(icon)
-		t.menuShow.SetLabel(entry.Description)
+		t.menuShow.SetLabel(entry.GetName())
 		if err := t.popup.SetIcon(icon); err != nil {
 			log.Fatal("Popup error:", err)
 		}
 	}
+}
+
+func (t *Tray) ClearCurrentEntry() {
+	t.indicator.SetLabel("Work!", "")
+	icon := tools.GetIconPath(TogglIconBW)
+	t.indicator.SetIcon(icon)
+	if err := t.popup.SetIcon(icon); err != nil {
+		log.Fatal("Popup error:", err)
+	}
+	t.menuShow.SetLabel("New...")
 }
 
 func (t *Tray) ShowNotification(title, body string) error {

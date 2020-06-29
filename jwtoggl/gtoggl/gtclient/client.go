@@ -4,14 +4,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"go-jw-toggl/jwtoggl/gtoggl/gthttp"
+	"time"
 )
 
 // Toggl Client Definition
 type Client struct {
-	Id       uint64 `json:"id"`
-	WId      uint64 `json:"wid"`
-	Name     string `json:"name"`
-	Currency string `json:"currency"`
+	Id       uint64    `json:"id"`
+	WId      uint64    `json:"wid"`
+	Name     string    `json:"name"`
+	Currency string    `json:"currency"`
+	At       time.Time `json:"at,omitempty" gorm:"-"`
 }
 
 type Clients []Client

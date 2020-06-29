@@ -6,12 +6,12 @@ import (
 	"github.com/gotk3/gotk3/gtk"
 	"github.com/jinzhu/gorm"
 	"go-jw-toggl/jwtoggl/builder"
-	"go-jw-toggl/jwtoggl/db"
-	"go-jw-toggl/jwtoggl/db/store"
+	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/entry_form"
-	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
 	"go-jw-toggl/jwtoggl/history"
+	"go-jw-toggl/jwtoggl/state"
 	"go-jw-toggl/jwtoggl/status"
+	"go-jw-toggl/jwtoggl/store"
 	"go-jw-toggl/jwtoggl/tray"
 	"go-jw-toggl/jwtoggl/window"
 	"log"
@@ -30,7 +30,7 @@ type jApp struct {
 	tray      *tray.Tray
 	window    *window.MainWindow
 	statusBar *status.Status
-	db        *db.DB
+	db        *state.DB
 	ctx       context.Context
 	cancel    context.CancelFunc
 }
@@ -71,15 +71,15 @@ func (j *jApp) initForm(b *builder.Builder) {
 	j.form.OnEntryChanged(j.onEntryChanged)
 }
 
-func (j *jApp) onNewEntryCreated(entry *gttimeentry.TimeEntry) {
-	j.handleError(j.db.CreateNewEntry(entry), "Entry creation error")
+func (j *jApp) onNewEntryCreated(entry dto.TimeEntrySaver) {
+	j.handleError(j.db.CreateEntry(entry), "Entry creation error")
 }
 
-func (j *jApp) onEntryStopped(entry *gttimeentry.TimeEntry) {
-	j.handleError(j.db.StopEntry(entry), "Entry stop error")
+func (j *jApp) onEntryStopped(entry dto.TimeEntrySaver) {
+	j.handleError(j.db.StopEntry(entry.GetPK()), "Entry stop error")
 }
 
-func (j *jApp) onEntryChanged(entry *gttimeentry.TimeEntry) {
+func (j *jApp) onEntryChanged(entry dto.TimeEntrySaver) {
 	j.handleError(j.db.UpdateCurrentEntry(entry), "Entry save error")
 }
 
@@ -94,8 +94,8 @@ func NewApp(database *gorm.DB) *jApp {
 	if err != nil {
 		log.Fatal("Could not create GTK application:", err)
 	}
-	togglDb, err := db.NewDB(os.Getenv("TOGGL_KEY"),
-		&db.StoreAdapter{Store: (*store.Store)(database)})
+	togglDb, err := state.NewDB(os.Getenv("TOGGL_KEY"),
+		&state.StoreAdapter{Store: (*store.Store)(database)})
 	if err != nil {
 		log.Fatal("Could not create DB:", err)
 	}

@@ -9,13 +9,13 @@ import (
 
 type Client struct {
 	Synced
-	gtclient.Client `gorm:"-"`
+	gtclient.Client
 }
 
 type Clients []Client
 
 type ClientManager gorm.DB
 
-func (m *ClientManager) List() gtclient.Clients {
+func (m *ClientManager) List() Clients {
 	return listClients(m.gorm())
 }

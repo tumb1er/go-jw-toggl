@@ -4,27 +4,24 @@ import (
 	"encoding/json"
 	"fmt"
 	"go-jw-toggl/jwtoggl/gtoggl/gthttp"
-	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
-	"go-jw-toggl/jwtoggl/gtoggl/gtworkspace"
 	"log"
 	"net/url"
 	"time"
 )
 
 type TimeEntry struct {
-	Id          uint64                 `json:"id,omitempty"`
-	Description string                 `json:"description"`
-	Project     *gtproject.Project     `json:"project"`
-	Start       time.Time              `json:"start"`
-	Stop        time.Time              `json:"stop"`
-	Duration    int64                  `json:"duration"`
-	Billable    bool                   `json:"billable"`
-	Workspace   *gtworkspace.Workspace `json:"workspace"`
-	Tags        []string               `json:"tags" gorm:"-"`
-	Pid         uint64                 `json:"pid"`
-	WId         uint64                 `json:"wid"`
-	Tid         uint64                 `json:"tid"`
-	CreatedWith string                 `json:"created_with,omitempty" `
+	Id          uint64    `json:"id,omitempty"`
+	Name        string    `json:"description"`
+	Start       time.Time `json:"start"`
+	Stop        time.Time `json:"stop"`
+	Duration    int64     `json:"duration" gorm:"-"`
+	Billable    bool      `json:"billable"`
+	Tags        []string  `json:"tags" gorm:"-"`
+	Pid         uint64    `json:"pid"`
+	WId         uint64    `json:"wid"`
+	Tid         uint64    `json:"tid"`
+	CreatedWith string    `json:"created_with,omitempty" gorm:"-"`
+	At          time.Time `json:"at,omitempty" gorm:"-"`
 }
 
 type TimeEntries []TimeEntry
