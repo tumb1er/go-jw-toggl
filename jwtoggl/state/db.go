@@ -6,7 +6,6 @@ import (
 	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/gtoggl"
 	"go-jw-toggl/jwtoggl/gtoggl/gthttp"
-	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
 	"go-jw-toggl/jwtoggl/gtoggl/gtwebsocket"
 	"go-jw-toggl/jwtoggl/store"
 	"log"
@@ -69,15 +68,11 @@ func (db *DB) UpdateCurrentEntry(entry dto.TimeEntrySaver) error {
 	if storeEntry == nil {
 		panic("Can't find entry to update")
 	}
-	storeProject := db.s.Projects().GetByPK(entry.GetProjectPK())
-	if storeProject == nil {
+	project := db.s.Projects().GetByPK(entry.GetProjectPK())
+	if project == nil {
 		panic("Can't find project for entry")
 	}
-	timeEntry := &storeEntry.TimeEntry
-	timeEntry.Name = entry.GetName()
-	timeEntry.Start = entry.GetStart()
-	timeEntry.Tags = entry.GetTags()
-	timeEntry.Pid = storeProject.Id
+	storeEntry.SetTimeEntry(entry, *project)
 	storeEntry.MarkModified()
 	if db.update(storeEntry) {
 		db.onCurrentEntry(db.s.TimeEntries().Current(), false)
@@ -105,26 +100,18 @@ func (db *DB) updateEntry(entry *store.TimeEntry) error {
 }
 
 func (db *DB) CreateEntry(entry dto.TimeEntrySaver) error {
-	storeProject := db.s.Projects().GetByPK(entry.GetProjectPK())
-	if storeProject == nil {
-		panic("Can't find project for new entry")
+	project := db.s.Projects().GetByPK(entry.GetProjectPK())
+	if project == nil {
+		panic("Can't find project for entry")
 	}
-	timeEntry := &gttimeentry.TimeEntry{
-		Name:  entry.GetName(),
-		Start: entry.GetStart(),
-		Tags:  entry.GetTags(),
-		Pid:   storeProject.Id,
-	}
-
-	storeEntry := store.TimeEntry{
-		TimeEntry: *timeEntry,
-	}
-
+	storeEntry := store.TimeEntry{}
+	storeEntry.SetTimeEntry(entry, *project)
+	storeEntry.MarkModified()
 	old := db.s.TimeEntries().Current()
 	db.update(&storeEntry)
-	if !old.Nil() && old.PK != storeEntry.PK && storeEntry.IsCurrent() {
+	if !old.Nil() && old.PK != storeEntry.PK {
 		old.Stop = storeEntry.Start
-		old.Duration = int64(old.Stop.Sub(old.Start).Seconds())
+		old.ComputeDuration()
 		db.update(&old)
 		db.onTimeEntriesChanged(db.s.TimeEntries().List())
 	}

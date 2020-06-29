@@ -182,3 +182,13 @@ func (obj *TimeEntry) MarkModified() {
 	ts := time.Now().Local()
 	obj.Modified = &ts
 }
+
+func (obj *TimeEntry) SetTimeEntry(entry dto.TimeEntrySaver, project Project) {
+	obj.Project = project
+	obj.ProjectPK = project.PK
+	obj.Pid = project.Id
+
+	obj.Name = entry.GetName()
+	obj.Start = entry.GetStart()
+	obj.Tags = entry.GetTags()
+}
