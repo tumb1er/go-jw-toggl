@@ -73,6 +73,9 @@ func (obj *TimeEntry) loadProjectFromToggl(db *gorm.DB) {
 }
 
 func (obj *TimeEntry) loadTagsFromToggl(db *gorm.DB) {
+	if len(obj.TagSet) == 0 {
+		log.Println("WARNING: preloading tags inplace")
+	}
 	tagsMap := make(map[string]Tag)
 	tags := make([]Tag, 0)
 	Must(db.Find(&tags))
