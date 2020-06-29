@@ -78,6 +78,10 @@ func (j *jApp) doSync() {
 	defer log.Println("sync done")
 	j.handleError(j.db.SyncCurrentEntry(false), "Sync current entry error")
 	j.handleError(j.db.SyncLastEntries(false), "Sync last entries error")
+	const debugSyncChanges = false
+	if !debugSyncChanges {
+		j.handleError(j.db.SyncChanges(), "Sync changes error")
+	}
 }
 
 func (j *jApp) syncDuration() {
