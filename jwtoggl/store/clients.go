@@ -19,3 +19,7 @@ type ClientManager gorm.DB
 func (m *ClientManager) List() Clients {
 	return listClients(m.gorm())
 }
+
+func (qs *Clients) Preload(_ *gorm.DB) error {
+	return nil
+}
