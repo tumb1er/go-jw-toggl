@@ -1,6 +1,7 @@
 package state
 
 import (
+	"go-jw-toggl/jwtoggl/gtoggl"
 	"go-jw-toggl/jwtoggl/gtoggl/gtclient"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
@@ -63,6 +64,7 @@ type common interface {
 	store() Store
 	subscriber() Subscriber
 	wid() uint64
+	toggl() *gtoggl.TogglClient
 }
 
 // Subscriber предоставляет доступ к подписке на события WS-клиента Toggl
