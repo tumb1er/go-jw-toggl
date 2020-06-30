@@ -6,6 +6,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
+	"log"
 )
 
 type Project struct {
@@ -32,6 +33,7 @@ func (obj Project) GetHexColor() string {
 
 func (obj *Project) loadClientFromToggl(db *gorm.DB) {
 	if obj.Client.PK == 0 {
+		log.Println("WARNING: Client not preloaded")
 		// Загружаем клиента из БД по внутреннему ключу
 		if obj.ClientPK != 0 {
 			if !MustOrNotFound(db.Where("pk = ?", obj.ClientPK).First(&obj.Client)) {
@@ -49,6 +51,23 @@ func (obj *Project) loadClientFromToggl(db *gorm.DB) {
 }
 
 type Projects []Project
+
+func (qs *Projects) Preload(db *gorm.DB) error {
+	clientsMap := make(map[uint64]Client)
+	clients := NewClients()
+	if err := db.Find(clients).Error; err != nil {
+		return err
+	}
+	for _, client := range *clients {
+		clientsMap[client.Id] = client
+	}
+	for i, project := range *qs {
+		project.Client = clientsMap[project.CId]
+		project.ClientPK = project.Client.PK
+		(*qs)[i] = project
+	}
+	return nil
+}
 
 type ProjectManager gorm.DB
 

@@ -19,3 +19,7 @@ type TagManager gorm.DB
 func (m *TagManager) List() Tags {
 	return listTags(m.gorm().Order("name ASC"))
 }
+
+func (qs *Tags) Preload(_ *gorm.DB) error {
+	return nil
+}

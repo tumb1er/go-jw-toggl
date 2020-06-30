@@ -47,6 +47,9 @@ func (qs Projects) DTO() []dto.Project {
 }
 
 func (qs Projects) Sync(db *gorm.DB) (changed bool, err error) {
+	if err = qs.Preload(db); err != nil {
+		return
+	}
 	err = db.Transaction(func(tx *gorm.DB) error {
 		ts := time.Now().Local()
 		existing := NewProjects()

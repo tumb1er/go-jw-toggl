@@ -47,6 +47,9 @@ func (qs Tags) DTO() []dto.Tag {
 }
 
 func (qs Tags) Sync(db *gorm.DB) (changed bool, err error) {
+	if err = qs.Preload(db); err != nil {
+		return
+	}
 	err = db.Transaction(func(tx *gorm.DB) error {
 		ts := time.Now().Local()
 		existing := NewTags()

@@ -22,6 +22,37 @@ type TimeEntry struct {
 
 type TimeEntries []TimeEntry
 
+func (qs *TimeEntries) Preload(db *gorm.DB) error {
+	projectsMap := make(map[uint64]Project)
+	projects := NewProjects()
+	res := db.Set("gorm:auto_preload", true).Find(projects)
+	if res.Error != nil {
+		return res.Error
+	}
+	for _, project := range *projects {
+		projectsMap[project.Id] = project
+	}
+	tagsMap := make(map[string]Tag)
+	tags := NewTags()
+	if err := db.Find(tags).Error; err != nil {
+		return err
+	}
+	for _, tag := range *tags {
+		tagsMap[tag.Name] = tag
+	}
+	for i, entry := range *qs {
+		entry.Project = projectsMap[entry.Pid]
+		entry.ProjectPK = entry.Project.PK
+		tags := make([]Tag, 0, len(entry.Tags))
+		for _, tag := range entry.Tags {
+			tags = append(tags, tagsMap[tag])
+		}
+		entry.TagSet = tags
+		(*qs)[i] = entry
+	}
+	return nil
+}
+
 func (obj *TimeEntry) BeforeSave(db *gorm.DB) error {
 	obj.loadProjectFromToggl(db)
 	obj.loadTagsFromToggl(db)
@@ -37,6 +68,7 @@ func (obj *TimeEntry) AfterFind() error {
 func (obj *TimeEntry) loadProjectFromToggl(db *gorm.DB) {
 	qs := db.Set("gorm:auto_preload", true)
 	if obj.Project.PK == 0 {
+		log.Println("WARNING: Project not preloaded")
 		// Загружаем проект из БД по внутреннему ключу
 		if obj.ProjectPK != 0 {
 			if !MustOrNotFound(qs.Where("pk = ?", obj.ProjectPK).First(&obj.Project)) {
@@ -56,6 +88,9 @@ func (obj *TimeEntry) loadProjectFromToggl(db *gorm.DB) {
 }
 
 func (obj *TimeEntry) loadTagsFromToggl(db *gorm.DB) {
+	if len(obj.TagSet) == 0 {
+		log.Println("WARNING: Tags not preloaded")
+	}
 	tagsMap := make(map[string]Tag)
 	tags := make([]Tag, 0)
 	Must(db.Find(&tags))
