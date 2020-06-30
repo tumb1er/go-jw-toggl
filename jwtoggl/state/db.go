@@ -2,12 +2,9 @@ package state
 
 import (
 	"context"
-	"errors"
-	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/gtoggl"
 	"go-jw-toggl/jwtoggl/gtoggl/gthttp"
 	"go-jw-toggl/jwtoggl/gtoggl/gtwebsocket"
-	"go-jw-toggl/jwtoggl/store"
 	"log"
 	"net/http"
 	"time"
@@ -63,198 +60,8 @@ func (db *DB) wid() uint64 {
 	return db.defaultWId
 }
 
-func (db *DB) UpdateCurrentEntry(entry dto.TimeEntrySaver) error {
-	storeEntry := db.s.TimeEntries().GetByPK(entry.GetPK())
-	if storeEntry == nil {
-		panic("Can't find entry to update")
-	}
-	project := db.s.Projects().GetByPK(entry.GetProjectPK())
-	if project == nil {
-		panic("Can't find project for entry")
-	}
-	storeEntry.SetTimeEntry(entry, *project)
-	storeEntry.MarkModified()
-	if db.s.TimeEntries().CreateOrUpdate(storeEntry) {
-		db.onCurrentEntry(db.s.TimeEntries().Current(), false)
-		if !debugSyncChanged {
-			go db.updateEntry(storeEntry)
-		}
-	}
-
-	return nil
-}
-
-func (db *DB) updateEntry(entry *store.TimeEntry) error {
-	timeEntry := &entry.TimeEntry
-	timeEntry.WId = db.defaultWId
-	log.Printf("Updating entry: %+v\n", timeEntry)
-
-	if timeEntry, err := db.client.TimeentryClient.Update(timeEntry); err != nil {
-		log.Printf("Update entry error: %+v\n", timeEntry)
-		return err
-	} else {
-		log.Printf("Update entry result: %+v\n", timeEntry)
-
-		entry.ComputeUpdated()
-		entry.MarkFetched()
-
-		db.s.TimeEntries().Update(entry)
-		return nil
-	}
-}
-
-func (db *DB) CreateEntry(entry dto.TimeEntrySaver) error {
-	project := db.s.Projects().GetByPK(entry.GetProjectPK())
-	if project == nil {
-		panic("Can't find project for entry")
-	}
-	storeEntry := store.TimeEntry{}
-	storeEntry.SetTimeEntry(entry, *project)
-	storeEntry.MarkModified()
-	old := db.s.TimeEntries().Current()
-	db.s.TimeEntries().Create(&storeEntry)
-	if !old.Nil() && old.PK != storeEntry.PK {
-		old.Stop = storeEntry.Start
-		db.s.TimeEntries().Update(&old)
-		db.onTimeEntriesChanged(db.s.TimeEntries().List())
-	}
-	db.onCurrentEntry(storeEntry, false)
-
-	if !debugSyncChanged {
-		go db.createEntry(storeEntry)
-	}
-
-	return nil
-}
-
-func (db *DB) createEntry(entry store.TimeEntry) error {
-	entry.CreatedWith = "go-jw-toggl"
-	entry.WId = db.defaultWId
-	timeEntry := &entry.TimeEntry
-	log.Printf("Start create entry: %+v\n", timeEntry)
-	if timeEntry, err := db.client.TimeentryClient.Create(timeEntry); err != nil {
-		log.Printf("Create entry error: %+v\n", err)
-		return err
-	} else {
-		log.Printf("Create entry result: %+v\n", timeEntry)
-		entry.TimeEntry = *timeEntry
-
-		entry.ComputeUpdated()
-		entry.MarkFetched()
-
-		db.s.TimeEntries().Update(&entry)
-		return nil
-	}
-}
-
-func (db *DB) StopEntry(pk uint) error {
-	current := db.s.TimeEntries().Current()
-	if current.Nil() || current.PK != pk {
-		return errors.New("current entry de-sync")
-	}
-	current.MarkStopped()
-	db.s.TimeEntries().Update(&current)
-	db.onCurrentEntry(store.TimeEntry{}, false)
-	db.onTimeEntriesChanged(db.s.TimeEntries().List())
-	if !debugSyncChanged {
-		go db.stopEntry(current)
-	}
-	return nil
-}
-
-func (db *DB) stopEntry(entry store.TimeEntry) {
-	timeEntry := &entry.TimeEntry
-	log.Printf("Send stop: %+v\n", timeEntry)
-	if timeEntry, err := db.client.TimeentryClient.Update(timeEntry); err != nil {
-		log.Printf("TimeEntry stop error: %+v\n", err)
-	} else {
-		log.Printf("Stop result: %+v\n", entry)
-		entry.TimeEntry = *timeEntry
-
-		entry.ComputeUpdated()
-		entry.MarkFetched()
-
-		db.s.TimeEntries().Update(&entry)
-	}
-}
-
-func (db *DB) ContinueEntry(pk uint) error {
-	var storeEntry *store.TimeEntry
-	if storeEntry = db.s.TimeEntries().GetByPK(pk); storeEntry == nil {
-		panic("Can't continue entry")
-	}
-
-	storeEntry.Start = time.Now().Local()
-	return db.CreateEntry(storeEntry)
-}
-
-func (db *DB) DeleteEntry(pk uint) error {
-	storeEntry := db.s.TimeEntries().GetByPK(pk)
-	if storeEntry == nil {
-		panic("Can't find entry to delete")
-	}
-	entries := db.s.TimeEntries()
-	entries.MarkDeleted(pk)
-	db.onTimeEntriesChanged(entries.List())
-	if !debugSyncChanged {
-		go db.deleteEntry(storeEntry)
-	}
-	return nil
-}
-
-func (db *DB) deleteEntry(storeEntry *store.TimeEntry) error {
-	log.Printf("Start delete entry: %d\n", storeEntry.Id)
-	if err := db.client.TimeentryClient.Delete(storeEntry.Id); err != nil {
-		log.Printf("Delete error: %+v\n", err)
-		return err
-	} else {
-		log.Printf("Delete %d successfully\n", storeEntry.Id)
-		db.s.TimeEntries().Delete(storeEntry.PK)
-		return nil
-	}
-}
-
-func (db *DB) SyncCurrentEntry(force bool) error {
-	entries := db.s.TimeEntries()
-	old := entries.Current()
-	entry, err := db.client.TimeentryClient.Current()
-	if err != nil {
-		return err
-	}
-	if entry == nil {
-		return nil
-	}
-	storeEntry := entries.FromTimeEntry(*entry)
-	if entries.CreateOrUpdate(&storeEntry) || force {
-		current := entries.Current()
-		if old.Nil() && current.Nil() {
-			// prevent notify change nil to nil
-			log.Println("Skip notify change current entry nil to nil")
-			return nil
-		}
-		if !current.Equals(old) || force {
-			db.onCurrentEntry(current, true)
-		}
-	}
-	return nil
-}
-
-func (db *DB) SyncLastEntries(force bool) error {
-	end := time.Now()
-	start := end.Add(-7 * 24 * time.Hour)
-	old := db.s.TimeEntries().Current()
-	entries, err := db.client.TimeentryClient.GetRange(start, end)
-	if err != nil {
-		return err
-	}
-	if db.saveTimeEntries(entries) || force {
-		current := db.s.TimeEntries().Current()
-		if !current.Equals(old) {
-			db.onCurrentEntry(current, true)
-		}
-		db.onTimeEntriesChanged(db.s.TimeEntries().List())
-	}
-	return nil
+func (db *DB) toggl() *gtoggl.TogglClient {
+	return db.client
 }
 
 func (db *DB) SyncUser(force bool) error {
@@ -273,22 +80,7 @@ func (db *DB) SyncUser(force bool) error {
 func (db *DB) SyncChanges() error {
 	log.Println("Start sync changes")
 	defer log.Println("Finish sync changes")
-	for _, entry := range db.s.TimeEntries().DeletedEntries() {
-		if err := db.deleteEntry(&entry); err != nil {
-			return err
-		}
-	}
-	for _, entry := range db.s.TimeEntries().NewEntries() {
-		if err := db.createEntry(entry); err != nil {
-			return err
-		}
-	}
-	for _, entry := range db.s.TimeEntries().ChangedEntries() {
-		if err := db.updateEntry(&entry); err != nil {
-			return err
-		}
-	}
-	return nil
+	return db.TimeEntriesDB.SyncChanges()
 }
 
 func (db *DB) StartListen(ctx context.Context) {
@@ -302,8 +94,4 @@ func (db *DB) StartListen(ctx context.Context) {
 			log.Fatal("WebSocket listen error:", err)
 		}
 	}()
-}
-
-func (db *DB) GetCurrentEntry() store.TimeEntry {
-	return db.s.TimeEntries().Current()
 }
