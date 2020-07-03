@@ -129,12 +129,19 @@ type sender interface {
 	Connect(string, interface{}, ...interface{}) (glib.SignalHandle, error)
 }
 
-func (f *GtkEntryForm) connect(obj sender, handler interface{}) error {
+func (f *GtkEntryForm) connect(obj sender, handler interface{}, extra ...string) error {
 	if _, err := obj.Connect("changed", handler); err != nil {
 		return err
 	}
-	_, err := obj.Connect("focus-out-event", f.notifyEditCompleted)
-	return err
+	if _, err := obj.Connect("focus-out-event", f.notifyEditCompleted); err != nil {
+		return err
+	}
+	for _, signal := range extra {
+		if _, err := obj.Connect(signal, f.notifyEditCompleted); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (f *GtkEntryForm) ConnectSignals() error {
@@ -144,13 +151,13 @@ func (f *GtkEntryForm) ConnectSignals() error {
 	if err := f.connect(f.projectEntry, f.notifyProject); err != nil {
 		return err
 	}
-	if err := f.connect(f.project, f.notifyProject); err != nil {
+	if err := f.connect(f.project, f.notifyProject, "set-focus-child"); err != nil {
 		return err
 	}
 	if err := f.connect(f.tagEntry, f.notifyTag); err != nil {
 		return err
 	}
-	if err := f.connect(f.tag, f.notifyTag); err != nil {
+	if err := f.connect(f.tag, f.notifyTag, "set-focus-child"); err != nil {
 		return err
 	}
 	if err := f.connect(f.start, f.notifyStart); err != nil {
