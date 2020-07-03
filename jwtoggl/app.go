@@ -54,7 +54,7 @@ func (j *jApp) initWindow(b *builder.Builder) {
 	if j.window, err = window.New(b); err != nil {
 		log.Fatal(err)
 	}
-	if err = j.window.ConnectSignals(j.onWindowDelete); err != nil {
+	if err = j.window.ConnectSignals(j.onWindowDelete, j.onWindowLeave); err != nil {
 		log.Fatal(err)
 	}
 	j.window.AddToApp(j.app)
@@ -85,6 +85,11 @@ func (j *jApp) onEntryChanged(entry dto.TimeEntrySaver) {
 
 func (j *jApp) onWindowDelete() bool {
 	j.window.Hide()
+	return true
+}
+
+func (j *jApp) onWindowLeave() bool {
+	j.form.OnEditCompleted()
 	return true
 }
 

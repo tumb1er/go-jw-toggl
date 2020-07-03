@@ -21,8 +21,12 @@ func New(b *builder.Builder) (*MainWindow, error) {
 
 func (w *MainWindow) ConnectSignals(
 	onWindowDelete func() bool,
+	onWindowLeave func() bool,
 ) error {
 	if _, err := w.window.Connect("delete-event", onWindowDelete); err != nil {
+		return err
+	}
+	if _, err := w.window.Connect("focus-out-event", onWindowLeave); err != nil {
 		return err
 	}
 	return nil
