@@ -98,6 +98,7 @@ func (db *TimeEntriesDB) updateEntry(entry *store.TimeEntry) error {
 
 		entry.ComputeUpdated()
 		entry.MarkFetched()
+		entry.Modified = entry.Updated
 
 		db.store().TimeEntries().Update(entry)
 		return nil
@@ -228,6 +229,10 @@ func (db *TimeEntriesDB) SyncCurrentEntry(force bool) error {
 		return nil
 	}
 	storeEntry := entries.FromTimeEntry(*entry)
+	if storeEntry.Modified.After(storeEntry.At) {
+		log.Println("Skip updating current entry, local more recent.")
+		return nil
+	}
 	if entries.CreateOrUpdate(&storeEntry) || force {
 		current := entries.Current()
 		if old.Nil() && current.Nil() {
