@@ -229,7 +229,7 @@ func (db *TimeEntriesDB) SyncCurrentEntry(force bool) error {
 		return nil
 	}
 	storeEntry := entries.FromTimeEntry(*entry)
-	if storeEntry.Modified.After(storeEntry.At) {
+	if storeEntry.Modified != nil && storeEntry.Modified.After(storeEntry.At) {
 		log.Println("Skip updating current entry, local more recent.")
 		return nil
 	}
