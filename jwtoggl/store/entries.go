@@ -108,7 +108,7 @@ func (obj TimeEntry) GetProjectPK() uint {
 }
 
 func (obj TimeEntry) GetTags() []string {
-	if len(obj.TagSet) == 0 {
+	if obj.TagSet == nil {
 		panic("Tags not preloaded")
 	}
 	result := make([]string, len(obj.TagSet))
