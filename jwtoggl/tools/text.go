@@ -3,9 +3,10 @@ package tools
 const TrayLen = 20
 
 func Shorten(desc string) string {
-	l := len(desc)
+	runes := []rune(desc)
+	l := len(runes)
 	if l > TrayLen {
-		desc = desc[:TrayLen] + "..."
+		runes = append(runes[:TrayLen], []rune("...")...)
 	}
-	return desc
+	return string(runes)
 }
