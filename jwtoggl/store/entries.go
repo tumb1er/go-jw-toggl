@@ -185,10 +185,10 @@ func (obj TimeEntry) Equals(other TimeEntry) bool {
 		if !tools.TagSlicesEqual(obj.GetTags(), other.GetTags()) {
 			log.Printf("Tag test: %s %s\n", obj.GetTags(), other.GetTags())
 		}
-		if obj.Start != other.Start {
+		if !obj.Start.Equal(other.Start) {
 			log.Printf("Start test: %s %s\n", obj.Start, other.Start)
 		}
-		if obj.Stop != other.Stop {
+		if !obj.Stop.Equal(other.Stop) {
 			log.Printf("Stop test: %s %s\n", obj.Stop, other.Stop)
 		}
 	}

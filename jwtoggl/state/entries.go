@@ -219,6 +219,8 @@ func (db *TimeEntriesDB) deleteEntry(storeEntry *store.TimeEntry) error {
 }
 
 func (db *TimeEntriesDB) SyncCurrentEntry(force bool) error {
+	log.Println("start SyncCurrentEntry ", force)
+	defer log.Println("finish SyncCurrentEntry ", force)
 	entries := db.store().TimeEntries()
 	old := entries.Current()
 	entry, err := db.toggl().TimeentryClient.Current()
