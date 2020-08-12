@@ -13,10 +13,14 @@ import (
 //go:generate go generate go-jw-toggl/jwtoggl/store go-jw-toggl/jwtoggl/state
 
 func main() {
-	dir := tools.GetAppDir()
+	dir := path.Join(tools.GetAppDir(), "db")
+	err := os.MkdirAll(dir, 0755)
+	if err != nil {
+		panic(err)
+	}
 	db, err := gorm.Open("sqlite3", path.Join(dir, "jwtoggl.db"))
 	if err != nil {
-		panic("failed to connect database")
+		panic(err)
 	}
 	defer func() {
 		if err := db.Close(); err != nil {
