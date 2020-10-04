@@ -3,6 +3,7 @@ package gtk_history
 import (
 	"fmt"
 	"github.com/gotk3/gotk3/gdk"
+	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
 	"github.com/gotk3/gotk3/pango"
 	"go-jw-toggl/jwtoggl/builder"
@@ -261,18 +262,18 @@ func New(b *builder.Builder) (*GtkHistory, error) {
 		return nil, err
 	}
 
-	area, err := CellAreaBoxNew()
+	area, err := gtk.CellAreaBoxNew()
 	if err != nil {
 		log.Fatal(err)
 	}
-	column, err := TreeViewColumnNewWithArea(area)
+	column, err := gtk.TreeViewColumnNewWithArea(area)
 	if err != nil {
 		return nil, err
 	} else {
 		column.SetTitle("Recent entries")
 	}
 
-	widgets := []func(*gtk.TreeViewColumn, *CellAreaBox) error{
+	widgets := []func(*gtk.TreeViewColumn, *gtk.CellAreaBox) error{
 		setupGroupCountRenderer,
 		setupDescriptionRenderer,
 		setupTimingsRenderer,
@@ -291,8 +292,8 @@ func New(b *builder.Builder) (*GtkHistory, error) {
 	return h, nil
 }
 
-func setupTimingsRenderer(column *gtk.TreeViewColumn, area *CellAreaBox) error {
-	if r, err := CellRendererTextNew(); err != nil {
+func setupTimingsRenderer(column *gtk.TreeViewColumn, area *gtk.CellAreaBox) error {
+	if r, err := gtk.CellRendererTextNew(); err != nil {
 		return err
 	} else {
 		if err := SetProperties(r.Object, map[string]interface{}{
@@ -312,8 +313,8 @@ func setupTimingsRenderer(column *gtk.TreeViewColumn, area *CellAreaBox) error {
 	}
 }
 
-func setupGroupCountRenderer(column *gtk.TreeViewColumn, area *CellAreaBox) error {
-	if r, err := CellRendererTextNew(); err != nil {
+func setupGroupCountRenderer(column *gtk.TreeViewColumn, area *gtk.CellAreaBox) error {
+	if r, err := gtk.CellRendererTextNew(); err != nil {
 		return err
 	} else {
 		area.PackStart(r, false, false, false)
@@ -327,8 +328,8 @@ func setupGroupCountRenderer(column *gtk.TreeViewColumn, area *CellAreaBox) erro
 	}
 }
 
-func setupDescriptionRenderer(column *gtk.TreeViewColumn, area *CellAreaBox) error {
-	if r, err := CellRendererTextNew(); err != nil {
+func setupDescriptionRenderer(column *gtk.TreeViewColumn, area *gtk.CellAreaBox) error {
+	if r, err := gtk.CellRendererTextNew(); err != nil {
 		return err
 	} else {
 		if err := r.SetProperty(propYPad, 4); err != nil {
@@ -340,5 +341,21 @@ func setupDescriptionRenderer(column *gtk.TreeViewColumn, area *CellAreaBox) err
 			attrBackground: columnBackground,
 		})
 		return nil
+	}
+}
+
+func SetProperties(obj *glib.Object, values map[string]interface{}) error {
+	for name, value := range values {
+		if err := obj.SetProperty(name, value); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func AddAttributes(column *gtk.TreeViewColumn, r *gtk.CellRendererText, attributes map[string]int) {
+	renderer := gtk.CellRenderer{InitiallyUnowned: r.InitiallyUnowned}
+	for name, columnId := range attributes {
+		column.AddAttribute(&renderer, name, columnId)
 	}
 }
