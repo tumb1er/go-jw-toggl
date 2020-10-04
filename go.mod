@@ -6,7 +6,7 @@ require (
 	github.com/dawidd6/go-appindicator v1.0.0
 	github.com/gomodule/redigo v2.0.0+incompatible // indirect
 	github.com/gorilla/websocket v1.4.2
-	github.com/gotk3/gotk3 v0.4.0
+	github.com/gotk3/gotk3 v0.5.0
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/jinzhu/gorm v1.9.12
 	github.com/throttled/throttled v2.2.4+incompatible

@@ -337,11 +337,11 @@ func (f *GtkEntryForm) uiSetActiveProject() error {
 	if project, err := f.projectEntry.GetText(); err != nil {
 		return err
 	} else {
-		filter := func(
+		var filter gtk.TreeModelForeachFunc = func(
 			model *gtk.TreeModel,
 			path *gtk.TreePath,
 			iter *gtk.TreeIter,
-			userData interface{},
+			userData ...interface{},
 		) bool {
 			name, err := tools.GetString(model, iter, 1)
 			if err != nil {
@@ -357,7 +357,8 @@ func (f *GtkEntryForm) uiSetActiveProject() error {
 			}
 			return false
 		}
-		return f.projectsListStore.ForEach(filter)
+		f.projectsListStore.ForEach(filter)
+		return nil
 	}
 }
 
