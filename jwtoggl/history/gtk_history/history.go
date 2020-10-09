@@ -89,7 +89,7 @@ func (h *GtkHistory) SetEntries(entries []dto.TimeEntry) {
 			}
 
 			for day, ds := range cache {
-				h.insertDayEntry(day.Format("2006-01-02"), ds.it, ds.duration)
+				h.insertDayEntry(day, ds.it, ds.duration)
 				for _, ts := range ds.tasks {
 					if ts.count > 1 {
 						h.insertTaskSummary(ts.it, ts.count)

@@ -31,10 +31,11 @@ func (ds *daySummary) add(s *gtk.TreeStore, entry dto.TimeEntry) *taskSummary {
 	return ds.tasks[key]
 }
 
-type dayGroup map[time.Time]*daySummary
+type dayGroup map[string]*daySummary
 
 func (dg dayGroup) add(s *gtk.TreeStore, entry dto.TimeEntry) *daySummary {
-	day := entry.GetStart().Local().Truncate(24 * time.Hour)
+	ts := entry.GetStart().Local()
+	day := ts.Format("2006-01-02")
 	summary, ok := dg[day]
 	if ok {
 		return summary
