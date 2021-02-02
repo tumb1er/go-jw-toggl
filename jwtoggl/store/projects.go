@@ -23,7 +23,11 @@ func (obj *Project) BeforeSave(db *gorm.DB) error {
 
 func (obj Project) GetClient() dto.Client {
 	if obj.Client.PK == 0 {
-		panic("not preloaded")
+		if obj.ClientPK != 0 {
+			panic("not preloaded")
+		} else {
+			log.Println("WARNING: client zero")
+		}
 	}
 	return obj.Client
 }

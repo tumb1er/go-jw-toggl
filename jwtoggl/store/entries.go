@@ -145,7 +145,11 @@ func (obj TimeEntry) TaskKey() string {
 
 func (obj TimeEntry) GetProject() dto.Project {
 	if obj.Project.PK == 0 {
-		panic("project not preloaded")
+		if obj.ProjectPK != 0 {
+			panic("project not preloaded")
+		} else {
+			log.Println("WARNING: project id zero")
+		}
 	}
 	return obj.Project
 }
