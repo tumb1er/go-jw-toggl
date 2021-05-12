@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/throttled/throttled"
 	"github.com/throttled/throttled/store/memstore"
+	"go-jw-toggl/jwtoggl/tools"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -18,14 +19,14 @@ const (
 	DefaultAuthPassword       = "api_token"
 	DefaultMaxRetries         = 5
 	DefaultGzipEnabled        = false
-	DefaultUrl                = "https://www.toggl.com/api/v8"
+	DefaultUrl                = "https://api.track.toggl.com/api/v8"
 	DefaultVersion            = "v8"
 	SessionCookieName         = "__Host-timer-session"
 	defaultBucket             = "toggl"
 	DefaultRateLimitPerSecond = 3
 )
 
-// Client is an Toggl REST client. Created by calling NewClient.
+// TogglHttpClient is an Toggl REST client. Created by calling NewClient.
 type TogglHttpClient struct {
 	client      *http.Client // net/http Client to use for requests
 	version     string       // v8
@@ -60,7 +61,7 @@ func (e *TogglError) Error() string {
 // It is used in NewClient.
 type ClientOptionFunc func(*TogglHttpClient) error
 
-// Return a new TogglHttpClient . An error is also returned when some configuration option is invalid
+// NewClient returns a new TogglHttpClient. An error is also returned when some configuration option is invalid
 //    tc,err := gtoggl.NewClient("token")
 func NewClient(key string, options ...ClientOptionFunc) (*TogglHttpClient, error) {
 	// Set up the client
@@ -113,6 +114,7 @@ func SetHttpClient(httpClient *http.Client) ClientOptionFunc {
 }
 
 // SetURL defines the base URL. See DefaultUrl
+//goland:noinspection GoUnusedExportedFunction
 func SetURL(url string) ClientOptionFunc {
 	return func(c *TogglHttpClient) error {
 		c.Url = url
@@ -127,7 +129,10 @@ func SetRateLimit(perSec int) ClientOptionFunc {
 		if err != nil {
 			return err
 		}
-		quota := throttled.RateQuota{throttled.PerSec(perSec), 1}
+		quota := throttled.RateQuota{
+			MaxRate:  throttled.PerSec(perSec),
+			MaxBurst: 1,
+		}
 		c.rateLimiter, err = throttled.NewGCRARateLimiter(store, quota)
 		if err != nil {
 			return err
@@ -137,7 +142,8 @@ func SetRateLimit(perSec int) ClientOptionFunc {
 	}
 }
 
-//Custom logger to print HTTP requests
+//SetTraceLogger sets a logger to print HTTP requests
+//goland:noinspection GoUnusedExportedFunction
 func SetTraceLogger(l Logger) ClientOptionFunc {
 	return func(c *TogglHttpClient) error {
 		c.traceLog = l
@@ -145,7 +151,8 @@ func SetTraceLogger(l Logger) ClientOptionFunc {
 	}
 }
 
-//Custom logger to handle error messages
+//SetErrorLogger sets a logger to handle error messages
+//goland:noinspection GoUnusedExportedFunction
 func SetErrorLogger(l Logger) ClientOptionFunc {
 	return func(c *TogglHttpClient) error {
 		c.errorLog = l
@@ -153,7 +160,8 @@ func SetErrorLogger(l Logger) ClientOptionFunc {
 	}
 }
 
-//Custom logger to handle info messages
+//SetInfoLogger sets a logger to handle info messages
+//goland:noinspection GoUnusedExportedFunction
 func SetInfoLogger(l Logger) ClientOptionFunc {
 	return func(c *TogglHttpClient) error {
 		c.infoLog = l
@@ -163,6 +171,7 @@ func SetInfoLogger(l Logger) ClientOptionFunc {
 
 type nullLogger struct{}
 
+//goland:noinspection GoUnusedParameter
 func (l *nullLogger) Printf(format string, v ...interface{}) {
 }
 
@@ -182,7 +191,7 @@ func (c *TogglHttpClient) authenticate() error {
 	c.dumpResponse(resp)
 
 	if resp.StatusCode >= 400 {
-		defer resp.Body.Close()
+		defer tools.MustClose(resp.Body)
 		b, _ := ioutil.ReadAll(resp.Body)
 		return &TogglError{Code: resp.StatusCode, Status: resp.Status, Msg: string(b)}
 	}
@@ -195,7 +204,7 @@ func (c *TogglHttpClient) authenticate() error {
 		}
 	}
 	if !hasSessionCookie {
-		return fmt.Errorf("Auth cookie %q not found on authentication response", SessionCookieName)
+		return fmt.Errorf("auth cookie %q not found on authentication response", SessionCookieName)
 	}
 
 	return nil
@@ -245,7 +254,7 @@ func requestWithLimit(c *TogglHttpClient, method, endpoint string, b interface{}
 		return nil, err
 	}
 	c.dumpResponse(resp)
-	defer resp.Body.Close()
+	defer tools.MustClose(resp.Body)
 
 	js, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -275,22 +284,22 @@ func request(c *TogglHttpClient, method, endpoint string, b interface{}) (*json.
 	return requestWithLimit(c, method, endpoint, b, 1)
 }
 
-// Utility to POST requests
+// PostRequest makes POST request
 func (c *TogglHttpClient) PostRequest(endpoint string, body interface{}) (*json.RawMessage, error) {
 	return request(c, "POST", endpoint, body)
 }
 
-// Utility to DELETE requests
+// DeleteRequest makes DELETE request
 func (c *TogglHttpClient) DeleteRequest(endpoint string, body interface{}) (*json.RawMessage, error) {
 	return request(c, "DELETE", endpoint, body)
 }
 
-// Utility to PUT requests
+// PutRequest makes PUT request
 func (c *TogglHttpClient) PutRequest(endpoint string, body interface{}) (*json.RawMessage, error) {
 	return request(c, "PUT", endpoint, body)
 }
 
-// Utility to GET requests
+// GetRequest makes GET request
 func (c *TogglHttpClient) GetRequest(endpoint string) (*json.RawMessage, error) {
 	return request(c, "GET", endpoint, nil)
 }
