@@ -5,8 +5,8 @@ package store
 import (
 	"github.com/jinzhu/gorm"
 	"go-jw-toggl/jwtoggl/dto"
+	"go-jw-toggl/jwtoggl/gtoggl"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
-	"go-jw-toggl/jwtoggl/tools"
 	"log"
 	"strings"
 	"time"
@@ -139,7 +139,7 @@ func (obj TimeEntry) TaskKey() string {
 	if strings.HasPrefix(obj.Name, "#") {
 		key = strings.SplitN(obj.Name, " ", 2)[0]
 	}
-	key += tools.Tag(obj.GetTags())
+	key += gtoggl.Tag(obj.GetTags())
 	return key
 }
 
@@ -186,7 +186,7 @@ func (obj TimeEntry) Equals(other TimeEntry) bool {
 		if obj.Pid != other.Pid {
 			log.Printf("Project test: %d %d\n", obj.Pid, other.Pid)
 		}
-		if !tools.TagSlicesEqual(obj.GetTags(), other.GetTags()) {
+		if !gtoggl.TagSlicesEqual(obj.GetTags(), other.GetTags()) {
 			log.Printf("Tag test: %s %s\n", obj.GetTags(), other.GetTags())
 		}
 		if !obj.Start.Equal(other.Start) {
@@ -199,7 +199,7 @@ func (obj TimeEntry) Equals(other TimeEntry) bool {
 	return obj.Id == other.Id &&
 		obj.Name == other.Name &&
 		obj.Pid == other.Pid &&
-		tools.TagSlicesEqual(obj.GetTags(), other.GetTags()) &&
+		gtoggl.TagSlicesEqual(obj.GetTags(), other.GetTags()) &&
 		obj.Start == other.Start &&
 		obj.Stop == other.Stop
 }

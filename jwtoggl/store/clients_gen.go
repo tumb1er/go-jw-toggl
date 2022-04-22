@@ -5,8 +5,8 @@ package store
 import (
 	"github.com/jinzhu/gorm"
 	"go-jw-toggl/jwtoggl/dto"
+	"go-jw-toggl/jwtoggl/gtoggl"
 	"go-jw-toggl/jwtoggl/gtoggl/gtclient"
-	"go-jw-toggl/jwtoggl/tools"
 	"time"
 )
 
@@ -71,7 +71,7 @@ func (qs Clients) Sync(db *gorm.DB) (changed bool, err error) {
 					obj.Modified = obj.Updated
 				}
 				obj.PK = prev.PK
-				if !tools.ClientsEqual(&obj.Client, &prev.Client) {
+				if !gtoggl.ClientsEqual(&obj.Client, &prev.Client) {
 					changed = true
 				}
 				Must(tx.Save(&obj))

@@ -6,6 +6,7 @@ import (
 	"github.com/gotk3/gotk3/gtk"
 	"go-jw-toggl/jwtoggl/builder"
 	"go-jw-toggl/jwtoggl/dto"
+	"go-jw-toggl/jwtoggl/gtoggl"
 	"go-jw-toggl/jwtoggl/tools"
 	"log"
 	"strconv"
@@ -310,7 +311,7 @@ func (f *GtkEntryForm) SetTimeEntry(entry dto.TimeEntrySaver) {
 			f.stop.SetText("")
 		} else {
 			f.description.SetText(entry.GetName())
-			tag := tools.Tag(entry.GetTags())
+			tag := gtoggl.Tag(entry.GetTags())
 			if tag != "" {
 				f.tag.SetActiveID(tag)
 			} else {

@@ -55,14 +55,14 @@ func (w *MainWindow) Show() {
 		} else {
 			monitor, err = display.GetMonitorAtWindow(window)
 		}
-		if err != nil {
-			log.Fatal("GetMonitor error: ", err)
+		if err == nil {
+			g := monitor.GetGeometry()
+			w.width = g.GetWidth() / 4
+			w.height = g.GetHeight()
+			w.xPos = g.GetX() + g.GetWidth() - w.width
+			w.yPos = g.GetY()
 		}
-		g := monitor.GetGeometry()
-		w.width = g.GetWidth() / 4
-		w.height = g.GetHeight()
-		w.xPos = g.GetX() + g.GetWidth() - w.width
-		w.yPos = g.GetY()
+
 	}
 
 	if !w.window.GetVisible() {

@@ -5,9 +5,9 @@ package store
 import (
 	"github.com/jinzhu/gorm"
 	"go-jw-toggl/jwtoggl/dto"
+	"go-jw-toggl/jwtoggl/gtoggl"
 	"go-jw-toggl/jwtoggl/gtoggl/foo"
-	"go-jw-toggl/jwtoggl/tools"
-	"time"
+    "time"
 )
 
 func (m *FooManager) Sync(items foo.Foos, wid uint64) (bool, error) {
@@ -71,7 +71,7 @@ func (qs Foos) Sync(db *gorm.DB) (changed bool, err error) {
 					obj.Modified = obj.Updated
 				}
 				obj.PK = prev.PK
-				if !tools.FoosEqual(&obj.Foo, &prev.Foo) {
+				if !gtoggl.FoosEqual(&obj.Foo, &prev.Foo) {
 					changed = true
 				}
 				Must(tx.Save(&obj))

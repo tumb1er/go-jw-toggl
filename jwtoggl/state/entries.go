@@ -6,10 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"go-jw-toggl/jwtoggl/dto"
+	"go-jw-toggl/jwtoggl/gtoggl"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
 	"go-jw-toggl/jwtoggl/gtoggl/gtwebsocket"
 	"go-jw-toggl/jwtoggl/store"
-	"go-jw-toggl/jwtoggl/tools"
 	"log"
 	"time"
 )
@@ -36,7 +36,7 @@ func (db *TimeEntriesDB) onTimeEntryAction(action string, timeEntry gttimeentry.
 	if action == gtwebsocket.ActionDelete {
 		entries.Delete(storeEntry.PK)
 		current := entries.Current()
-		if !tools.TimeEntriesEqual(&old.TimeEntry, &current.TimeEntry) {
+		if !gtoggl.TimeEntriesEqual(&old.TimeEntry, &current.TimeEntry) {
 			// Обновился текущий
 			db.onCurrentEntry(current, true)
 		} else {
@@ -48,7 +48,7 @@ func (db *TimeEntriesDB) onTimeEntryAction(action string, timeEntry gttimeentry.
 			log.Printf("onTimeEntryAction update: %+v\n", old)
 			current := entries.Current()
 			log.Printf("onTimeEntryAction current: %+v\n", current)
-			if !tools.TimeEntriesEqual(&old.TimeEntry, &current.TimeEntry) {
+			if !gtoggl.TimeEntriesEqual(&old.TimeEntry, &current.TimeEntry) {
 				// Обновился текущий
 				log.Printf("onCurrentEntry: %+v\n", current)
 				db.onCurrentEntry(current, true)

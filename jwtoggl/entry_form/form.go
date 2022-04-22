@@ -5,7 +5,7 @@ import (
 	"go-jw-toggl/jwtoggl/builder"
 	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/entry_form/gtk_entry_form"
-	"go-jw-toggl/jwtoggl/tools"
+	"go-jw-toggl/jwtoggl/gtoggl"
 	"log"
 	"time"
 )
@@ -59,7 +59,7 @@ func (f *EntryForm) OnEditCompleted() {
 		log.Printf("project changed: %d -> %d\n", f.timeEntry.GetProjectPK(), f.uiEntry.ProjectPK)
 		changed = true
 	}
-	if !tools.TagSlicesEqual(f.timeEntry.GetTags(), f.uiEntry.GetTags()) {
+	if !gtoggl.TagSlicesEqual(f.timeEntry.GetTags(), f.uiEntry.GetTags()) {
 		log.Printf("tag changed %+v %+v\n", f.timeEntry.GetTags(), f.uiEntry.GetTags())
 		changed = true
 	}
@@ -170,7 +170,7 @@ func (f *EntryForm) SetTimeEntry(entry dto.TimeEntrySaver) {
 		f.uiEntry.Start = &start
 		f.uiEntry.Name = entry.GetName()
 		f.uiEntry.ProjectPK = entry.GetProjectPK()
-		f.uiEntry.Tag = tools.Tag(entry.GetTags())
+		f.uiEntry.Tag = gtoggl.Tag(entry.GetTags())
 	} else {
 		f.uiEntry.PK = 0
 		f.uiEntry.Start = &time.Time{}

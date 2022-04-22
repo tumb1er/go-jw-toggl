@@ -1,4 +1,4 @@
-package tools
+package gtoggl
 
 import (
 	"go-jw-toggl/jwtoggl/gtoggl/gtclient"

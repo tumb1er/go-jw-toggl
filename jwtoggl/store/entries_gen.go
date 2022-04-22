@@ -5,8 +5,8 @@ package store
 import (
 	"github.com/jinzhu/gorm"
 	"go-jw-toggl/jwtoggl/dto"
+	"go-jw-toggl/jwtoggl/gtoggl"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
-	"go-jw-toggl/jwtoggl/tools"
 	"time"
 )
 
@@ -71,7 +71,7 @@ func (qs TimeEntries) Sync(db *gorm.DB) (changed bool, err error) {
 					obj.Modified = obj.Updated
 				}
 				obj.PK = prev.PK
-				if !tools.TimeEntriesEqual(&obj.TimeEntry, &prev.TimeEntry) {
+				if !gtoggl.TimeEntriesEqual(&obj.TimeEntry, &prev.TimeEntry) {
 					changed = true
 				}
 				Must(tx.Save(&obj))

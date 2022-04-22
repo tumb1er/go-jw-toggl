@@ -8,6 +8,7 @@ import (
 	"github.com/gotk3/gotk3/pango"
 	"go-jw-toggl/jwtoggl/builder"
 	"go-jw-toggl/jwtoggl/dto"
+	"go-jw-toggl/jwtoggl/gtoggl"
 	"go-jw-toggl/jwtoggl/tools"
 	"log"
 	"strconv"
@@ -144,7 +145,7 @@ func (h *GtkHistory) insertEntry(it *gtk.TreeIter, entry dto.TimeEntry, grouped 
 	ctx.Project = project.GetName()
 	ctx.Color = project.GetHexColor()
 	ctx.Client = project.GetClient().GetName()
-	ctx.Tag = tools.Tag(entry.GetTags())
+	ctx.Tag = gtoggl.Tag(entry.GetTags())
 
 	start := entry.GetStart()
 	if !start.IsZero() {
