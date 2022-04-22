@@ -7,7 +7,7 @@ import (
 	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/gtoggl"
 	"go-jw-toggl/jwtoggl/gtoggl/foo"
-    "time"
+	"time"
 )
 
 func (m *FooManager) Sync(items foo.Foos, wid uint64) (bool, error) {
