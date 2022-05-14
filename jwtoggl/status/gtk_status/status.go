@@ -25,10 +25,14 @@ func (s *GtkStatus) SetOnlineStatus(online bool) {
 	if online {
 		msg = "Online"
 	}
-	tools.Schedule(s.setStatus, Status{
-		ctx: MsgTypeOnline,
-		msg: msg,
-	})
+
+	tools.Schedule(
+		func() {
+			s.setStatus(Status{
+				ctx: MsgTypeOnline,
+				msg: msg,
+			})
+		})
 }
 
 func (s *GtkStatus) setStatus(status Status) {
@@ -38,14 +42,19 @@ func (s *GtkStatus) setStatus(status Status) {
 }
 
 func (s *GtkStatus) ShowError(msg string) {
-	tools.Schedule(s.setStatus, Status{
-		ctx: MsgTypeError,
-		msg: msg,
-	})
+	tools.Schedule(
+		func() {
+			s.setStatus(Status{
+				ctx: MsgTypeError,
+				msg: msg,
+			})
+		})
 }
 
 func (s *GtkStatus) ClearError() {
-	tools.Schedule(s.clearStatus, MsgTypeError)
+	tools.Schedule(func() {
+		s.clearStatus(MsgTypeError)
+	})
 }
 
 func (s *GtkStatus) clearStatus(ctx string) {

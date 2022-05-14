@@ -54,9 +54,7 @@ func (j *jApp) initWindow(b *builder.Builder) {
 	if j.window, err = window.New(b); err != nil {
 		log.Fatal(err)
 	}
-	if err = j.window.ConnectSignals(j.onWindowDelete, j.onWindowLeave); err != nil {
-		log.Fatal(err)
-	}
+	j.window.ConnectSignals(j.onWindowDelete, j.onWindowLeave)
 	j.window.AddToApp(j.app)
 
 }
@@ -111,9 +109,6 @@ func NewApp(database *gorm.DB) *jApp {
 		ctx:    ctx,
 		cancel: cancel,
 	}
-	_, err = app.Connect(activate, j.onActivate)
-	if err != nil {
-		log.Fatal("Could not connect activate handle:", err)
-	}
+	app.Connect(activate, j.onActivate)
 	return j
 }

@@ -246,22 +246,16 @@ func New(b *builder.Builder) (*GtkHistory, error) {
 	if menuItem, err := b.GetMenuItem(menuContinue); err != nil {
 		return nil, err
 	} else {
-		if _, err = menuItem.Connect(signalActivate, h.onMenuContinue); err != nil {
-			return nil, err
-		}
+		menuItem.Connect(signalActivate, h.onMenuContinue)
 	}
 
 	if menuItem, err := b.GetMenuItem(menuDelete); err != nil {
 		return nil, err
 	} else {
-		if _, err = menuItem.Connect(signalActivate, h.onMenuDelete); err != nil {
-			return nil, err
-		}
+		menuItem.Connect(signalActivate, h.onMenuDelete)
 	}
 
-	if _, err = h.treeView.Connect(signalRowActivated, h.onRowActivated); err != nil {
-		return nil, err
-	}
+	h.treeView.Connect(signalRowActivated, h.onRowActivated)
 
 	area, err := gtk.CellAreaBoxNew()
 	if err != nil {
@@ -287,9 +281,7 @@ func New(b *builder.Builder) (*GtkHistory, error) {
 	h.treeView.AppendColumn(column)
 	h.treeView.SetSearchEqualSubstringMatch()
 
-	if _, err := h.treeView.Connect(signalButtonPress, h.OnButtonClick); err != nil {
-		return nil, err
-	}
+	h.treeView.Connect(signalButtonPress, h.OnButtonClick)
 	return h, nil
 }
 
