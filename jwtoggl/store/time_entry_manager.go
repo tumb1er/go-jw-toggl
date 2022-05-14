@@ -25,26 +25,26 @@ func (m *TimeEntryManager) FromTimeEntry(entry gttimeentry.TimeEntry) TimeEntry 
 
 func (m *TimeEntryManager) List() TimeEntries {
 	return listTimeEntries(
-		m.gorm().
-			Where("stop <> ? AND deleted IS NULL", time.Time{}).
+		m.gorm().Preload("Project.Client").
+			Where("time_entries.stop <> ? AND time_entries.deleted IS NULL", time.Time{}).
 			Order("start DESC"))
 }
 
 func (m *TimeEntryManager) DeletedEntries() TimeEntries {
 	return listTimeEntries(
-		m.gorm().
+		m.gorm().Preload("Project.Client").
 			Where("id != 0 AND deleted IS NOT NULL"))
 }
 
 func (m *TimeEntryManager) NewEntries() TimeEntries {
 	return listTimeEntries(
-		m.gorm().
+		m.gorm().Preload("Project.Client").
 			Where("id == 0 AND deleted IS NULL"))
 }
 
 func (m *TimeEntryManager) ChangedEntries() TimeEntries {
 	return listTimeEntries(
-		m.gorm().
+		m.gorm().Preload("Project.Client").
 			Where("id <> 0 AND modified > updated AND deleted IS NULL"))
 }
 
@@ -97,12 +97,12 @@ func (m *TimeEntryManager) Update(timeEntry *TimeEntry) {
 		Where("pk = ?", timeEntry.PK).
 		Updates(timeEntry))
 	if len(timeEntry.TagSet) > 0 {
-		res := m.gorm().
+		err := m.gorm().
 			Model(timeEntry).
 			Association("TagSet").
 			Replace(timeEntry.TagSet)
-		if res.Error != nil {
-			log.Fatal(res.Error)
+		if err != nil {
+			log.Fatal(err)
 		}
 	}
 }
