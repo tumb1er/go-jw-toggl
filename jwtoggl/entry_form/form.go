@@ -33,10 +33,7 @@ func NewEntryForm(b *builder.Builder) (*EntryForm, error) {
 	}
 	f.g = g
 
-	err = g.ConnectSignals()
-	if err != nil {
-		return nil, err
-	}
+	g.ConnectSignals()
 	return f, nil
 }
 

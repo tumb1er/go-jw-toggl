@@ -1,8 +1,8 @@
 package tray
 
 import (
-	"github.com/dawidd6/go-appindicator"
 	"github.com/gotk3/gotk3/gtk"
+	"github.com/tumb1er/go-appindicator"
 	"github.com/tumb1er/go-notifier/notifier"
 	"go-jw-toggl/jwtoggl/builder"
 	"go-jw-toggl/jwtoggl/dto"
@@ -61,17 +61,10 @@ func (t *Tray) ConnectSignals(
 	onNew func(),
 	onSync func(),
 	onExit func(),
-) error {
-	if _, err := t.menuShow.Connect("activate", onNew); err != nil {
-		return err
-	}
-	if _, err := t.menuExit.Connect("activate", onExit); err != nil {
-		return err
-	}
-	if _, err := t.menuSync.Connect("activate", onSync); err != nil {
-		return err
-	}
-	return nil
+) {
+	t.menuShow.Connect("activate", onNew)
+	t.menuExit.Connect("activate", onExit)
+	t.menuSync.Connect("activate", onSync)
 }
 
 func (t *Tray) SetCurrentEntry(entry dto.TimeEntry) {

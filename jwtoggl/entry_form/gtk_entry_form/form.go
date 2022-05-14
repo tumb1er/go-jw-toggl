@@ -127,47 +127,25 @@ func New(b *builder.Builder, handler UIHandler) (f *GtkEntryForm, err error) {
 }
 
 type sender interface {
-	Connect(string, interface{}, ...interface{}) (glib.SignalHandle, error)
+	Connect(string, interface{}) glib.SignalHandle
 }
 
-func (f *GtkEntryForm) connect(obj sender, handler interface{}, extra ...string) error {
-	if _, err := obj.Connect("changed", handler); err != nil {
-		return err
-	}
-	if _, err := obj.Connect("focus-out-event", f.notifyEditCompleted); err != nil {
-		return err
-	}
+func (f *GtkEntryForm) connect(obj sender, handler interface{}, extra ...string) {
+	obj.Connect("changed", handler)
+	obj.Connect("focus-out-event", f.notifyEditCompleted)
 	for _, signal := range extra {
-		if _, err := obj.Connect(signal, f.notifyEditCompleted); err != nil {
-			return err
-		}
+		obj.Connect(signal, f.notifyEditCompleted)
 	}
-	return nil
 }
 
-func (f *GtkEntryForm) ConnectSignals() error {
-	if err := f.connect(f.description, f.notifyDescription); err != nil {
-		return err
-	}
-	if err := f.connect(f.projectEntry, f.notifyProject); err != nil {
-		return err
-	}
-	if err := f.connect(f.project, f.notifyProject, "set-focus-child"); err != nil {
-		return err
-	}
-	if err := f.connect(f.tagEntry, f.notifyTag); err != nil {
-		return err
-	}
-	if err := f.connect(f.tag, f.notifyTag, "set-focus-child"); err != nil {
-		return err
-	}
-	if err := f.connect(f.start, f.notifyStart); err != nil {
-		return err
-	}
-	if _, err := f.button.Connect("clicked", f.notifyClicked); err != nil {
-		return err
-	}
-	return nil
+func (f *GtkEntryForm) ConnectSignals() {
+	f.connect(f.description, f.notifyDescription)
+	f.connect(f.projectEntry, f.notifyProject)
+	f.connect(f.project, f.notifyProject, "set-focus-child")
+	f.connect(f.tagEntry, f.notifyTag)
+	f.connect(f.tag, f.notifyTag, "set-focus-child")
+	f.connect(f.start, f.notifyStart)
+	f.button.Connect("clicked", f.notifyClicked)
 }
 
 func (f *GtkEntryForm) notifyEditCompleted() {
@@ -331,7 +309,9 @@ func (f *GtkEntryForm) SetTimeEntry(entry dto.TimeEntrySaver) {
 }
 
 func (f *GtkEntryForm) SetButtonSensitive(s bool) {
-	tools.Schedule(f.button.SetSensitive, s)
+	tools.Schedule(func() {
+		f.button.SetSensitive(s)
+	})
 }
 
 func (f *GtkEntryForm) uiSetActiveProject() error {
@@ -342,7 +322,6 @@ func (f *GtkEntryForm) uiSetActiveProject() error {
 			model *gtk.TreeModel,
 			path *gtk.TreePath,
 			iter *gtk.TreeIter,
-			userData ...interface{},
 		) bool {
 			name, err := tools.GetString(model, iter, 1)
 			if err != nil {
