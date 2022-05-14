@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"go-jw-toggl/jwtoggl"
 	"go-jw-toggl/jwtoggl/tools"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 	"log"
 	"os"
 	"path"
@@ -18,12 +18,14 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	db, err := gorm.Open("sqlite3", path.Join(dir, "jwtoggl.db"))
+	db, err := gorm.Open(sqlite.Open(path.Join(dir, "jwtoggl.db")), &gorm.Config{})
 	if err != nil {
 		panic(err)
 	}
 	defer func() {
-		if err := db.Close(); err != nil {
+		if conn, err := db.DB(); err != nil {
+			log.Fatal(err)
+		} else if err := conn.Close(); err != nil {
 			log.Fatal(err)
 		}
 	}()
