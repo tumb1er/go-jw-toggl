@@ -12,7 +12,7 @@ import (
 
 //Store предоставляет доступ к ORM-моделям
 type Store interface {
-	Migrate()
+	Migrate() error
 	TimeEntries() Entries
 	Tags() Tags
 	Projects() Projects

@@ -3,10 +3,11 @@ package store
 // gttag.tpl предоставляет методы для работы с моделями объектов Toggl
 
 import (
-	"github.com/jinzhu/gorm"
 	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/gtoggl"
 	"go-jw-toggl/jwtoggl/gtoggl/gttag"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"time"
 )
 
@@ -22,7 +23,7 @@ func (m *TagManager) Sync(items gttag.Tags, wid uint64) (bool, error) {
 }
 
 func (m *TagManager) gorm() *gorm.DB {
-	return (*gorm.DB)(m).Set("gorm:auto_preload", true)
+	return (*gorm.DB)(m).Preload(clause.Associations).Session(&gorm.Session{})
 }
 
 func NewTags(items ...gttag.Tags) *Tags {

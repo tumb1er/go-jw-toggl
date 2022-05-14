@@ -3,10 +3,11 @@ package store
 // gtproject.tpl предоставляет методы для работы с моделями объектов Toggl
 
 import (
-	"github.com/jinzhu/gorm"
 	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/gtoggl"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"time"
 )
 
@@ -22,7 +23,7 @@ func (m *ProjectManager) Sync(items gtproject.Projects, wid uint64) (bool, error
 }
 
 func (m *ProjectManager) gorm() *gorm.DB {
-	return (*gorm.DB)(m).Set("gorm:auto_preload", true)
+	return (*gorm.DB)(m).Preload(clause.Associations).Session(&gorm.Session{})
 }
 
 func NewProjects(items ...gtproject.Projects) *Projects {

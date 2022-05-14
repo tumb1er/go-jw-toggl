@@ -1,7 +1,7 @@
 package store
 
 import (
-	"github.com/jinzhu/gorm"
+	"gorm.io/gorm"
 )
 
 type Store gorm.DB
@@ -10,9 +10,9 @@ func (s *Store) gorm() *gorm.DB {
 	return (*gorm.DB)(s)
 }
 
-func (s *Store) Migrate() {
+func (s *Store) Migrate() error {
 	// Миграция схем
-	s.gorm().AutoMigrate(&Tag{}, &Client{}, &Project{}, &TimeEntry{})
+	return s.gorm().AutoMigrate(&Tag{}, &Client{}, &Project{}, &TimeEntry{})
 }
 
 // TimeEntries возвращает менеджер TimeEntry

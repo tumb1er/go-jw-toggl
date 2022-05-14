@@ -3,10 +3,10 @@ package store
 //go:generate bash -c "sed 's/Foos/TimeEntries/g;s/Foo/TimeEntry/g;s/foo/gttimeentry/g' foo.tpl > entries_gen.go"
 
 import (
-	"github.com/jinzhu/gorm"
 	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/gtoggl"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
+	"gorm.io/gorm"
 	"log"
 	"strings"
 	"time"
@@ -25,16 +25,15 @@ type TimeEntries []TimeEntry
 func (qs *TimeEntries) Preload(db *gorm.DB) error {
 	projectsMap := make(map[uint64]Project)
 	projects := NewProjects()
-	res := db.Set("gorm:auto_preload", true).Find(projects)
-	if res.Error != nil {
-		return res.Error
+	if err := db.Session(&gorm.Session{}).Find(projects).Error; err != nil {
+		return err
 	}
 	for _, project := range *projects {
 		projectsMap[project.Id] = project
 	}
 	tagsMap := make(map[string]Tag)
 	tags := NewTags()
-	if err := db.Find(tags).Error; err != nil {
+	if err := db.Session(&gorm.Session{}).Find(tags).Error; err != nil {
 		return err
 	}
 	for _, tag := range *tags {
@@ -59,14 +58,14 @@ func (obj *TimeEntry) BeforeSave(db *gorm.DB) error {
 	return nil
 }
 
-func (obj *TimeEntry) AfterFind() error {
+func (obj *TimeEntry) AfterFind(_ *gorm.DB) error {
 	obj.computeDuration()
 	obj.computeTags()
 	return nil
 }
 
 func (obj *TimeEntry) loadProjectFromToggl(db *gorm.DB) {
-	qs := db.Set("gorm:auto_preload", true)
+	qs := db.Preload("Client")
 	if obj.Project.PK == 0 {
 		log.Println("WARNING: Project not preloaded")
 		// Загружаем проект из БД по внутреннему ключу

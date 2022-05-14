@@ -3,10 +3,11 @@ package store
 // foo.tpl предоставляет методы для работы с моделями объектов Toggl
 
 import (
-	"github.com/jinzhu/gorm"
 	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/gtoggl"
 	"go-jw-toggl/jwtoggl/gtoggl/foo"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"time"
 )
 
@@ -22,7 +23,7 @@ func (m *FooManager) Sync(items foo.Foos, wid uint64) (bool, error) {
 }
 
 func (m *FooManager) gorm() *gorm.DB {
-	return (*gorm.DB)(m).Set("gorm:auto_preload", true)
+	return (*gorm.DB)(m).Preload(clause.Associations).Session(&gorm.Session{})
 }
 
 func NewFoos(items ...foo.Foos) *Foos {

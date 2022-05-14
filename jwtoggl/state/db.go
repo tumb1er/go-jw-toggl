@@ -44,8 +44,8 @@ func NewDB(token string, store Store) (*DB, error) {
 	db.ProjectsDB = ProjectsDB{common: db}
 	db.TagsDB = TagsDB{common: db}
 	db.TimeEntriesDB = TimeEntriesDB{common: db}
-	db.s.Migrate()
-	return db, nil
+	err = db.s.Migrate()
+	return db, err
 }
 
 func (db *DB) store() Store {

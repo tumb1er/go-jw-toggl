@@ -3,9 +3,9 @@ package store
 //go:generate bash -c "sed 's/Foo/Project/g;s/foo/gtproject/g' foo.tpl > projects_gen.go"
 
 import (
-	"github.com/jinzhu/gorm"
 	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
+	"gorm.io/gorm"
 	"log"
 )
 
@@ -24,7 +24,7 @@ func (obj *Project) BeforeSave(db *gorm.DB) error {
 func (obj Project) GetClient() dto.Client {
 	if obj.Client.PK == 0 {
 		if obj.ClientPK != 0 {
-			panic("not preloaded")
+			panic("client not preloaded")
 		} else {
 			log.Println("WARNING: client zero")
 		}
