@@ -25,16 +25,15 @@ type TimeEntries []TimeEntry
 func (qs *TimeEntries) Preload(db *gorm.DB) error {
 	projectsMap := make(map[uint64]Project)
 	projects := NewProjects()
-	res := db.Find(projects)
-	if res.Error != nil {
-		return res.Error
+	if err := db.Session(&gorm.Session{}).Find(projects).Error; err != nil {
+		return err
 	}
 	for _, project := range *projects {
 		projectsMap[project.Id] = project
 	}
 	tagsMap := make(map[string]Tag)
 	tags := NewTags()
-	if err := db.Find(tags).Error; err != nil {
+	if err := db.Session(&gorm.Session{}).Find(tags).Error; err != nil {
 		return err
 	}
 	for _, tag := range *tags {
