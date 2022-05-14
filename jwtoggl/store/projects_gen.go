@@ -7,6 +7,7 @@ import (
 	"go-jw-toggl/jwtoggl/gtoggl"
 	"go-jw-toggl/jwtoggl/gtoggl/gtproject"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"time"
 )
 
@@ -22,7 +23,7 @@ func (m *ProjectManager) Sync(items gtproject.Projects, wid uint64) (bool, error
 }
 
 func (m *ProjectManager) gorm() *gorm.DB {
-	return (*gorm.DB)(m)
+	return (*gorm.DB)(m).Preload(clause.Associations).Session(&gorm.Session{})
 }
 
 func NewProjects(items ...gtproject.Projects) *Projects {

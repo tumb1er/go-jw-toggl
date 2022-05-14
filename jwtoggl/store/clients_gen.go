@@ -7,6 +7,7 @@ import (
 	"go-jw-toggl/jwtoggl/gtoggl"
 	"go-jw-toggl/jwtoggl/gtoggl/gtclient"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"time"
 )
 
@@ -22,7 +23,7 @@ func (m *ClientManager) Sync(items gtclient.Clients, wid uint64) (bool, error) {
 }
 
 func (m *ClientManager) gorm() *gorm.DB {
-	return (*gorm.DB)(m)
+	return (*gorm.DB)(m).Preload(clause.Associations).Session(&gorm.Session{})
 }
 
 func NewClients(items ...gtclient.Clients) *Clients {

@@ -7,6 +7,7 @@ import (
 	"go-jw-toggl/jwtoggl/gtoggl"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"time"
 )
 
@@ -22,7 +23,7 @@ func (m *TimeEntryManager) Sync(items gttimeentry.TimeEntries, wid uint64) (bool
 }
 
 func (m *TimeEntryManager) gorm() *gorm.DB {
-	return (*gorm.DB)(m)
+	return (*gorm.DB)(m).Preload(clause.Associations).Session(&gorm.Session{})
 }
 
 func NewTimeEntries(items ...gttimeentry.TimeEntries) *TimeEntries {
