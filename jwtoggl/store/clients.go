@@ -3,8 +3,8 @@ package store
 //go:generate bash -c "sed 's/Foo/Client/g;s/foo/gtclient/g' foo.tpl > clients_gen.go"
 
 import (
-	"github.com/jinzhu/gorm"
 	"go-jw-toggl/jwtoggl/gtoggl/gtclient"
+	"gorm.io/gorm"
 )
 
 type Client struct {
