@@ -59,7 +59,7 @@ func (obj *TimeEntry) BeforeSave(db *gorm.DB) error {
 	return nil
 }
 
-func (obj *TimeEntry) AfterFind() error {
+func (obj *TimeEntry) AfterFind(_ *gorm.DB) error {
 	obj.computeDuration()
 	obj.computeTags()
 	return nil
