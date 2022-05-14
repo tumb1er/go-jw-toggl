@@ -3,10 +3,10 @@ package store
 // gtclient.tpl предоставляет методы для работы с моделями объектов Toggl
 
 import (
-	"github.com/jinzhu/gorm"
 	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/gtoggl"
 	"go-jw-toggl/jwtoggl/gtoggl/gtclient"
+	"gorm.io/gorm"
 	"time"
 )
 
