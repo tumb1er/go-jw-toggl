@@ -65,7 +65,7 @@ func (obj *TimeEntry) AfterFind(_ *gorm.DB) error {
 }
 
 func (obj *TimeEntry) loadProjectFromToggl(db *gorm.DB) {
-	qs := db
+	qs := db.Preload("Client")
 	if obj.Project.PK == 0 {
 		log.Println("WARNING: Project not preloaded")
 		// Загружаем проект из БД по внутреннему ключу
