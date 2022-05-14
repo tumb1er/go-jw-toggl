@@ -22,7 +22,7 @@ func (m *TimeEntryManager) Sync(items gttimeentry.TimeEntries, wid uint64) (bool
 }
 
 func (m *TimeEntryManager) gorm() *gorm.DB {
-	return (*gorm.DB)(m).Set("gorm:auto_preload", true)
+	return (*gorm.DB)(m)
 }
 
 func NewTimeEntries(items ...gttimeentry.TimeEntries) *TimeEntries {

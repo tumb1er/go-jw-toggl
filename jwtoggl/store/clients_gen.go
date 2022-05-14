@@ -22,7 +22,7 @@ func (m *ClientManager) Sync(items gtclient.Clients, wid uint64) (bool, error) {
 }
 
 func (m *ClientManager) gorm() *gorm.DB {
-	return (*gorm.DB)(m).Set("gorm:auto_preload", true)
+	return (*gorm.DB)(m)
 }
 
 func NewClients(items ...gtclient.Clients) *Clients {

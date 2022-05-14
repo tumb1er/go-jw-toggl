@@ -22,7 +22,7 @@ func (m *FooManager) Sync(items foo.Foos, wid uint64) (bool, error) {
 }
 
 func (m *FooManager) gorm() *gorm.DB {
-	return (*gorm.DB)(m).Set("gorm:auto_preload", true)
+	return (*gorm.DB)(m)
 }
 
 func NewFoos(items ...foo.Foos) *Foos {

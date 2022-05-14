@@ -25,7 +25,7 @@ type TimeEntries []TimeEntry
 func (qs *TimeEntries) Preload(db *gorm.DB) error {
 	projectsMap := make(map[uint64]Project)
 	projects := NewProjects()
-	res := db.Set("gorm:auto_preload", true).Find(projects)
+	res := db.Find(projects)
 	if res.Error != nil {
 		return res.Error
 	}
@@ -66,7 +66,7 @@ func (obj *TimeEntry) AfterFind(_ *gorm.DB) error {
 }
 
 func (obj *TimeEntry) loadProjectFromToggl(db *gorm.DB) {
-	qs := db.Set("gorm:auto_preload", true)
+	qs := db
 	if obj.Project.PK == 0 {
 		log.Println("WARNING: Project not preloaded")
 		// Загружаем проект из БД по внутреннему ключу

@@ -22,7 +22,7 @@ func (m *TagManager) Sync(items gttag.Tags, wid uint64) (bool, error) {
 }
 
 func (m *TagManager) gorm() *gorm.DB {
-	return (*gorm.DB)(m).Set("gorm:auto_preload", true)
+	return (*gorm.DB)(m)
 }
 
 func NewTags(items ...gttag.Tags) *Tags {
