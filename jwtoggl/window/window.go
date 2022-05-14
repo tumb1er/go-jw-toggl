@@ -60,6 +60,7 @@ func (w *MainWindow) Show() {
 
 	}
 
+	w.window.SetKeepAbove(true)
 	if !w.window.GetVisible() {
 		log.Printf("Resize window to %dx%d\n", w.width, w.height)
 		w.window.Resize(w.width, w.height)
@@ -67,8 +68,7 @@ func (w *MainWindow) Show() {
 		w.window.Move(w.xPos, w.yPos)
 		w.window.SetVisible(true)
 	} else {
-		w.window.SetKeepAbove(true)
 		w.window.Present()
-		w.window.SetKeepAbove(false)
 	}
+	w.window.SetKeepAbove(false)
 }
