@@ -68,7 +68,7 @@ func (w *MainWindow) Show() {
 		w.window.SetVisible(true)
 	} else {
 		w.window.SetKeepAbove(true)
-		w.window.SetKeepAbove(false)
 		w.window.Present()
+		w.window.SetKeepAbove(false)
 	}
 }
