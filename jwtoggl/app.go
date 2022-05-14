@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
-	"github.com/jinzhu/gorm"
 	"go-jw-toggl/jwtoggl/builder"
 	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/entry_form"
@@ -14,6 +13,7 @@ import (
 	"go-jw-toggl/jwtoggl/store"
 	"go-jw-toggl/jwtoggl/tray"
 	"go-jw-toggl/jwtoggl/window"
+	"gorm.io/gorm"
 	"log"
 	"os"
 )
