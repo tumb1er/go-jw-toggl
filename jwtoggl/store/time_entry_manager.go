@@ -1,8 +1,8 @@
 package store
 
 import (
-	"github.com/jinzhu/gorm"
 	"go-jw-toggl/jwtoggl/gtoggl/gttimeentry"
+	"gorm.io/gorm"
 	"log"
 	"time"
 )
@@ -55,7 +55,11 @@ func (m *TimeEntryManager) Delete(pk uint) bool {
 func (m *TimeEntryManager) MarkDeleted(pk uint) bool {
 	up := &TimeEntry{}
 	up.MarkDeleted()
-	return MustOrNotFound(m.gorm().Model(up).Where("pk = ?", pk).Update(up))
+	return MustOrNotFound(m.gorm().
+		Model(up).
+		Where("pk = ?", pk).
+		Select("Deleted", "Modified").
+		Updates(up))
 }
 
 func (m *TimeEntryManager) Current() TimeEntry {
