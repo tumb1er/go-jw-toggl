@@ -11,9 +11,9 @@ import (
 type Project struct {
 	Id        uint64    `json:"id"`
 	WId       uint64    `json:"wid"`
-	CId       uint64    `json:"cid"`
+	CId       uint64    `json:"client_id"`
 	Name      string    `json:"name"`
-	HexColor  string    `json:"hex_color"`
+	HexColor  string    `json:"color"`
 	IsPrivate *bool     `json:"is_private,omitempty"`
 	Active    bool      `json:"active"`
 	At        time.Time `json:"at,omitempty" gorm:"-"`
@@ -23,9 +23,10 @@ type Projects []Project
 
 const Endpoint = "/projects"
 
-//Return a ProjectClient. An error is also returned when some configuration option is invalid
-//    thc,err := gtoggl.NewClient("token")
-//    pc,err := gproject.NewClient(tc)
+// Return a ProjectClient. An error is also returned when some configuration option is invalid
+//
+//	thc,err := gtoggl.NewClient("token")
+//	pc,err := gproject.NewClient(tc)
 func NewClient(thc *gthttp.TogglHttpClient) *ProjectClient {
 	tc := &ProjectClient{
 		thc: thc,

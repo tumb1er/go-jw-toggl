@@ -10,7 +10,7 @@ import (
 // Toggl Tag Definition
 type Tag struct {
 	Id   uint64    `json:"id"`
-	WId  uint64    `json:"wid"`
+	WId  uint64    `json:"workspace_id"`
 	Name string    `json:"name"`
 	At   time.Time `json:"-" gorm:"-"`
 }
@@ -19,9 +19,10 @@ type Tags []Tag
 
 const Endpoint = "/tags"
 
-//Return a TagClient. An error is also returned when some configuration option is invalid
-//    thc,err := gtoggl.NewClient("token")
-//    tc,err := gtag.NewClient(thc)
+// Return a TagClient. An error is also returned when some configuration option is invalid
+//
+//	thc,err := gtoggl.NewClient("token")
+//	tc,err := gtag.NewClient(thc)
 func NewClient(thc *gthttp.TogglHttpClient) *TagClient {
 	tc := &TagClient{
 		thc: thc,

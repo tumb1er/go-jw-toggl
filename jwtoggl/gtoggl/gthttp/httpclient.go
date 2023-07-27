@@ -8,7 +8,7 @@ import (
 	"github.com/throttled/throttled"
 	"github.com/throttled/throttled/store/memstore"
 	"go-jw-toggl/jwtoggl/tools"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
@@ -19,14 +19,15 @@ const (
 	DefaultAuthPassword       = "api_token"
 	DefaultMaxRetries         = 5
 	DefaultGzipEnabled        = false
-	DefaultUrl                = "https://api.track.toggl.com/api/v8"
+	DefaultUrl                = "https://api.track.toggl.com/api/v9"
 	DefaultVersion            = "v8"
 	SessionCookieName         = "__Host-timer-session"
 	defaultBucket             = "toggl"
 	DefaultRateLimitPerSecond = 3
+	SessionsEndpoint          = "me/sessions"
 )
 
-// TogglHttpClient is an Toggl REST client. Created by calling NewClient.
+// TogglHttpClient is a Toggl REST client. Created by calling NewClient.
 type TogglHttpClient struct {
 	client      *http.Client // net/http Client to use for requests
 	version     string       // v8
@@ -62,7 +63,8 @@ func (e *TogglError) Error() string {
 type ClientOptionFunc func(*TogglHttpClient) error
 
 // NewClient returns a new TogglHttpClient. An error is also returned when some configuration option is invalid
-//    tc,err := gtoggl.NewClient("token")
+//
+//	tc,err := gtoggl.NewClient("token")
 func NewClient(key string, options ...ClientOptionFunc) (*TogglHttpClient, error) {
 	// Set up the client
 
@@ -114,6 +116,7 @@ func SetHttpClient(httpClient *http.Client) ClientOptionFunc {
 }
 
 // SetURL defines the base URL. See DefaultUrl
+//
 //goland:noinspection GoUnusedExportedFunction
 func SetURL(url string) ClientOptionFunc {
 	return func(c *TogglHttpClient) error {
@@ -142,7 +145,8 @@ func SetRateLimit(perSec int) ClientOptionFunc {
 	}
 }
 
-//SetTraceLogger sets a logger to print HTTP requests
+// SetTraceLogger sets a logger to print HTTP requests
+//
 //goland:noinspection GoUnusedExportedFunction
 func SetTraceLogger(l Logger) ClientOptionFunc {
 	return func(c *TogglHttpClient) error {
@@ -151,7 +155,8 @@ func SetTraceLogger(l Logger) ClientOptionFunc {
 	}
 }
 
-//SetErrorLogger sets a logger to handle error messages
+// SetErrorLogger sets a logger to handle error messages
+//
 //goland:noinspection GoUnusedExportedFunction
 func SetErrorLogger(l Logger) ClientOptionFunc {
 	return func(c *TogglHttpClient) error {
@@ -160,7 +165,8 @@ func SetErrorLogger(l Logger) ClientOptionFunc {
 	}
 }
 
-//SetInfoLogger sets a logger to handle info messages
+// SetInfoLogger sets a logger to handle info messages
+//
 //goland:noinspection GoUnusedExportedFunction
 func SetInfoLogger(l Logger) ClientOptionFunc {
 	return func(c *TogglHttpClient) error {
@@ -178,7 +184,7 @@ func (l *nullLogger) Printf(format string, v ...interface{}) {
 var defaultLogger = &nullLogger{}
 
 func (c *TogglHttpClient) authenticate() error {
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/%s", c.Url, "sessions"), nil)
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/%s", c.Url, SessionsEndpoint), nil)
 	if err != nil {
 		return err
 	}
@@ -192,7 +198,7 @@ func (c *TogglHttpClient) authenticate() error {
 
 	if resp.StatusCode >= 400 {
 		defer tools.MustClose(resp.Body)
-		b, _ := ioutil.ReadAll(resp.Body)
+		b, _ := io.ReadAll(resp.Body)
 		return &TogglError{Code: resp.StatusCode, Status: resp.Status, Msg: string(b)}
 	}
 	hasSessionCookie := false
@@ -256,7 +262,7 @@ func requestWithLimit(c *TogglHttpClient, method, endpoint string, b interface{}
 	c.dumpResponse(resp)
 	defer tools.MustClose(resp.Body)
 
-	js, err := ioutil.ReadAll(resp.Body)
+	js, err := io.ReadAll(resp.Body)
 	if err != nil {
 		c.resetHttpClient("body", err)
 		return nil, err

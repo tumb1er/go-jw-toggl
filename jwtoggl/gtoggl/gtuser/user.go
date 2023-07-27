@@ -17,7 +17,7 @@ type User struct {
 	Email       string                  `json:"email"`
 	FullName    string                  `json:"fullname"`
 	Timezone    string                  `json:"timezone"`
-	DefaultWId  uint64                  `json:"default_wid"`
+	DefaultWId  uint64                  `json:"default_workspace_id"`
 	Clients     gtclient.Clients        `json:"clients"`
 	Projects    gtproject.Projects      `json:"projects"`
 	TimeEntries gttimeentry.TimeEntries `json:"time_entries"`
@@ -38,13 +38,14 @@ type UserCreate struct {
 type Users []User
 
 const Endpoint = "/me"
-const SignupEndpoint = "/signups"
-const ResetEndpoint = "/reset_token"
+const SignupEndpoint = "/signup"
+const ResetEndpoint = "/me/reset_token"
 const MeWithRelatedData = "/me?with_related_data=true"
 
-//Return a UserClient. An error is also returned when some configuration option is invalid
-//    thc,err := gtoggl.NewClient("token")
-//    uc,err := guser.NewClient(thc)
+// Return a UserClient. An error is also returned when some configuration option is invalid
+//
+//	thc,err := gtoggl.NewClient("token")
+//	uc,err := guser.NewClient(thc)
 func NewClient(thc *gthttp.TogglHttpClient) *UserClient {
 	tc := &UserClient{
 		thc: thc,
@@ -98,13 +99,13 @@ func userResponse(response *json.RawMessage, error error) (*User, error) {
 	if error != nil {
 		return nil, error
 	}
-	var tResp gthttp.TogglResponse
-	err := json.Unmarshal(*response, &tResp)
-	if err != nil {
-		return nil, err
-	}
+	// var tResp gthttp.TogglResponse
+	// err := json.Unmarshal(*response, &tResp)
+	// if err != nil {
+	// 	return nil, err
+	// }
 	var u User
-	err = json.Unmarshal(*tResp.Data, &u)
+	err := json.Unmarshal(*response, &u)
 	if err != nil {
 		return nil, err
 	}

@@ -26,13 +26,14 @@ type TimeEntry struct {
 
 type TimeEntries []TimeEntry
 
-const Endpoint = "/time_entries"
+const Endpoint = "/me/time_entries"
 const EndpointCurrent = Endpoint + "/current"
 const EndpointStart = Endpoint + "/start"
 
-//Return a UserClient. An error is also returned when some configuration option is invalid
-//    thc,err := gtoggl.NewClient("token")
-//    uc,err := guser.NewClient(thc)
+// Return a UserClient. An error is also returned when some configuration option is invalid
+//
+//	thc,err := gtoggl.NewClient("token")
+//	uc,err := guser.NewClient(thc)
 func NewClient(thc *gthttp.TogglHttpClient) *TimeEntryClient {
 	tc := &TimeEntryClient{
 		thc: thc,
