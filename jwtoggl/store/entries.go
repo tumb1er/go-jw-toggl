@@ -159,7 +159,7 @@ func (obj TimeEntry) GetStop() time.Time {
 
 func (obj *TimeEntry) computeDuration() {
 	if obj.Stop.IsZero() {
-		obj.Duration = -obj.Start.Unix()
+		obj.Duration = -1
 	} else {
 		obj.Duration = obj.Stop.Unix() - obj.Start.Unix()
 	}
