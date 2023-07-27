@@ -157,7 +157,7 @@ func timeEntryResponse(response *json.RawMessage, error error) (*TimeEntry, erro
 	if error != nil {
 		return nil, error
 	}
-	if response == nil {
+	if response == nil || len(*response) == 4 {
 		return nil, nil
 	}
 	var t TimeEntry
