@@ -126,14 +126,6 @@ func (c *TimeEntryClient) Create(t *TimeEntry) (*TimeEntry, error) {
 	return timeEntryResponse(c.thc.PostRequest(fmt.Sprintf(c.createEndpoint, dto.WId), dto))
 }
 
-func (c *TimeEntryClient) Start(t *TimeEntry) (*TimeEntry, error) {
-	if len(t.CreatedWith) < 0 {
-		t.CreatedWith = "gtoggl"
-	}
-	up := map[string]interface{}{"time_entry": t}
-	return timeEntryResponse(c.thc.PostRequest(c.startEndpoint, up))
-}
-
 func (c *TimeEntryClient) Stop(t *TimeEntry) (*TimeEntry, error) {
 	return timeEntryResponse(c.thc.PutRequest(fmt.Sprintf("%s/%d/stop", c.endpoint, t.Id), nil))
 }
