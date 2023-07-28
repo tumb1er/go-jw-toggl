@@ -31,7 +31,7 @@ const EndpointStart = Endpoint + "/start"
 const EndpointCreate = "/workspaces/%d/time_entries"
 const EndpointUpdate = "/workspaces/%d/time_entries/%d"
 
-// Return a UserClient. An error is also returned when some configuration option is invalid
+// NewClient returns a UserClient. An error is also returned when some configuration option is invalid
 //
 //	thc,err := gtoggl.NewClient("token")
 //	uc,err := guser.NewClient(thc)
@@ -45,6 +45,41 @@ func NewClient(thc *gthttp.TogglHttpClient) *TimeEntryClient {
 	tc.createEndpoint = thc.Url + EndpointCreate
 	tc.updateEndpoint = thc.Url + EndpointUpdate
 	return tc
+}
+
+type TimeEntryDTO struct {
+	Id          uint64     `json:"id,omitempty"`
+	Name        string     `json:"description"`
+	Start       time.Time  `json:"start"`
+	Stop        *time.Time `json:"stop,omitempty"`
+	Duration    int64      `json:"duration" gorm:"-"`
+	Billable    bool       `json:"billable"`
+	Tags        []string   `json:"tags" gorm:"-"`
+	Pid         uint64     `json:"pid"`
+	WId         uint64     `json:"wid"`
+	Tid         *uint64    `json:"tid"`
+	CreatedWith string     `json:"created_with,omitempty" gorm:"-"`
+	At          time.Time  `json:"at,omitempty" gorm:"-"`
+}
+
+func NewTimeEntryDTO(t *TimeEntry) TimeEntryDTO {
+	dto := TimeEntryDTO{
+		Id:       t.Id,
+		Name:     t.Name,
+		Start:    t.Start,
+		Duration: t.Duration,
+		Billable: t.Billable,
+		Tags:     t.Tags,
+		Pid:      t.Pid,
+		WId:      t.WId,
+		// Tid - empty
+		CreatedWith: t.CreatedWith,
+		At:          t.At,
+	}
+	if !t.Stop.IsZero() {
+		dto.Stop = &t.Stop
+	}
+	return dto
 }
 
 type TimeEntryClient struct {
@@ -87,36 +122,7 @@ func (c *TimeEntryClient) Create(t *TimeEntry) (*TimeEntry, error) {
 		t.CreatedWith = "gtoggl"
 	}
 
-	type TimeEntryCreation struct {
-		Id          uint64     `json:"id,omitempty"`
-		Name        string     `json:"description"`
-		Start       time.Time  `json:"start"`
-		Stop        *time.Time `json:"stop,omitempty"`
-		Duration    int64      `json:"duration" gorm:"-"`
-		Billable    bool       `json:"billable"`
-		Tags        []string   `json:"tags" gorm:"-"`
-		Pid         uint64     `json:"pid"`
-		WId         uint64     `json:"wid"`
-		Tid         *uint64    `json:"tid"`
-		CreatedWith string     `json:"created_with,omitempty" gorm:"-"`
-		At          time.Time  `json:"at,omitempty" gorm:"-"`
-	}
-	dto := TimeEntryCreation{
-		Id:       t.Id,
-		Name:     t.Name,
-		Start:    t.Start,
-		Duration: t.Duration,
-		Billable: t.Billable,
-		Tags:     t.Tags,
-		Pid:      t.Pid,
-		WId:      t.WId,
-		// Tid - empty
-		CreatedWith: t.CreatedWith,
-		At:          t.At,
-	}
-	if !t.Stop.IsZero() {
-		dto.Stop = &t.Stop
-	}
+	dto := NewTimeEntryDTO(t)
 	return timeEntryResponse(c.thc.PostRequest(fmt.Sprintf(c.createEndpoint, dto.WId), dto))
 }
 
@@ -133,8 +139,8 @@ func (c *TimeEntryClient) Stop(t *TimeEntry) (*TimeEntry, error) {
 }
 
 func (c *TimeEntryClient) Update(t *TimeEntry) (*TimeEntry, error) {
-	up := map[string]interface{}{"time_entry": t}
-	return timeEntryResponse(c.thc.PutRequest(fmt.Sprintf(c.updateEndpoint, t.WId, t.Id), up))
+	dto := NewTimeEntryDTO(t)
+	return timeEntryResponse(c.thc.PutRequest(fmt.Sprintf(c.updateEndpoint, dto.WId, dto.Id), dto))
 }
 
 func (c *TimeEntryClient) GetRange(start time.Time, end time.Time) (TimeEntries, error) {
