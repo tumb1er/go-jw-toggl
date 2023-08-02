@@ -99,8 +99,8 @@ func (c *TimeEntryClient) Current() (*TimeEntry, error) {
 	return timeEntryResponse(c.thc.GetRequest(c.currentEndpoint))
 }
 
-func (c *TimeEntryClient) Delete(id uint64) error {
-	_, err := c.thc.DeleteRequest(fmt.Sprintf("%s/%d", c.endpoint, id), nil)
+func (c *TimeEntryClient) Delete(wid uint64, id uint64) error {
+	_, err := c.thc.DeleteRequest(fmt.Sprintf(c.updateEndpoint, wid, id), nil)
 	return err
 }
 

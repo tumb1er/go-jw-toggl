@@ -208,7 +208,7 @@ func (db *TimeEntriesDB) DeleteEntry(pk uint) error {
 
 func (db *TimeEntriesDB) deleteEntry(storeEntry *store.TimeEntry) error {
 	log.Printf("Start delete entry: %d\n", storeEntry.Id)
-	if err := db.toggl().TimeentryClient.Delete(storeEntry.Id); err != nil {
+	if err := db.toggl().TimeentryClient.Delete(storeEntry.WId, storeEntry.Id); err != nil {
 		log.Printf("Delete error: %+v\n", err)
 		return err
 	} else {
