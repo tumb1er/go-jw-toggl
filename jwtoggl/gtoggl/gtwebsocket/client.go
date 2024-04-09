@@ -16,10 +16,10 @@ import (
 )
 
 const (
-	DefaultUrl   = "wss://stream.toggl.com/ws'"
-	ActionInsert = "INSERT"
-	ActionUpdate = "UPDATE"
-	ActionDelete = "DELETE"
+	DefaultUrl   = "wss://track.toggl.com/stream"
+	ActionInsert = "insert"
+	ActionUpdate = "update"
+	ActionDelete = "delete"
 
 	ModelTimeEntry = "time_entry"
 	ModelProject   = "project"
@@ -115,7 +115,7 @@ func (c *TogglWebsocketClient) OnTagAction(callback OnTagActionCallback) {
 func (c *TogglWebsocketClient) Dial() error {
 	log.Println("Dialing WS...")
 	ws, resp, err := websocket.DefaultDialer.Dial(c.url, http.Header{
-		"Origin": {"https://jw-toggl.com/app"},
+		"Origin": {"https://track.toggl.com/"},
 	})
 	if err != nil {
 		log.Printf("Failed WS connect:%+v %+v", err, resp)
@@ -202,6 +202,7 @@ func (c *TogglWebsocketClient) handleMessage(msg []byte) error {
 	if err := json.Unmarshal(msg, &guess); err != nil {
 		return err
 	}
+	log.Printf("%+v", string(msg))
 	if _, ok := guess["type"]; ok {
 		return c.handlePingMessage(msg)
 	}
