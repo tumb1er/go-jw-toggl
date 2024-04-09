@@ -32,7 +32,10 @@ func (obj Project) GetClient() dto.Client {
 	return obj.Client
 }
 func (obj Project) GetHexColor() string {
-	return obj.HexColor
+	if obj.HexColor != "" {
+		return obj.HexColor
+	}
+	return "#000000"
 }
 
 func (obj *Project) loadClientFromToggl(db *gorm.DB) {
@@ -85,7 +88,7 @@ func (m *ProjectManager) GetByPK(pk uint) *Project {
 }
 
 func (m *ProjectManager) List() Projects {
-	return listProjects(m.gorm().Order("name ASC"))
+	return listProjects(m.gorm().Where("active = ?", 1).Order("name ASC"))
 }
 
 func (m *ProjectManager) Get(extId uint64) *Project {
