@@ -20,11 +20,9 @@ const (
 	DefaultMaxRetries         = 5
 	DefaultGzipEnabled        = false
 	DefaultUrl                = "https://api.track.toggl.com/api/v9"
-	DefaultVersion            = "v8"
-	SessionCookieName         = "__Host-timer-session"
+	DefaultVersion            = "v9"
 	defaultBucket             = "toggl"
 	DefaultRateLimitPerSecond = 3
-	SessionsEndpoint          = "me/sessions"
 )
 
 // TogglHttpClient is a Toggl REST client. Created by calling NewClient.
@@ -183,39 +181,6 @@ func (l *nullLogger) Printf(format string, v ...interface{}) {
 
 var defaultLogger = &nullLogger{}
 
-func (c *TogglHttpClient) authenticate() error {
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/%s", c.Url, SessionsEndpoint), nil)
-	if err != nil {
-		return err
-	}
-	c.dumpRequest(req)
-	req.SetBasicAuth(c.token, DefaultAuthPassword)
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return err
-	}
-	c.dumpResponse(resp)
-
-	if resp.StatusCode >= 400 {
-		defer tools.MustClose(resp.Body)
-		b, _ := io.ReadAll(resp.Body)
-		return &TogglError{Code: resp.StatusCode, Status: resp.Status, Msg: string(b)}
-	}
-	hasSessionCookie := false
-	for _, value := range resp.Cookies() {
-		if value.Name == SessionCookieName {
-			c.infoLog.Printf("Setting Cookie\n")
-			c.cookie = value
-			hasSessionCookie = true
-		}
-	}
-	if !hasSessionCookie {
-		return fmt.Errorf("auth cookie %q not found on authentication response", SessionCookieName)
-	}
-
-	return nil
-}
-
 func requestWithLimit(c *TogglHttpClient, method, endpoint string, b interface{}, attempt int) (*json.RawMessage, error) {
 	c.infoLog.Printf("Request attempt %d for %s %s\n", attempt, method, endpoint)
 	if attempt > DefaultMaxRetries {
@@ -241,18 +206,12 @@ func requestWithLimit(c *TogglHttpClient, method, endpoint string, b interface{}
 		}
 	}
 
-	if c.cookie == nil || !c.cookie.Expires.IsZero() && c.cookie.Expires.Before(time.Now()) {
-		if err = c.authenticate(); err != nil {
-			c.resetHttpClient("auth", err)
-			return nil, err
-		}
-	}
-
 	req, err := http.NewRequest(method, endpoint, bytes.NewBuffer(body))
 	if err != nil {
 		return nil, err
 	}
-	req.AddCookie(c.cookie)
+
+	req.SetBasicAuth(c.token, DefaultAuthPassword)
 	c.dumpRequest(req)
 	resp, err := c.client.Do(req)
 	if err != nil {
