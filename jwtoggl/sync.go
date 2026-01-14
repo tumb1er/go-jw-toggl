@@ -56,14 +56,14 @@ func (j *jApp) OnTimeEntriesChanged(entries dto.TimeEntries) {
 }
 
 func (j *jApp) periodicSync(ctx context.Context) {
-	t := time.NewTicker(time.Second * 120)
+	t := time.After(0)
 	t2 := time.NewTicker(time.Second)
 	j.db.StartListen(ctx)
-	j.doSync()
 	for {
 		select {
-		case <-t.C:
-			j.doSync()
+		case <-t:
+			t = j.doSync()
+			log.Println("Sync time")
 		case <-t2.C:
 			j.syncDuration()
 		case <-ctx.Done():
@@ -73,15 +73,30 @@ func (j *jApp) periodicSync(ctx context.Context) {
 	}
 }
 
-func (j *jApp) doSync() {
+func (j *jApp) doSync() <-chan time.Time {
 	log.Println("start sync")
 	defer log.Println("sync done")
-	j.handleError(j.db.SyncCurrentEntry(false), "Sync current entry error")
-	j.handleError(j.db.SyncLastEntries(false), "Sync last entries error")
-	const debugSyncChanges = false
-	if !debugSyncChanges {
-		j.handleError(j.db.SyncChanges(), "Sync changes error")
+	errCount := 0
+	if err := j.db.SyncCurrentEntry(false); err != nil {
+		j.handleError(err, "Sync current entry error")
+		errCount += 1
 	}
+	if err := j.db.SyncLastEntries(false); err != nil {
+		j.handleError(err, "Sync last entries error")
+		errCount += 1
+	}
+	if err := j.db.SyncChanges(); err != nil {
+		j.handleError(err, "Sync changes error")
+		errCount += 1
+	}
+
+	if errCount == 0 {
+		j.backoff = 0
+	} else {
+		j.backoff += 1
+		log.Println("Sync backoff", time.Duration(15*j.backoff)*time.Minute)
+	}
+	return time.After(time.Duration(15*j.backoff) * time.Minute)
 }
 
 func (j *jApp) syncDuration() {

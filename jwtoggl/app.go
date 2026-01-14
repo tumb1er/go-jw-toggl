@@ -2,8 +2,6 @@ package jwtoggl
 
 import (
 	"context"
-	"github.com/gotk3/gotk3/glib"
-	"github.com/gotk3/gotk3/gtk"
 	"go-jw-toggl/jwtoggl/builder"
 	"go-jw-toggl/jwtoggl/dto"
 	"go-jw-toggl/jwtoggl/entry_form"
@@ -13,9 +11,12 @@ import (
 	"go-jw-toggl/jwtoggl/store"
 	"go-jw-toggl/jwtoggl/tray"
 	"go-jw-toggl/jwtoggl/window"
-	"gorm.io/gorm"
 	"log"
 	"os"
+
+	"github.com/gotk3/gotk3/glib"
+	"github.com/gotk3/gotk3/gtk"
+	"gorm.io/gorm"
 )
 
 const (
@@ -33,6 +34,8 @@ type jApp struct {
 	db        *state.DB
 	ctx       context.Context
 	cancel    context.CancelFunc
+
+	backoff int
 }
 
 func (j *jApp) Run(args []string) int {
