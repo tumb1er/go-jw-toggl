@@ -229,8 +229,11 @@ func (obj *TimeEntry) SetTimeEntry(entry dto.TimeEntrySaver, project Project) {
 }
 
 func (obj *TimeEntry) MarkStopped() {
-	ts := time.Now().Local()
-	obj.Stop = ts
-	obj.Modified = &ts
+	obj.MarkStoppedAt(time.Now().Local())
+}
+
+func (obj *TimeEntry) MarkStoppedAt(stoppedAt time.Time) {
+	obj.Stop = stoppedAt
+	obj.Modified = &stoppedAt
 	obj.computeDuration()
 }

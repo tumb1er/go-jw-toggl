@@ -39,7 +39,7 @@ func (b *Builder) GetMainWindow() *gtk.ApplicationWindow {
 		log.Fatal("Could not get entry list window:", err)
 	}
 	if ret, ok := obj.(*gtk.ApplicationWindow); !ok {
-		log.Fatal("entry list window cast error: %T", obj)
+		log.Fatalf("entry list window cast error: %T", obj)
 		return nil
 	} else {
 		return ret

@@ -26,7 +26,6 @@ const (
 	columnBackground   = 4
 	columnGroupXPad    = 5
 	columnGroupWidth   = 6
-	dayBackground      = "#eeeeee"
 	attrMarkup         = "markup"
 	attrBackground     = "background"
 	attrXPad           = "xpad"
@@ -38,6 +37,8 @@ const (
 	signalActivate     = "activate"
 	signalRowActivated = "row-activated"
 	signalButtonPress  = "button-press-event"
+	signalStyleUpdated = "style-updated"
+	dayBackgroundBlend = 0.08
 )
 
 type Callback func(entryPK uint)
@@ -48,6 +49,7 @@ type GtkHistory struct {
 	menu            *gtk.Menu
 	onEntryDelete   Callback
 	onEntryContinue Callback
+	dayBackground   string
 }
 
 func (h *GtkHistory) OnEntryContinue(cb Callback) {
@@ -128,8 +130,10 @@ func (h *GtkHistory) insertDayEntry(day string, it *gtk.TreeIter, duration time.
 	if err := h.store.SetValue(it, columnTimings, value); err != nil {
 		log.Fatal(err)
 	}
-	if err := h.store.SetValue(it, columnBackground, dayBackground); err != nil {
-		log.Fatal(err)
+	if h.dayBackground != "" {
+		if err := h.store.SetValue(it, columnBackground, h.dayBackground); err != nil {
+			log.Fatal(err)
+		}
 	}
 	if path, err := h.store.GetPath(it); err != nil {
 		log.Fatal(err)
@@ -239,6 +243,10 @@ func New(b *builder.Builder) (*GtkHistory, error) {
 		store:    b.GetHistoryTreeStore(),
 		treeView: b.GetHistoryView(),
 	}
+	h.dayBackground = treeViewDayBackground(h.treeView)
+	h.treeView.ConnectAfter(signalStyleUpdated, func(_ *gtk.TreeView) {
+		h.refreshDayBackground()
+	})
 	var err error
 	if h.menu, err = b.GetMenu(popupMenuId); err != nil {
 		return nil, err
@@ -335,6 +343,81 @@ func setupDescriptionRenderer(column *gtk.TreeViewColumn, area *gtk.CellAreaBox)
 		})
 		return nil
 	}
+}
+
+func dayBackgroundFromTheme(lookup func(string) (string, bool)) string {
+	background, backgroundOK := lookup("theme_base_color")
+	foreground, foregroundOK := lookup("theme_fg_color")
+	if backgroundOK && foregroundOK {
+		return blendThemeColors(background, foreground, dayBackgroundBlend)
+	}
+	return ""
+}
+
+func blendThemeColors(background, foreground string, ratio float64) string {
+	backgroundRed, backgroundGreen, backgroundBlue, backgroundOK := parseCellRendererColor(background)
+	foregroundRed, foregroundGreen, foregroundBlue, foregroundOK := parseCellRendererColor(foreground)
+	if !backgroundOK || !foregroundOK {
+		return ""
+	}
+	blend := func(background, foreground int) int {
+		return int(float64(background)*(1-ratio) + float64(foreground)*ratio + 0.5)
+	}
+	return fmt.Sprintf("#%02x%02x%02x",
+		blend(backgroundRed, foregroundRed),
+		blend(backgroundGreen, foregroundGreen),
+		blend(backgroundBlue, foregroundBlue))
+}
+
+func parseCellRendererColor(value string) (int, int, int, bool) {
+	if len(value) != 7 || value[0] != '#' {
+		return 0, 0, 0, false
+	}
+	channels := [3]int{}
+	for index := range channels {
+		channel, err := strconv.ParseUint(value[1+index*2:3+index*2], 16, 8)
+		if err != nil {
+			return 0, 0, 0, false
+		}
+		channels[index] = int(channel)
+	}
+	return channels[0], channels[1], channels[2], true
+}
+
+func treeViewDayBackground(treeView *gtk.TreeView) string {
+	style, err := treeView.GetStyleContext()
+	if err != nil {
+		return ""
+	}
+	return dayBackgroundFromTheme(func(name string) (string, bool) {
+		color, ok := style.LookupColor(name)
+		if !ok {
+			return "", false
+		}
+		return cellRendererColor(color), true
+	})
+}
+
+func (h *GtkHistory) refreshDayBackground() {
+	background := treeViewDayBackground(h.treeView)
+	if background == h.dayBackground {
+		return
+	}
+	h.dayBackground = background
+	iter, ok := h.store.GetIterFirst()
+	for ok {
+		if err := h.store.SetValue(iter, columnBackground, background); err != nil {
+			log.Fatal(err)
+		}
+		ok = h.store.IterNext(iter)
+	}
+}
+
+func cellRendererColor(color *gdk.RGBA) string {
+	return fmt.Sprintf("#%02x%02x%02x",
+		int(color.GetRed()*255+0.5),
+		int(color.GetGreen()*255+0.5),
+		int(color.GetBlue()*255+0.5))
 }
 
 func SetProperties(obj *glib.Object, values map[string]interface{}) error {

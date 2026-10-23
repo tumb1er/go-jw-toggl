@@ -12,26 +12,21 @@ var descriptionTemplate, timingTemplate, dateTemplate, groupTemplate *template.T
 func init() {
 	descriptionTemplate = new(template.Template)
 	descriptionTemplate = template.Must(descriptionTemplate.Parse(
-		`<span
-foreground="#333333">{{.Description}}</span>
+		`<span>{{.Description}}</span>
 {{ if .Tag }}<span 
 size="smaller"
 font_style="italic">{{.Tag}}</span> {{ end }}{{ if .Project}}<span 
 font_weight="bold" 
 size="smaller"
 foreground="{{.Color}}">• {{.Project}}</span>{{ if .Client }} <span
-size="smaller"
-foreground="#AAAAAA">• {{.Client}}</span>{{ end }}{{ end }}`))
+size="smaller">• {{.Client}}</span>{{ end }}{{ end }}`))
 	timingTemplate = new(template.Template)
 	timingTemplate = template.Must(timingTemplate.Parse(
-		`<span
-	foreground="#AAAAAA">{{.Start}}{{ if .Stop }} - {{.Stop}}{{ else }}...{{ end }}</span>
+		`<span>{{.Start}}{{ if .Stop }} - {{.Stop}}{{ else }}...{{ end }}</span>
 <span size="smaller">{{.Duration}}</span>`))
 	dateTemplate = new(template.Template)
 	dateTemplate = template.Must(dateTemplate.Parse(
-		`<span
-	font_weight="bold"
-	foreground="#555555">{{.}}</span>`))
+		`<span font_weight="bold">{{.}}</span>`))
 	groupTemplate = new(template.Template)
 	groupTemplate = template.Must(groupTemplate.Parse(
 		`<span

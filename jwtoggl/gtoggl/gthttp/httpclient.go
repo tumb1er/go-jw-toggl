@@ -22,7 +22,7 @@ const (
 	DefaultUrl                = "https://api.track.toggl.com/api/v9"
 	DefaultVersion            = "v9"
 	defaultBucket             = "toggl"
-	DefaultRateLimitPerSecond = 3
+	DefaultRateLimitPerSecond = 1
 )
 
 // TogglHttpClient is a Toggl REST client. Created by calling NewClient.
@@ -43,9 +43,10 @@ type TogglHttpClient struct {
 }
 
 type TogglError struct {
-	Code   int
-	Status string
-	Msg    string
+	Code       int
+	Status     string
+	Msg        string
+	RetryAfter time.Duration
 }
 
 type TogglResponse struct {
@@ -235,6 +236,15 @@ func requestWithLimit(c *TogglHttpClient, method, endpoint string, b interface{}
 		return nil, nil
 	}
 	if resp.StatusCode >= 400 {
+		retryAfter := time.Duration(0)
+		if resp.StatusCode == http.StatusPaymentRequired {
+			if seconds, err := strconv.Atoi(resp.Header.Get("X-Toggl-Quota-Resets-In")); err == nil && seconds > 0 {
+				retryAfter = time.Duration(seconds) * time.Second
+			}
+		}
+		if resp.StatusCode == http.StatusPaymentRequired {
+			return nil, &TogglError{Code: resp.StatusCode, Status: resp.Status, Msg: string(js), RetryAfter: retryAfter}
+		}
 		c.resetHttpClient("status", fmt.Errorf("response status %d", resp.StatusCode))
 		return nil, &TogglError{Code: resp.StatusCode, Status: resp.Status, Msg: string(js)}
 	}
