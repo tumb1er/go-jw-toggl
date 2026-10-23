@@ -5,5 +5,5 @@ Ubuntu
 ------
 
 ```sh
-sudo apt install libgtk-3-dev libappindicator3-dev
+sudo apt install libgtk-3-dev libayatana-appindicator3-dev
 ```

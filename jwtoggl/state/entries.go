@@ -117,7 +117,7 @@ func (db *TimeEntriesDB) CreateEntry(entry dto.TimeEntrySaver) error {
 	old := entries.Current()
 	entries.Create(&storeEntry)
 	if !old.Nil() && old.PK != storeEntry.PK {
-		old.Stop = storeEntry.Start
+		old.MarkStoppedAt(storeEntry.Start)
 		entries.Update(&old)
 		db.onTimeEntriesChanged(entries.List())
 	}
@@ -275,13 +275,13 @@ func (db *TimeEntriesDB) SyncChanges() error {
 			return err
 		}
 	}
-	for _, entry := range entries.NewEntries() {
-		if err := db.createEntry(entry); err != nil {
+	for _, entry := range entries.ChangedEntries() {
+		if err := db.updateEntry(&entry); err != nil {
 			return err
 		}
 	}
-	for _, entry := range entries.ChangedEntries() {
-		if err := db.updateEntry(&entry); err != nil {
+	for _, entry := range entries.NewEntries() {
+		if err := db.createEntry(entry); err != nil {
 			return err
 		}
 	}

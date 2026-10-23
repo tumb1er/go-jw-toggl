@@ -2,10 +2,15 @@ package jwtoggl
 
 import (
 	"context"
+	"errors"
 	"go-jw-toggl/jwtoggl/dto"
+	"go-jw-toggl/jwtoggl/gtoggl/gthttp"
 	"log"
 	"time"
 )
+
+const normalSyncInterval = 2 * time.Second
+const quotaFallbackDelay = time.Hour
 
 func (j *jApp) StartSync(ctx context.Context) {
 	j.db.OnCurrentEntry(j.OnCurrentEntryChanged)
@@ -77,17 +82,32 @@ func (j *jApp) doSync() <-chan time.Time {
 	log.Println("start sync")
 	defer log.Println("sync done")
 	errCount := 0
+	quotaLimited := false
+	quotaDelay := time.Duration(0)
+	handleSyncError := func(err error, msg string) {
+		j.handleError(err, msg)
+		if retryAfter, limited := quotaRetryAfter(err); limited {
+			quotaLimited = true
+			if retryAfter > quotaDelay {
+				quotaDelay = retryAfter
+			}
+			return
+		}
+		errCount++
+	}
 	if err := j.db.SyncCurrentEntry(false); err != nil {
-		j.handleError(err, "Sync current entry error")
-		errCount += 1
+		handleSyncError(err, "Sync current entry error")
 	}
 	if err := j.db.SyncLastEntries(false); err != nil {
-		j.handleError(err, "Sync last entries error")
-		errCount += 1
+		handleSyncError(err, "Sync last entries error")
 	}
 	if err := j.db.SyncChanges(); err != nil {
-		j.handleError(err, "Sync changes error")
-		errCount += 1
+		handleSyncError(err, "Sync changes error")
+	}
+	if quotaLimited {
+		delay := syncDelayForFailures(errCount, true, quotaDelay)
+		log.Println("Sync quota backoff", delay)
+		return time.After(delay)
 	}
 
 	if errCount == 0 {
@@ -96,7 +116,32 @@ func (j *jApp) doSync() <-chan time.Time {
 		j.backoff += 1
 		log.Println("Sync backoff", time.Duration(15*j.backoff)*time.Minute)
 	}
-	return time.After(time.Duration(15*j.backoff) * time.Minute)
+	return time.After(syncDelayForFailures(j.backoff, false, 0))
+}
+
+func quotaRetryAfter(err error) (time.Duration, bool) {
+	var togglErr *gthttp.TogglError
+	if errors.As(err, &togglErr) && togglErr.Code == 402 {
+		return togglErr.RetryAfter, true
+	}
+	return 0, false
+}
+
+func syncDelayForFailures(errorCount int, quotaLimited bool, quotaRetryAfter time.Duration) time.Duration {
+	if quotaLimited {
+		if quotaRetryAfter > 0 {
+			return quotaRetryAfter
+		}
+		return quotaFallbackDelay
+	}
+	return syncDelayForErrors(errorCount)
+}
+
+func syncDelayForErrors(errorCount int) time.Duration {
+	if errorCount == 0 {
+		return normalSyncInterval
+	}
+	return time.Duration(15*errorCount) * time.Minute
 }
 
 func (j *jApp) syncDuration() {
